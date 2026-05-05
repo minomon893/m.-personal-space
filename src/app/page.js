@@ -17,18 +17,29 @@ export default function HomePage() {
     async function handleVisitorCount() {
       const today = new Date().toISOString().split('T')[0];
       const storageKey = `has_counted_home_${today}`;
+      const guestIdKey = 'visitor_guest_id';
 
       try {
-        // 1. ログインユーザーを取得
-        const { data: { user } } = await supabase.auth.getUser();
+        // 1. ブラウザ独自のIDを取得または生成
+        let guestId = localStorage.getItem(guestIdKey);
+        if (!guestId) {
+          guestId = crypto.randomUUID();
+          localStorage.setItem(guestIdKey, guestId);
+        }
 
-        // 2. ログイン中 かつ 今日まだこのブラウザでカウントを記録していない場合
-        if (user && !localStorage.getItem(storageKey)) {
+        // 2. 今日まだこのブラウザでカウントを記録していない場合
+        if (!localStorage.getItem(storageKey)) {
+          const { data: { user } } = await supabase.auth.getUser();
+
           await supabase
             .from('daily_access_logs')
             .upsert(
-              { user_id: user.id, accessed_at: today },
-              { onConflict: 'user_id, accessed_at' }
+              { 
+                guest_id: guestId, 
+                accessed_at: today,
+                user_id: user?.id || null 
+              },
+              { onConflict: 'guest_id, accessed_at' }
             );
           
           // 今日はもう記録したことを保存
