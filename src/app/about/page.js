@@ -14,7 +14,7 @@ export default function AboutPage() {
 
     const formData = new FormData(e.target);
     // あなたのアクセスキーを適用
-    formData.append("access_key", "e19318c0-ba7c-4e5f-a23a-9de3d87939a6"); 
+    formData.append("access_key", "c72f1954-d625-4c0f-a04e-668bb13361cf"); 
 
     try {
       const response = await fetch("https://api.web3forms.com/submit", {
