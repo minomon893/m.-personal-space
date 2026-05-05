@@ -2,13 +2,17 @@ import withPWAInit from "@ducanh2912/next-pwa";
 
 /** @type {import('next').NextConfig} */
 const withPWA = withPWAInit({
-  dest: "public",                // PWAに必要なファイルを書き出す場所
-  cacheOnFrontEndNav: true,      // 画面遷移時にキャッシュして高速化
+  dest: "public",
+  cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,          // オンライン復帰時に自動リロード
-  disable: process.env.NODE_ENV === "development", // 開発中はPWAを無効化（エラー避け）
+  reloadOnOnline: true,
+  disable: process.env.NODE_ENV === "development",
 });
 
 export default withPWA({
-  // ここに既存の設定があれば書きますが、なければこのままでOK
+  // Vercelでのビルドエラー（Call retries were exceeded）対策
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
+  },
 });
