@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, MessageCircle, Clock, Tag, Quote, Sparkles, BookOpen, FileText } from "lucide-react";
 
 export default function TextCounselingPage() {
-  const LINE_URL = "https://line.me/R/ti/p/@あなたのID";
+  // 指定のLINE URLに差し替え
+  const LINE_URL = "https://line.me/R/ti/p/@263yimnl?oat_content=url&ts=05051014";
 
   return (
     <div className="min-h-screen bg-[#E6E1CF] p-6 md:p-12 text-[#5F6F7A] font-[var(--font-sans)] leading-relaxed">
@@ -62,7 +63,6 @@ export default function TextCounselingPage() {
           </div>
         </section>
 
-        {/* ユーザーの声 */}
         <section className="mb-24">
           <h2 className="text-[12px] font-bold tracking-[0.2em] uppercase mb-10 opacity-50 text-center">User Feedback</h2>
           <div className="grid gap-6">
@@ -76,12 +76,18 @@ export default function TextCounselingPage() {
           </div>
         </section>
 
+        {/* 決済・相談アクション */}
         <div className="sticky bottom-6 md:bottom-12 bg-white/90 backdrop-blur-md p-6 md:p-8 rounded-[3rem] border border-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-1">Text Consultation</p>
             <p className="text-[16px] font-bold text-[#4A5568]">¥1,200 / 1やり取り</p>
           </div>
-          <a href={LINE_URL} target="_blank" rel="noopener noreferrer" className="w-full md:w-auto px-10 py-5 bg-[#06C755] text-white rounded-full flex items-center justify-center gap-3 text-[13px] font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg">
+          <a 
+            href={LINE_URL} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="w-full md:w-auto px-10 py-5 bg-[#06C755] text-white rounded-full flex items-center justify-center gap-3 text-[13px] font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+          >
             <MessageCircle size={20} /> LINEで相談を送る
           </a>
         </div>

@@ -14,14 +14,14 @@ import {
   MessageCircle 
 } from "lucide-react";
 
-// 直接LINEへ飛ばすのではなく、作成した紹介ページ(/booking/line)へ誘導します
+// LINEボタンのみ紹介ページ(/booking/line)へ誘導
 const LINE_GUIDE_URL = "/booking/line";
 
 export default function BookingPage() {
   return (
     <div className="min-h-screen bg-[#E6E1CF] p-6 md:p-12 text-[#5F6F7A] relative overflow-x-hidden font-[var(--font-sans)]">
       
-      {/* LINE相談ボタン（紹介ページへ誘導） */}
+      {/* LINE相談ボタン */}
       <Link 
         href={LINE_GUIDE_URL}
         className="fixed bottom-8 right-8 z-40 bg-[#06C755] text-white shadow-2xl p-4 rounded-full flex items-center gap-3 hover:scale-105 transition-all group"
@@ -42,20 +42,20 @@ export default function BookingPage() {
           <h1 className="text-2xl md:text-3xl font-medium tracking-tight">Counseling Menu</h1>
           <p className="text-[13px] leading-relaxed opacity-70">
             解決策はあなたの中にあります。自己受容を土台に、現実的な行動変容をサポートします。<br />
-            詳細の確認や、お申し込みは公式LINEより承っております。
+            詳細の確認や、お申し込みは各プランより承っております。
           </p>
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full mb-16">
           
-          {/* 全ての「詳細を見る」の遷移先を /booking/line に統一 */}
+          {/* 各プランをそれぞれのパスへ修正 */}
           <PlanCard 
             icon={<MessageSquare size={20} />}
             title="テキスト相談 (1往復)"
             price="¥1,200"
             description="ご相談1回＋返信1回。LINEのトーク画面でそのままやり取りが可能です。まずは試してみたい方へ。"
             tag="最安プラン"
-            href={LINE_GUIDE_URL}
+            href="/booking/text" 
           />
 
           <PlanCard 
@@ -64,7 +64,7 @@ export default function BookingPage() {
             price="¥3,000 / 60min"
             description="文章で考えるのが苦手な方へ。LINEでのリアルタイムセッション。その場で悩みを紐解きます。"
             tag="即時性"
-            href={LINE_GUIDE_URL}
+            href="/booking/realtime" 
           />
 
           <PlanCard 
@@ -73,7 +73,7 @@ export default function BookingPage() {
             price="¥5,000"
             description="専用の行動分析ガイドをお渡しします。心理学的な背景に基づいた、あなただけの処方箋です。"
             tag="診断・ガイド"
-            href={LINE_GUIDE_URL}
+            href="/booking/guide" 
           />
 
           <DisabledPlanCard icon={<Video size={20} />} title="Zoom セッション (3回)" price="¥15,000" tag="準備中" />
@@ -96,7 +96,7 @@ export default function BookingPage() {
   );
 }
 
-// 子コンポーネントはそのまま利用
+// 子コンポーネント
 function PlanCard({ icon, title, price, description, tag, href }) {
   return (
     <div className="bg-white/40 border border-white/50 p-7 md:p-8 rounded-[2.5rem] shadow-sm space-y-4 flex flex-col h-full hover:bg-white/60 transition-all group">

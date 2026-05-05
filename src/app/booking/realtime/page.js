@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, MessageCircle, Clock, Tag, Quote, Sparkles, BookOpen, Zap, Calendar } from "lucide-react";
 
 export default function LiveSessionPage() {
-  const LINE_URL = "https://line.me/R/ti/p/@あなたのID";
+  // 指定のLINE URLに差し替え
+  const LINE_URL = "https://line.me/R/ti/p/@263yimnl?oat_content=url&ts=05051014";
 
   return (
     <div className="min-h-screen bg-[#E6E1CF] p-6 md:p-12 text-[#5F6F7A] font-[var(--font-sans)] leading-relaxed">
@@ -24,9 +25,11 @@ export default function LiveSessionPage() {
             1時間、あなたと深く向き合う対話を。
           </h1>
           <div className="flex flex-wrap gap-6 text-[13px] font-bold opacity-70 border-y border-[#5F6F7A]/10 py-4">
-            <span className="flex items-center gap-2"><Clock size={16} className="text-[#B5A773]"/> セッション：60分</span>
-            <span className="flex items-center gap-2"><Tag size={16} className="text-[#B5A773]"/> 料金：¥3,000</span>
             <span className="flex items-center gap-2"><Zap size={16} className="text-[#B5A773]"/> 事前インテーク（1,500文字）</span>
+            <span className="flex items-center gap-2"><Tag size={16} className="text-[#B5A773]"/> 料金：¥3,000</span>
+            <span className="flex items-center gap-2"><Clock size={16} className="text-[#B5A773]"/> セッション：60分</span>
+            
+            
           </div>
         </header>
 
@@ -62,7 +65,6 @@ export default function LiveSessionPage() {
           </div>
         </section>
 
-        {/* ユーザーの声 */}
         <section className="mb-24">
           <h2 className="text-[12px] font-bold tracking-[0.2em] uppercase mb-10 opacity-50 text-center">User Feedback</h2>
           <div className="grid gap-6">
@@ -76,12 +78,18 @@ export default function LiveSessionPage() {
           </div>
         </section>
 
+        {/* 決済・相談アクション */}
         <div className="sticky bottom-6 md:bottom-12 bg-white/90 backdrop-blur-md p-6 md:p-8 rounded-[3rem] border border-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-1">Live Chat</p>
             <p className="text-[16px] font-bold text-[#4A5568]">¥3,000 / 60min Session</p>
           </div>
-          <a href={LINE_URL} target="_blank" rel="noopener noreferrer" className="w-full md:w-auto px-10 py-5 bg-[#06C755] text-white rounded-full flex items-center justify-center gap-3 text-[13px] font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg">
+          <a 
+            href={LINE_URL} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="w-full md:w-auto px-10 py-5 bg-[#06C755] text-white rounded-full flex items-center justify-center gap-3 text-[13px] font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+          >
             <Calendar size={20} /> LINEで日程を相談する
           </a>
         </div>
