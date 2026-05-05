@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MessageCircle } from "lucide-react";
 
 export default function SoftKotoBot() {
   const qrImagePath = "/images/lineqr.jpg";
+  const lineLink = "https://lin.ee/XvFJBl9S";
 
   return (
     <div className="min-h-screen bg-[#C2CDC1] p-6 text-[#3A4238] select-none font-sans transition-colors duration-500">
@@ -67,7 +68,7 @@ export default function SoftKotoBot() {
             </div>
           </section>
 
-          {/* 使用例セクション（追加部分） */}
+          {/* 使用例セクション */}
           <section className="w-full space-y-12 mb-24">
             <div className="text-center">
               <span className="text-[9px] tracking-[0.4em] opacity-50 uppercase font-bold border-b border-[#3A4238]/30 pb-2">Examples</span>
@@ -126,6 +127,20 @@ export default function SoftKotoBot() {
                 のんびり待っててね。
               </p>
             </div>
+          </section>
+
+          {/* LINE リンクボタン */}
+          <section className="w-full flex flex-col items-center mb-16">
+            <a 
+              href={lineLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 bg-[#3A4238] text-[#C2CDC1] px-8 py-4 rounded-full shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+            >
+              <MessageCircle size={18} className="opacity-80" />
+              <span className="text-[11px] font-bold tracking-[0.2em] uppercase">Add to LINE</span>
+            </a>
+            <p className="mt-4 text-[9px] opacity-40 tracking-widest uppercase">Start Conversation</p>
           </section>
 
           <div className="w-10 h-[1px] bg-[#3A4238] opacity-20 mb-16"></div>

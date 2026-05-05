@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Eye, Edit3, Heart, Target, Sparkles, Trophy, Download } from "lucide-react";
 import { toPng } from 'html-to-image';
@@ -32,6 +32,23 @@ export default function HighContrastProfilePage() {
     choice: { emotion: "", rest: "", logic: "", plan: "", action: "", risk: "" },
     freeSpace: ""
   });
+
+  // 初回読み込み時にlocalStorageから復元
+  useEffect(() => {
+    const savedData = localStorage.getItem("my_profile_data");
+    if (savedData) {
+      try {
+        setData(JSON.parse(savedData));
+      } catch (e) {
+        console.error("Failed to load profile data", e);
+      }
+    }
+  }, []);
+
+  // dataが更新されるたびにlocalStorageに保存
+  useEffect(() => {
+    localStorage.setItem("my_profile_data", JSON.stringify(data));
+  }, [data]);
 
   const handleDownloadFull = async () => {
     if (!printRef.current) return;
@@ -120,14 +137,14 @@ export default function HighContrastProfilePage() {
             <Section title="01" en="IDENTIFICATION" jp="基本情報">
               <Input label="Name / 名前" value={data.basic.name} placeholder="名前を入力" onChange={v => handleChange('basic.name', v)} isEditing={isEditing} />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Sexuality / セクシュアリティ" value={data.basic.sexuality} placeholder="性自認、性表現等あれば" onChange={v => handleChange('basic.sexuality', v)} isEditing={isEditing} />
-                <Input label="MBTI" value={data.basic.mbti} placeholder="性格タイプ" onChange={v => handleChange('basic.mbti', v)} isEditing={isEditing} />
+                <Input label="Sex / 性別" value={data.basic.sexuality} placeholder="セクシュアリティでも可" onChange={v => handleChange('basic.sexuality', v)} isEditing={isEditing} />
+                <Input label="MBTI" value={data.basic.mbti} placeholder="ESFJ, INTP など" onChange={v => handleChange('basic.mbti', v)} isEditing={isEditing} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Birthday" value={data.basic.birthday} placeholder="MM.DD" onChange={v => handleChange('basic.birthday', v)} isEditing={isEditing} />
-                <Input label="Anniv." value={data.basic.anniversary} placeholder="記念日" onChange={v => handleChange('basic.anniversary', v)} isEditing={isEditing} />
+                <Input label="Birthday" value={data.basic.birthday} placeholder="YYYY.MM.DD" onChange={v => handleChange('basic.birthday', v)} isEditing={isEditing} />
+                <Input label="Anniv." value={data.basic.anniversary} placeholder="記念日 (初めて～した日、など)" onChange={v => handleChange('basic.anniversary', v)} isEditing={isEditing} />
               </div>
-              <Input label="Charm Points / 推しポイント" value={data.basic.charms} placeholder="自分の好きなところ" onChange={v => handleChange('basic.charms', v)} isEditing={isEditing} />
+              <Input label="Charm Points / 推しポイント" value={data.basic.charms} placeholder="外見、内面なんでも可" onChange={v => handleChange('basic.charms', v)} isEditing={isEditing} />
               <Input label="Future Design / 将来設計" value={data.basic.future} isArea={true} placeholder="将来の設計図..." onChange={v => handleChange('basic.future', v)} isEditing={isEditing} />
             </Section>
 
@@ -138,8 +155,8 @@ export default function HighContrastProfilePage() {
                   <MiniInput label="朝型 or 夜型" value={data.fillIn.morningNight} onChange={v => handleChange('fillIn.morningNight', v)} isEditing={isEditing} />
                   <MiniInput label="睡眠時間" value={data.fillIn.sleep} onChange={v => handleChange('fillIn.sleep', v)} isEditing={isEditing} />
                 </div>
-                <MiniInput label="すきなこと" value={data.fillIn.likes} onChange={v => handleChange('fillIn.likes', v)} isEditing={isEditing} />
-                <MiniInput label="きらいなこと" value={data.fillIn.dislikes} onChange={v => handleChange('fillIn.dislikes', v)} isEditing={isEditing} />
+                <MiniInput label="すきなこと、人" value={data.fillIn.likes} onChange={v => handleChange('fillIn.likes', v)} isEditing={isEditing} />
+                <MiniInput label="きらいなこと、人" value={data.fillIn.dislikes} onChange={v => handleChange('fillIn.dislikes', v)} isEditing={isEditing} />
                 <MiniInput label="地雷（NG）" value={data.fillIn.mine} onChange={v => handleChange('fillIn.mine', v)} isEditing={isEditing} />
                 <MiniInput label="機嫌を取るには" value={data.fillIn.moodUp} onChange={v => handleChange('fillIn.moodUp', v)} isEditing={isEditing} />
                 <MiniInput label="自分を一言で" value={data.fillIn.oneWord} onChange={v => handleChange('fillIn.oneWord', v)} isEditing={isEditing} />

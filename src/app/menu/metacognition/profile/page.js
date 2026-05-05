@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, User, Star, History, Bookmark, PenLine, Award, Info, X, Rocket } from "lucide-react";
+import { 
+  ArrowLeft, User, Star, History, Bookmark, PenLine, 
+  Award, Info, X, Rocket, Trash2, Pencil, Check, 
+  Settings, Target, PlayCircle, TrendingUp, FlaskConical 
+} from "lucide-react";
 import { supabase } from "../../../../lib/supabase";
 
 export default function ProfilePage() {
@@ -10,6 +14,12 @@ export default function ProfilePage() {
   const [myLogs, setMyLogs] = useState([]);
   const [myMemberId, setMyMemberId] = useState("");
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+
+  // 編集用ステート
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ 
+    material: "", scene: "", action: "", result: "", note: "" 
+  });
 
   const RANKS = [
     { threshold: 20, title: "Grand Master", sub: "最高技術顧問", icon: <Award size={36} className="text-[#B4941F]" /> },
@@ -19,23 +29,21 @@ export default function ProfilePage() {
   
   const currentRank = RANKS.find(r => myLogs.length >= r.threshold) || RANKS[RANKS.length - 1];
 
+  const fetchProfileData = async () => {
+    const id = localStorage.getItem("my_member_id");
+    const { data: all } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
+    if (all) {
+      if (id) {
+        setMyLogs(all.filter(log => log.no === id));
+      }
+      const savedIds = JSON.parse(localStorage.getItem("metacog_favorites") || "[]");
+      setFavLogs(all.filter(log => savedIds.includes(log.id)));
+    }
+  };
+
   useEffect(() => {
     const id = localStorage.getItem("my_member_id");
-    setMyMemberId(id || ""); // 存在しない場合は空文字
-
-    const fetchProfileData = async () => {
-      const { data: all } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
-      if (all) {
-        // 1. 自分の番号(no)が刻印された投稿だけを抽出
-        if (id) {
-          setMyLogs(all.filter(log => log.no === id));
-        }
-        
-        // 2. お気に入り
-        const savedIds = JSON.parse(localStorage.getItem("metacog_favorites") || "[]");
-        setFavLogs(all.filter(log => savedIds.includes(log.id)));
-      }
-    };
+    setMyMemberId(id || "");
     fetchProfileData();
   }, []);
 
@@ -46,9 +54,35 @@ export default function ProfilePage() {
     setFavLogs(prev => prev.filter(log => log.id !== id));
   };
 
+  const handleDelete = async (id) => {
+    if (!confirm("この報告を削除しますか？")) return;
+    const { error } = await supabase.from('reports').delete().eq('id', id);
+    if (!error) fetchProfileData();
+  };
+
+  const startEdit = (log) => {
+    setEditingId(log.id);
+    setEditForm({ 
+      material: log.material || "", 
+      scene: log.scene || "", 
+      action: log.action || "", 
+      result: log.result || "", 
+      note: log.note || "" 
+    });
+  };
+
+  const handleUpdate = async (id) => {
+    const { error } = await supabase.from('reports').update(editForm).eq('id', id);
+    if (!error) {
+      setEditingId(null);
+      fetchProfileData();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F0F4F8] text-[#334E68] p-6 pb-24 font-sans">
       <div className="max-w-md mx-auto">
+        {/* Navigation */}
         <div className="flex justify-between items-center mb-10 text-[11px] font-bold opacity-50 uppercase">
           <Link href="/menu/metacognition" className="flex items-center gap-2 hover:opacity-100 transition-all"><ArrowLeft size={12}/> Back</Link>
           <div className="flex gap-2">
@@ -57,6 +91,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Rank Section */}
         <div className="text-center mb-10 relative">
           <button onClick={() => setIsRankModalOpen(true)} className="absolute right-1/2 translate-x-12 top-0 p-2 text-[#627D98] opacity-30 hover:opacity-100"><Info size={16} /></button>
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4 border border-[#BCCCDC] shadow-sm relative">
@@ -66,6 +101,7 @@ export default function ProfilePage() {
           <p className="text-[10px] font-bold opacity-40 uppercase mt-1">{currentRank.sub}</p>
         </div>
 
+        {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3 mb-12">
           <StatBox label="User ID" value={myMemberId || "---"} sub="あなたの番号" />
           <StatBox label="Reports" value={myLogs.length} sub="あなたの報告数" />
@@ -73,17 +109,30 @@ export default function ProfilePage() {
         </div>
 
         <div className="space-y-12">
+          {/* My Submissions */}
           <section>
             <h2 className="text-[11px] font-bold flex items-center gap-2 text-[#486581] uppercase tracking-wider mb-6 border-b border-[#BCCCDC] pb-2"><PenLine size={14}/> My Submissions</h2>
             <div className="space-y-4">
               {myLogs.length > 0 ? myLogs.map(log => (
-                <ProfileCard key={log.id} log={log} type="submission" />
+                <ProfileCard 
+                  key={log.id} 
+                  log={log} 
+                  type="submission" 
+                  isEditing={editingId === log.id}
+                  editForm={editForm}
+                  setEditForm={setEditForm}
+                  onEdit={() => startEdit(log)}
+                  onDelete={() => handleDelete(log.id)}
+                  onSave={() => handleUpdate(log.id)}
+                  onCancel={() => setEditingId(null)}
+                />
               )) : (
-                <p className="text-[11px] opacity-30 text-center py-10 italic">まだ報告がありません。最初の報告をして番号を受け取りましょう。</p>
+                <p className="text-[11px] opacity-30 text-center py-10 italic">まだ報告がありません。</p>
               )}
             </div>
           </section>
 
+          {/* Stocked Reports */}
           <section>
             <h2 className="text-[11px] font-bold flex items-center gap-2 text-[#486581] uppercase tracking-wider mb-6 border-b border-[#BCCCDC] pb-2"><Bookmark size={14}/> Stocked Reports</h2>
             <div className="space-y-4">
@@ -96,6 +145,7 @@ export default function ProfilePage() {
           </section>
         </div>
 
+        {/* Rank Modal */}
         {isRankModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#243B53]/20 backdrop-blur-sm" onClick={() => setIsRankModalOpen(false)}>
             <div className="bg-white w-full max-w-xs rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -127,19 +177,66 @@ function StatBox({ label, value, sub }) {
   );
 }
 
-function ProfileCard({ log, type, onUnfav }) {
+function ProfileCard({ log, type, onUnfav, isEditing, editForm, setEditForm, onEdit, onDelete, onSave, onCancel }) {
   return (
-    <div className="bg-white border border-[#BCCCDC] rounded-2xl p-5 shadow-sm relative">
-      <div className="absolute top-5 right-5">
+    <div className={`bg-white border border-[#BCCCDC] rounded-2xl p-5 shadow-sm relative transition-all ${isEditing ? "ring-2 ring-[#627D98]" : ""}`}>
+      {/* Action Buttons */}
+      <div className="absolute top-5 right-5 flex gap-2">
         {type === 'stock' ? (
           <button onClick={onUnfav} className="active:scale-125 transition-transform"><Star size={18} className="fill-[#B4941F] text-[#B4941F]" /></button>
+        ) : isEditing ? (
+          <div className="flex gap-2">
+            <button onClick={onSave} className="text-[#486581] hover:scale-110"><Check size={18} /></button>
+            <button onClick={onCancel} className="text-[#BCCCDC] hover:scale-110"><X size={18} /></button>
+          </div>
         ) : (
-          <div className="opacity-10 text-[#627D98]"><PenLine size={18} /></div>
+          <div className="flex gap-2">
+            <button onClick={onEdit} className="text-[#627D98] opacity-20 hover:opacity-100 transition-all"><Pencil size={16} /></button>
+            <button onClick={onDelete} className="text-red-400 opacity-20 hover:opacity-100 transition-all"><Trash2 size={16} /></button>
+          </div>
         )}
       </div>
-      <span className="text-[8px] font-mono bg-[#F0F4F8] text-[#627D98] px-2 py-0.5 rounded font-bold uppercase italic">Researcher NO.{log.no}</span>
-      <h3 className="text-[14px] font-bold text-[#243B53] mt-2 leading-tight">{log.material}</h3>
-      <p className="text-[12px] opacity-70 mt-1 italic">"{log.action}"</p>
+      
+      <span className="text-[8px] font-mono bg-[#F0F4F8] text-[#627D98] px-2 py-0.5 rounded font-bold uppercase italic mb-4 inline-block">Researcher NO.{log.no}</span>
+      
+      {isEditing ? (
+        <div className="space-y-3">
+          <EditField label="Material" value={editForm.material} onChange={(v)=>setEditForm({...editForm, material:v})} />
+          <EditField label="Scene" value={editForm.scene} onChange={(v)=>setEditForm({...editForm, scene:v})} />
+          <EditField label="Action" value={editForm.action} onChange={(v)=>setEditForm({...editForm, action:v})} isTextarea />
+          <EditField label="Result" value={editForm.result} onChange={(v)=>setEditForm({...editForm, result:v})} />
+          <EditField label="Bug Reporting" value={editForm.note} onChange={(v)=>setEditForm({...editForm, note:v})} />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <LogLine icon={<Settings size={10}/>} label="Material" content={log.material} />
+          <LogLine icon={<Target size={10}/>} label="Scene" content={log.scene} />
+          <LogLine icon={<PlayCircle size={10}/>} label="Action" content={log.action} />
+          <LogLine icon={<TrendingUp size={10}/>} label="Result" content={log.result} />
+          {log.note && <LogLine icon={<FlaskConical size={10}/>} label="Bug Reporting" content={log.note} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EditField({ label, value, onChange, isTextarea = false }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase ml-1">{label}</span>
+      {isTextarea ? 
+        <textarea value={value} onChange={(e)=>onChange(e.target.value)} rows="2" className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[12px] outline-none focus:border-[#627D98]" /> :
+        <input type="text" value={value} onChange={(e)=>onChange(e.target.value)} className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[12px] outline-none focus:border-[#627D98]" />
+      }
+    </div>
+  );
+}
+
+function LogLine({ icon, label, content }) {
+  return (
+    <div className="grid grid-cols-[100px_1fr] gap-2 items-baseline">
+      <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase tracking-tighter flex items-center gap-1">{icon} {label}</span>
+      <p className="text-[12px] text-[#334E68] leading-tight font-medium">{content || "---"}</p>
     </div>
   );
 }
