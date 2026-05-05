@@ -166,7 +166,9 @@ export default function HomePage() {
                 </p>
                 <p className="text-[9px] opacity-80 mt-1 leading-tight">
                   下の共有ボタン <span className="inline-block border border-white/40 px-1 rounded mx-0.5">
-                    <svg className="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <svg className="w-2.5 h-2.5 inline mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.5 10l3.5-3.5 3.5 3.5M12 6.5v10M7 14.5v3.5a2 2 0 002 2h6a2 2 0 002-2v-3.5" />
+                    </svg>
                   </span> を押して「ホーム画面に追加」
                 </p>
               </div>
