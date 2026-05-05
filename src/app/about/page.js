@@ -13,6 +13,7 @@ export default function AboutPage() {
     setIsSending(true);
 
     const formData = new FormData(e.target);
+    
     // Gmailで認証済みの正しいアクセスキーを適用
     formData.append("access_key", "e19318c0-ba7c-4e5f-a23a-9de3d87939a6"); 
 
@@ -27,7 +28,7 @@ export default function AboutPage() {
       if (data.success) {
         setSubmitted(true);
       } else {
-        alert("送信に失敗しました。Web3Formsの認証メールを確認済みかチェックしてください。");
+        alert("送信に失敗しました。認証メールを確認済みかチェックしてください。");
       }
     } catch (error) {
       alert("エラーが発生しました。ネットワーク環境を確認してください。");
@@ -142,6 +143,9 @@ export default function AboutPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 px-2">
+              {/* スパム対策: ハニーポット (人間には見えず、ボットだけが入力してしまう罠) */}
+              <input type="checkbox" name="botcheck" className="hidden" style={{ display: "none" }} />
+              
               <input type="hidden" name="from_name" value="m. personal space" />
               
               <div className="space-y-1.5">
