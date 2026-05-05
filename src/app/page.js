@@ -12,12 +12,21 @@ const supabase = createClient(
 
 export default function HomePage() {
   const [visitorCount, setVisitorCount] = useState(0);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   useEffect(() => {
     async function handleVisitorCount() {
       const today = new Date().toISOString().split('T')[0];
       const storageKey = `has_counted_home_${today}`;
       const guestIdKey = 'visitor_guest_id';
+      const hidePromptKey = `hide_install_prompt_${today}`;
+
+      // --- インストール案内の表示切り替え判定 ---
+      // 今日まだ閉じていない場合のみ表示
+      const isHidden = localStorage.getItem(hidePromptKey);
+      if (!isHidden) {
+        setShowInstallPrompt(true);
+      }
 
       try {
         // 1. ブラウザ独自のIDを取得または生成
@@ -63,8 +72,15 @@ export default function HomePage() {
     handleVisitorCount();
   }, []);
 
+  // 案内を閉じる処理
+  const handleClosePrompt = () => {
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem(`hide_install_prompt_${today}`, "true");
+    setShowInstallPrompt(false);
+  };
+
   return (
-    <div className="min-h-screen bg-[#E6E1CF] p-8 text-[#5F6F7A] flex flex-col items-center font-[var(--font-sans)]">
+    <div className="min-h-screen bg-[#E6E1CF] p-8 text-[#5F6F7A] flex flex-col items-center font-[var(--font-sans)] relative">
 
       {/* HEADER */}
       <header className="w-full max-w-md text-center mt-12 mb-24">
@@ -131,6 +147,40 @@ export default function HomePage() {
           &copy; 2026 m. personal space
         </div>
       </footer>
+
+      {/* PWA INSTALL PROMPT - ステートによって表示を切り替え */}
+      {showInstallPrompt && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-xs z-50 animate-bounce">
+          <div className="bg-[#5F6F7A] text-white p-4 rounded-2xl shadow-2xl border border-white/20 relative">
+            {/* 吹き出しのしっぽ */}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#5F6F7A] rotate-45"></div>
+            
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white rounded-xl flex-shrink-0 flex items-center justify-center text-[#5F6F7A] font-bold shadow-inner">
+                m.
+              </div>
+              <div className="flex-1">
+                <p className="text-[11px] font-bold leading-tight">
+                  アプリとしてホーム画面に追加
+                </p>
+                <p className="text-[9px] opacity-80 mt-1 leading-tight">
+                  下の共有ボタン <span className="inline-block border border-white/40 px-1 rounded mx-0.5">
+                    <svg className="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                  </span> を押して「ホーム画面に追加」
+                </p>
+              </div>
+              {/* 閉じるボタン */}
+              <button 
+                onClick={handleClosePrompt}
+                className="text-white/40 hover:text-white p-1 transition-colors"
+                aria-label="案内を閉じる"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
