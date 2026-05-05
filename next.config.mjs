@@ -10,7 +10,6 @@ const withPWA = withPWAInit({
 });
 
 export default withPWA({
-  // これが重要！Turbopackとの衝突を回避します
   turbopack: {}, 
   experimental: {
     cpus: 1,

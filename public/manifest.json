@@ -1,16 +1,18 @@
-{
-  "name": "m. personal space",
-  "short_name": "m.space",
-  "description": "地味で愛しいソロ生活とメタ認知の記録",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#E6E1CF",
-  "theme_color": "#5F6F7A",
-  "icons": [
+```json
     {
-      "src": "/m.jpg",
-      "sizes": "192x192 512x512",
-      "type": "image/jpeg"
+      "name": "m. personal space",
+      "short_name": "m.space",
+      "description": "地味で愛しいソロ生活とメタ認知の記録",
+      "start_url": "/",
+      "display": "standalone",
+      "background_color": "#E6E1CF",
+      "theme_color": "#5F6F7A",
+      "icons": [
+        {
+          "src": "/m.png", // ここを新しい画像の名前に変える
+          "sizes": "512x512", // 画像のサイズに合わせる。もしサイズが不明なら、一旦 "192x192 512x512" と書いても良いです
+          "type": "image/png"
+        }
+      ]
     }
-  ]
-}
+    ```
