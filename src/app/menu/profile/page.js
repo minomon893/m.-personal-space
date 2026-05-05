@@ -17,11 +17,12 @@ export default function HighContrastProfilePage() {
     interests: { fashion: 50, sports: 50, love: 50, work: 50, hobby: 50, food: 50 },
     history: "",
     hexagon: [
-      { label: "爪の長さ", val: 0 },
-      { label: "喧嘩時のLINEの長さ", val: 0 },
-      { label: "筋トレ継続力", val: 0 },
-      { label: "しょうもない怪我の回数", val: 0 },
-      { label: "彼氏大好き度", val: 0 }
+      { label: "爪の長さ", val: 3 },
+      { label: "喧嘩時のLINEの長さ", val: 3 },
+      { label: "筋トレ継続力", val: 3 },
+      { label: "しょうもない怪我の回数", val: 3 },
+      { label: "彼氏大好き度", val: 3 },
+      { label: "早起きの得意さ", val: 3 }
     ],
     eval: { 
       self: ["", "", ""], 
@@ -119,7 +120,7 @@ export default function HighContrastProfilePage() {
             <Section title="01" en="IDENTIFICATION" jp="基本情報">
               <Input label="Name / 名前" value={data.basic.name} placeholder="名前を入力" onChange={v => handleChange('basic.name', v)} isEditing={isEditing} />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Sex / 属性" value={data.basic.sexuality} placeholder="性自認等" onChange={v => handleChange('basic.sexuality', v)} isEditing={isEditing} />
+                <Input label="Sexuality / セクシュアリティ" value={data.basic.sexuality} placeholder="性自認、性表現等あれば" onChange={v => handleChange('basic.sexuality', v)} isEditing={isEditing} />
                 <Input label="MBTI" value={data.basic.mbti} placeholder="性格タイプ" onChange={v => handleChange('basic.mbti', v)} isEditing={isEditing} />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -146,15 +147,15 @@ export default function HighContrastProfilePage() {
             </Section>
 
             {/* 03: Interests */}
-            <Section title="03" en="INTERESTS" jp="興味度（-20% 〜 120%）">
+            <Section title="03" en="INTERESTS" jp="興味度パーセンテージ">
               <div className="space-y-8 pt-2">
                 {[
-                  { k: 'fashion', l: 'ファッション' },
-                  { k: 'sports', l: 'スポーツ・運動' },
-                  { k: 'love', l: '恋愛・パートナー' },
-                  { k: 'work', l: '仕事・キャリア' },
-                  { k: 'hobby', l: '趣味・遊び' },
-                  { k: 'food', l: '食・グルメ' }
+                  { k: 'fashion', l: 'FASHION / ファッション' },
+                  { k: 'sports', l: 'SPORTS / スポーツ' },
+                  { k: 'love', l: 'LOVE / 恋愛' },
+                  { k: 'work', l: 'WORK / 仕事' },
+                  { k: 'hobby', l: 'HOBBY / 趣味' },
+                  { k: 'food', l: 'FOOD / 食' }
                 ].map(({ k, l }) => (
                   <div key={k} className="relative">
                     <div className="flex justify-between items-center mb-2">
@@ -179,16 +180,26 @@ export default function HighContrastProfilePage() {
             </Section>
 
             {/* 04: Hexagon Chart */}
-            <Section title="04" en="HEXAGON" jp="自分分析">
-              <div className="flex flex-col items-center overflow-hidden">
+            <Section title="04" en="HEXAGON" jp="自分ヘキサゴン">
+              <div className="flex flex-col items-center">
+                <p className="text-[10px] font-bold text-[#888888] mb-6 bg-[#F5F5F5] px-4 py-1 rounded-full italic">
+                  「3が平均」として自分を評価しよう！
+                </p>
                 <RadarChart data={data.hexagon} />
                 {isEditing && (
-                  <div className="grid grid-cols-1 gap-4 w-full bg-[#F5F5F5] p-5 rounded-2xl mt-8">
+                  <div className="grid grid-cols-1 gap-4 w-full bg-[#F5F5F5] p-5 rounded-2xl mt-8 border border-[#22222208]">
                     {data.hexagon.map((item, i) => (
-                      <div key={i} className="flex flex-col gap-1">
-                        <div className="flex justify-between text-[10px] font-black">
-                          <span>{item.label}</span>
-                          <span>{item.val}/6</span>
+                      <div key={i} className="flex flex-col gap-2">
+                        <div className="flex justify-between items-center text-[10px] font-black">
+                          <div className="flex items-center gap-2 text-[#222222]">
+                            <Edit3 size={10} className="text-[#888888]" />
+                            <input 
+                              className="bg-transparent border-b border-[#22222233] focus:border-[#222222] outline-none w-32" 
+                              value={item.label} 
+                              onChange={e => handleHexChange(i, 'label', e.target.value)}
+                            />
+                          </div>
+                          <span className="font-mono">{item.val}/6</span>
                         </div>
                         <input type="range" min="0" max="6" step="1" value={item.val} onChange={e => handleHexChange(i, 'val', parseInt(e.target.value))} className="w-full h-1 accent-[#222222]" />
                       </div>
@@ -200,10 +211,17 @@ export default function HighContrastProfilePage() {
 
             {/* 05: Evaluation */}
             <Section title="05" en="STORYLINE" jp="遍歴と評価">
-              <Input label="過去に沼ったコンテンツ" value={data.history} isArea={true} onChange={v => handleChange('history', v)} isEditing={isEditing} />
-              <div className="grid grid-cols-1 gap-6 mt-8">
-                <RankingSection title="自己評価（しっくり度）" icon={<Heart size={14} className="text-[#EF4444]" />} type="self" items={data.eval.self} onUpdate={handleRankChange} isEditing={isEditing} />
-                <RankingSection title="他己評価（言われる度）" icon={<Target size={14} className="text-[#3B82F6]" />} type="others" items={data.eval.others} onUpdate={handleRankChange} isEditing={isEditing} />
+              <Input 
+                label="過去に沼ったコンテンツ" 
+                value={data.history} 
+                isArea={true} 
+                placeholder={"ダンゴムシ集め（小学校低学年）など"}
+                onChange={v => handleChange('history', v)} 
+                isEditing={isEditing} 
+              />
+              <div className="grid grid-cols-1 gap-8 mt-12">
+                <RankingSection title="自己評価（しっくり度）" icon={<Heart size={16} className="text-[#EF4444]" />} type="self" items={data.eval.self} onUpdate={handleRankChange} isEditing={isEditing} />
+                <RankingSection title="他己評価（言われる度）" icon={<Target size={16} className="text-[#3B82F6]" />} type="others" items={data.eval.others} onUpdate={handleRankChange} isEditing={isEditing} />
               </div>
             </Section>
 
@@ -246,15 +264,44 @@ export default function HighContrastProfilePage() {
 
 function Section({ title, en, jp, children }) {
   return (
-    <div className="relative w-full">
-      <div className="flex items-center gap-4 mb-8">
-        <span className="text-4xl md:text-6xl font-black text-[#2222221A] leading-none tracking-tighter">{title}</span>
+    <section className="flex flex-col gap-6">
+      <div className="flex items-baseline gap-3 border-l-4 border-[#222222] pl-4">
+        <span className="text-xl md:text-2xl font-black font-mono leading-none">{title}</span>
         <div className="flex flex-col">
-          <span className="text-[9px] font-black tracking-[0.2em] text-[#888888] uppercase">{en}</span>
-          <h2 className="text-[16px] md:text-[20px] font-black text-[#222222] tracking-tighter">{jp}</h2>
+          <span className="text-[10px] font-black tracking-widest text-[#222222] uppercase leading-none mb-1">{en}</span>
+          <span className="text-[12px] font-bold text-[#22222266] leading-none">{jp}</span>
         </div>
       </div>
-      {children}
+      <div className="px-1">{children}</div>
+    </section>
+  );
+}
+
+function RankingSection({ title, icon, type, items, onUpdate, isEditing }) {
+  const ranks = [{ label: "1st", color: "#FFD700" }, { label: "2nd", color: "#C0C0C0" }, { label: "3rd", color: "#CD7F32" }];
+  return (
+    <div className="w-full">
+      <p className="text-[12px] font-black mb-4 uppercase flex items-center gap-2">{icon} {title}</p>
+      <div className="space-y-3">
+        {items.map((val, i) => (
+          <div key={i} className="flex items-center gap-4 bg-[#F5F5F5] p-5 rounded-2xl border border-[#22222205]">
+            <div className="flex flex-col items-center justify-center">
+               <Trophy size={18} style={{ color: ranks[i].color }} />
+               <span className="text-[8px] font-mono font-bold mt-1" style={{ color: ranks[i].color }}>{ranks[i].label}</span>
+            </div>
+            {isEditing ? (
+              <input 
+                className="flex-1 bg-transparent border-b-2 border-[#2222221A] text-[16px] font-black outline-none focus:border-[#222222] pb-1 placeholder:text-[#22222233]" 
+                value={val} 
+                onChange={e => onUpdate(type, i, e.target.value)} 
+                placeholder={`${i+1}位`}
+              />
+            ) : (
+              <span className="text-[16px] font-black">{val || "---"}</span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -281,8 +328,8 @@ function RadarChart({ data }) {
       <polygon points={points} fill="#222222" fillOpacity={0.15} stroke="#222222" strokeWidth={3} strokeLinejoin="round" />
       {data.map((item, i) => {
         const angle = (Math.PI * 2 / data.length) * i - Math.PI / 2;
-        const x = center + (radius + 28) * Math.cos(angle);
-        const y = center + (radius + 28) * Math.sin(angle);
+        const x = center + (radius + 35) * Math.cos(angle);
+        const y = center + (radius + 35) * Math.sin(angle);
         return (
           <text key={i} x={x} y={y} textAnchor="middle" className="text-[10px] font-black fill-[#222222]" dominantBaseline="middle">
             {item.label}
@@ -293,36 +340,15 @@ function RadarChart({ data }) {
   );
 }
 
-function RankingSection({ title, icon, type, items, onUpdate, isEditing }) {
-  const ranks = [{ label: "1st", color: "#FFD700" }, { label: "2nd", color: "#C0C0C0" }, { label: "3rd", color: "#CD7F32" }];
-  return (
-    <div className="w-full">
-      <p className="text-[10px] font-black mb-3 uppercase flex items-center gap-2">{icon} {title}</p>
-      <div className="space-y-2">
-        {items.map((val, i) => (
-          <div key={i} className="flex items-center gap-3 bg-[#F5F5F5] p-3 rounded-xl">
-            <Trophy size={14} style={{ color: ranks[i].color }} />
-            {isEditing ? (
-              <input className="flex-1 bg-transparent border-b border-[#2222221A] text-[13px] font-bold outline-none" value={val} onChange={e => onUpdate(type, i, e.target.value)} />
-            ) : (
-              <span className="text-[13px] font-bold">{val || "---"}</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function Input({ label, value, onChange, isEditing, isArea = false, placeholder }) {
   return (
     <div className="mb-6 w-full">
       <p className="text-[10px] font-black mb-2 uppercase text-[#888888]">{label}</p>
       {isEditing ? (
         isArea ? (
-          <textarea className="w-full bg-[#FBFBFB] border-b-2 border-[#2222221A] py-2 px-3 text-[14px] font-bold min-h-[80px] rounded-t-lg outline-none focus:border-[#222222] resize-none" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} />
+          <textarea className="w-full bg-[#FBFBFB] border-b-2 border-[#2222221A] py-2 px-3 text-[14px] font-bold min-h-[80px] rounded-t-lg outline-none focus:border-[#222222] resize-none placeholder:text-[#22222233]" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} />
         ) : (
-          <input className="w-full bg-[#FBFBFB] border-b-2 border-[#2222221A] py-2 px-3 text-[14px] font-bold rounded-t-lg outline-none focus:border-[#222222]" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} />
+          <input className="w-full bg-[#FBFBFB] border-b-2 border-[#2222221A] py-2 px-3 text-[14px] font-bold rounded-t-lg outline-none focus:border-[#222222] placeholder:text-[#22222233]" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} />
         )
       ) : (
         <p className="text-[14px] font-bold py-2 border-b-2 border-transparent min-h-[30px] whitespace-pre-wrap">{value || "---"}</p>
