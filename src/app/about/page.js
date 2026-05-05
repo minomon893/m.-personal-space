@@ -13,7 +13,7 @@ export default function AboutPage() {
     setIsSending(true);
 
     const formData = new FormData(e.target);
-    // あなたのアクセスキーを適用
+    // Gmailで認証済みの正しいアクセスキーを適用
     formData.append("access_key", "e19318c0-ba7c-4e5f-a23a-9de3d87939a6"); 
 
     try {
@@ -27,7 +27,7 @@ export default function AboutPage() {
       if (data.success) {
         setSubmitted(true);
       } else {
-        alert("送信に失敗しました。時間をおいて再度お試しください。");
+        alert("送信に失敗しました。Web3Formsの認証メールを確認済みかチェックしてください。");
       }
     } catch (error) {
       alert("エラーが発生しました。ネットワーク環境を確認してください。");
@@ -142,7 +142,6 @@ export default function AboutPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 px-2">
-              {/* 送信者名をサイト名に固定 */}
               <input type="hidden" name="from_name" value="m. personal space" />
               
               <div className="space-y-1.5">
