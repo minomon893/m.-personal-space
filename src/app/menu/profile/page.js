@@ -137,14 +137,14 @@ export default function HighContrastProfilePage() {
             <Section title="01" en="IDENTIFICATION" jp="基本情報">
               <Input label="Name / 名前" value={data.basic.name} placeholder="名前を入力" onChange={v => handleChange('basic.name', v)} isEditing={isEditing} />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Sex / 性別" value={data.basic.sexuality} placeholder="セクシュアリティでも可" onChange={v => handleChange('basic.sexuality', v)} isEditing={isEditing} />
+                <Input label="Sex / 性別" value={data.basic.sexuality} placeholder="セクシュアリティ" onChange={v => handleChange('basic.sexuality', v)} isEditing={isEditing} />
                 <Input label="MBTI" value={data.basic.mbti} placeholder="ESFJ, INTP など" onChange={v => handleChange('basic.mbti', v)} isEditing={isEditing} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Birthday" value={data.basic.birthday} placeholder="YYYY.MM.DD" onChange={v => handleChange('basic.birthday', v)} isEditing={isEditing} />
-                <Input label="Anniv." value={data.basic.anniversary} placeholder="記念日 (初めて～した日、など)" onChange={v => handleChange('basic.anniversary', v)} isEditing={isEditing} />
+                <Input label="Anniv." value={data.basic.anniversary} placeholder="記念日(〇〇の日)" onChange={v => handleChange('basic.anniversary', v)} isEditing={isEditing} />
               </div>
-              <Input label="Charm Points / 推しポイント" value={data.basic.charms} placeholder="外見、内面なんでも可" onChange={v => handleChange('basic.charms', v)} isEditing={isEditing} />
+              <Input label="Charm Points / 推しポイント" value={data.basic.charms} placeholder="外見、内面" onChange={v => handleChange('basic.charms', v)} isEditing={isEditing} />
               <Input label="Future Design / 将来設計" value={data.basic.future} isArea={true} placeholder="将来の設計図..." onChange={v => handleChange('basic.future', v)} isEditing={isEditing} />
             </Section>
 

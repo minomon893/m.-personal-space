@@ -22,7 +22,6 @@ export default function HomePage() {
       const hidePromptKey = `hide_install_prompt_${today}`;
 
       // --- インストール案内の表示切り替え判定 ---
-      // 今日まだ閉じていない場合のみ表示
       const isHidden = localStorage.getItem(hidePromptKey);
       if (!isHidden) {
         setShowInstallPrompt(true);
@@ -36,11 +35,11 @@ export default function HomePage() {
           localStorage.setItem(guestIdKey, guestId);
         }
 
-        // 2. 今日まだこのブラウザでカウントを記録していない場合
+        // 2. 今日まだこのブラウザで送信していない場合のみupsertを実行
         if (!localStorage.getItem(storageKey)) {
           const { data: { user } } = await supabase.auth.getUser();
 
-          await supabase
+          const { error: upsertError } = await supabase
             .from('daily_access_logs')
             .upsert(
               { 
@@ -51,11 +50,14 @@ export default function HomePage() {
               { onConflict: 'guest_id, accessed_at' }
             );
           
-          // 今日はもう記録したことを保存
-          localStorage.setItem(storageKey, "true");
+          // 送信に成功したらフラグを立てる（リロード対策）
+          if (!upsertError) {
+            localStorage.setItem(storageKey, "true");
+          }
         }
 
-        // 3. 今日の日付のユニークユーザー合計数を取得
+        // 3. 今日の日付のレコード数（デバイス数）を取得
+        // 日付でeq（一致）させているため、深夜0時に自動で0リセットされます
         const { count, error } = await supabase
           .from('daily_access_logs')
           .select('*', { count: 'exact', head: true })
@@ -148,11 +150,10 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* PWA INSTALL PROMPT - ステートによって表示を切り替え */}
+      {/* PWA INSTALL PROMPT */}
       {showInstallPrompt && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-xs z-50 animate-bounce">
           <div className="bg-[#5F6F7A] text-white p-4 rounded-2xl shadow-2xl border border-white/20 relative">
-            {/* 吹き出しのしっぽ */}
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#5F6F7A] rotate-45"></div>
             
             <div className="flex items-center gap-3">
@@ -169,7 +170,6 @@ export default function HomePage() {
                   </span> を押して「ホーム画面に追加」
                 </p>
               </div>
-              {/* 閉じるボタン */}
               <button 
                 onClick={handleClosePrompt}
                 className="text-white/40 hover:text-white p-1 transition-colors"
