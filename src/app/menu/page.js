@@ -8,17 +8,50 @@ import {
   User,
   Lock,
   BookOpen,
+  Users, // 追加
 } from "lucide-react";
+import { supabase } from "@/lib/supabase"; // Supabaseクライアントをインポート
 
 export default function MenuPage() {
   const [hasNewNotice, setHasNewNotice] = useState(false);
+  const [visitorCount, setVisitorCount] = useState(0); // ユーザー数用
   const LATEST_NOTICE_ID = "v1.1-update";
 
   useEffect(() => {
+    // 1. お知らせの既読チェック
     const lastViewed = localStorage.getItem("last_viewed_notice");
     if (lastViewed !== LATEST_NOTICE_ID) {
       setHasNewNotice(true);
     }
+
+    // 2. ユーザー数のカウント処理
+    const handleVisitorCount = async () => {
+      // ログインユーザーを取得
+      const { data: { user } } = await supabase.auth.getUser();
+      const today = new Date().toISOString().split('T')[0];
+
+      if (user) {
+        // 今日のアクセスを記録 (既に記録があれば無視される)
+        await supabase
+          .from('daily_access_logs')
+          .upsert(
+            { user_id: user.id, accessed_at: today },
+            { onConflict: 'user_id, accessed_at' }
+          );
+      }
+
+      // 今日の合計ユニークユーザー数を取得
+      const { count, error } = await supabase
+        .from('daily_access_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('accessed_at', today);
+
+      if (!error && count !== null) {
+        setVisitorCount(count);
+      }
+    };
+
+    handleVisitorCount();
   }, []);
 
   const handleNoticeClick = () => {
@@ -27,17 +60,26 @@ export default function MenuPage() {
   };
 
   return (
-    /* 背景色をトップページと同じ #E6E1CF に設定 */
     <div className="min-h-screen bg-[#E6E1CF] p-6 text-[#5F6F7A] font-[var(--font-sans)] transition-colors duration-500">
       <div className="max-w-md mx-auto">
 
-        {/* BACK */}
-        <Link
-          href="/"
-          className="text-[10px] tracking-widest font-bold opacity-60 uppercase flex items-center gap-2 mb-10 hover:opacity-100 transition-all"
-        >
-          <ArrowLeft size={12} /> Back to Top
-        </Link>
+        <div className="flex justify-between items-center mb-10">
+          {/* BACK */}
+          <Link
+            href="/"
+            className="text-[10px] tracking-widest font-bold opacity-60 uppercase flex items-center gap-2 hover:opacity-100 transition-all"
+          >
+            <ArrowLeft size={12} /> Back to Top
+          </Link>
+
+          {/* 今日のユーザー数表示 */}
+          <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full border border-white/30">
+            <Users size={12} className="opacity-40" />
+            <span className="text-[10px] font-bold opacity-60 tracking-tighter">
+              TODAY: <span className="text-[#B5A773]">{visitorCount}</span>
+            </span>
+          </div>
+        </div>
 
         {/* TITLE */}
         <h1 className="text-xl font-[var(--font-serif)] font-medium tracking-[0.2em] mb-12 text-center italic opacity-80">
