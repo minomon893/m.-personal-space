@@ -80,7 +80,7 @@ export default function TextCounselingPage() {
         <div className="sticky bottom-6 md:bottom-12 bg-white/90 backdrop-blur-md p-6 md:p-8 rounded-[3rem] border border-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-1">Text Consultation</p>
-            <p className="text-[16px] font-bold text-[#4A5568]">¥1,200 / 1やり取り</p>
+            <p className="text-[16px] font-bold text-[#4A5568]">¥1,200 / 1往復</p>
           </div>
           <a 
             href={LINE_URL} 
