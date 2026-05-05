@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// Supabaseクライアントの初期化（JavaScript用に末尾の ! を削除）
+// Supabaseクライアントの初期化
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -14,37 +14,42 @@ export default function HomePage() {
   const [visitorCount, setVisitorCount] = useState(0);
 
   useEffect(() => {
-    async function updateCounter() {
-      // 1. Supabaseから現在のカウントを取得
-      const { data, error: fetchError } = await supabase
-        .from('site_stats')
-        .select('count')
-        .eq('id', 'visitor_count')
-        .single();
+    async function handleVisitorCount() {
+      const today = new Date().toISOString().split('T')[0];
+      const storageKey = `has_counted_home_${today}`;
 
-      if (fetchError) {
-        console.error("データ取得エラー:", fetchError.message);
-        return;
-      }
+      try {
+        // 1. ログインユーザーを取得
+        const { data: { user } } = await supabase.auth.getUser();
 
-      if (data) {
-        const newCount = data.count + 1;
-        
-        // 2. Supabaseの数値を更新（データがあれば上書き、なければ作成）
-        const { error: upsertError } = await supabase
-          .from('site_stats')
-          .upsert({ id: 'visitor_count', count: newCount });
-
-        if (upsertError) {
-          console.error("データ更新エラー:", upsertError.message);
-        } else {
-          // 3. 成功したら画面の数字を反映
-          setVisitorCount(newCount);
+        // 2. ログイン中 かつ 今日まだこのブラウザでカウントを記録していない場合
+        if (user && !localStorage.getItem(storageKey)) {
+          await supabase
+            .from('daily_access_logs')
+            .upsert(
+              { user_id: user.id, accessed_at: today },
+              { onConflict: 'user_id, accessed_at' }
+            );
+          
+          // 今日はもう記録したことを保存
+          localStorage.setItem(storageKey, "true");
         }
+
+        // 3. 今日の日付のユニークユーザー合計数を取得
+        const { count, error } = await supabase
+          .from('daily_access_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('accessed_at', today);
+
+        if (!error && count !== null) {
+          setVisitorCount(count);
+        }
+      } catch (err) {
+        console.error("Counter Error:", err);
       }
     }
 
-    updateCounter();
+    handleVisitorCount();
   }, []);
 
   return (
@@ -52,8 +57,8 @@ export default function HomePage() {
 
       {/* HEADER */}
       <header className="w-full max-w-md text-center mt-12 mb-24">
-        <div className="inline-block px-4 py-1.5 bg-white/40 rounded-full text-[9px] tracking-[0.25em] mb-6 border border-white/30">
-          TODAY'S VISITOR: <span className="font-bold ml-1">{visitorCount}</span>
+        <div className="inline-block px-4 py-1.5 bg-white/40 rounded-full text-[9px] tracking-[0.25em] mb-6 border border-white/30 shadow-sm">
+          TODAY'S VISITOR: <span className="font-bold ml-1 text-[#B5A773]">{visitorCount}</span>
         </div>
 
         <h1 className="text-4xl italic mb-3">
