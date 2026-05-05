@@ -10,7 +10,8 @@ const withPWA = withPWAInit({
 });
 
 export default withPWA({
-  // Vercelでのビルドエラー（Call retries were exceeded）対策
+  // これが重要！Turbopackとの衝突を回避します
+  turbopack: {}, 
   experimental: {
     cpus: 1,
     workerThreads: false,
