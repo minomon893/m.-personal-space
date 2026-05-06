@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 "use client";
 
 import { useState, useEffect } from "react";
@@ -16,8 +17,7 @@ export default function AdminPage() {
   // パスワードチェック
   const handleLogin = (e) => {
     e.preventDefault();
-    const correctPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "";
-    
+    const correctPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "fallback_password";
     if (passwordInput === correctPassword) {
       setIsAuthorized(true);
       sessionStorage.setItem("admin_auth", "true"); // ブラウザを閉じるまで有効
