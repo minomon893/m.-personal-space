@@ -1,39 +1,39 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Scroll, Sparkles, Bird } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function PoemPage() {
   const [poem, setPoem] = useState(null);
   const [isOpening, setIsOpening] = useState(false);
+  const [dbPoems, setDbPoems] = useState([]); // Supabaseから取得した詩のリスト
 
-  const poems = [
-    { text: `歩くって少し止まると書きますし、立ち止まる日もあなたの一歩。`, author: `言葉遊び` },
-    { text: `生き方そのものを夢にする生き方もある。`, author: `魔法少女まどか☆マギカ` },
-    { text: `気づいた分だけ、世界は愛おしくなる。`, author: `グッデイ CM` },
-    { text: `98%の信頼`, author: `渡辺和子` },
-    { text: `私、ヒマが好き`, author: `さくらももこ` },
-    { text: `不自由と不幸はイコールじゃない。哀れに思われる理由はないよ。`, author: `鋼の錬金術師` },
-    { text: `理解することと感情が動かないことは必ずしも同じではない。`, author: `Philosophical Quote` },
-    { text: `和して同ぜず`, author: `論語` },
-    { text: `Eat Well, Live Well.\nよく食べ、よく生きる`, author: `AJINOMOTO` },
-    { text: `Garbage can\nゴミでも出来る`, author: `Metaphor` },
-    { text: `Love is like a fart, if you push it, it's probably sh*t.\n愛はオナラのようなもの。無理に力めば、それはきっと〇〇〇である`, author: `Humorous Proverb` },
-    { text: `Never take a person's dignity: it is worth everything to them, and nothing to you.\n人の尊厳を奪ってはいけない。それは彼らにとってのすべてであり、あなたにとっては価値のないものだから`, author: `Frank Barron` },
-    { text: `The person is not a problem. The problem is a problem.\nその人が問題なのではない。問題そのものが、問題なのだ`, author: `Michael White` },
-    { text: `Respect is an expression of yourself and your value.\n尊敬とは、あなた自身とその価値観の現れである`, author: `Philosophical Quote` },
-    { text: `Solitude\nひとりであることを慈しむ、静かな時間`, author: `Concept` },
-    { text: `Thank you for trying!\n挑戦してくれて、ありがとう！`, author: `Encouragement` }
-  ];
+  useEffect(() => {
+    const fetchPoems = async () => {
+      const { data, error } = await supabase
+        .from('poems')
+        .select('*');
+      if (!error && data) {
+        setDbPoems(data);
+      }
+    };
+    fetchPoems();
+  }, []);
 
   const pullPoem = () => {
-    if (isOpening) return;
+    if (isOpening || dbPoems.length === 0) return;
     setPoem(null);
     setIsOpening(true);
+    
     setTimeout(() => {
-      const randomPoem = poems[Math.floor(Math.random() * poems.length)];
-      setPoem(randomPoem);
+      // データベースから取得した配列からランダムに選択
+      const randomPoem = dbPoems[Math.floor(Math.random() * dbPoems.length)];
+      setPoem({ 
+        text: randomPoem.body, 
+        author: randomPoem.title || "Unknown" 
+      });
       setIsOpening(false);
     }, 1800);
   };
@@ -97,7 +97,7 @@ export default function PoemPage() {
                   <div className="flex items-center gap-2">
                     <div className="h-[1px] w-4 bg-[#C2B280]" />
                     <p className="text-[9px] font-bold tracking-[0.2em] uppercase opacity-60">
-                       {poem.author}
+                        {poem.author}
                     </p>
                   </div>
                 </div>
