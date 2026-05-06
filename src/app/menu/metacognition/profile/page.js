@@ -14,6 +14,8 @@ export default function ProfilePage() {
   const [myLogs, setMyLogs] = useState([]);
   const [myMemberId, setMyMemberId] = useState("");
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+  // 過去の最大投稿数を保持するステート
+  const [maxReportCount, setMaxReportCount] = useState(0);
 
   // 編集用ステート
   const [editingId, setEditingId] = useState(null);
@@ -27,14 +29,26 @@ export default function ProfilePage() {
     { threshold: 0, title: "Junior Researcher", sub: "新人研究員", icon: <Award size={36} className="text-[#9FB3C8]" /> },
   ];
   
-  const currentRank = RANKS.find(r => myLogs.length >= r.threshold) || RANKS[RANKS.length - 1];
+  // 現在のランク判定を maxReportCount に基づいて行う
+  const currentRank = RANKS.find(r => maxReportCount >= r.threshold) || RANKS[RANKS.length - 1];
 
   const fetchProfileData = async () => {
     const id = localStorage.getItem("my_member_id");
     const { data: all } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
+    
     if (all) {
+      let currentLogs = [];
       if (id) {
-        setMyLogs(all.filter(log => log.no === id));
+        currentLogs = all.filter(log => log.no === id);
+        setMyLogs(currentLogs);
+
+        // 最大投稿数の更新と保存（一度増えたら減らさない）
+        const savedStats = JSON.parse(localStorage.getItem("metacog_achievements") || "{}");
+        const prevMax = savedStats.maxCount || 0;
+        const newMax = Math.max(prevMax, currentLogs.length);
+        
+        setMaxReportCount(newMax);
+        localStorage.setItem("metacog_achievements", JSON.stringify({ ...savedStats, maxCount: newMax }));
       }
       const savedIds = JSON.parse(localStorage.getItem("metacog_favorites") || "[]");
       setFavLogs(all.filter(log => savedIds.includes(log.id)));
@@ -44,6 +58,13 @@ export default function ProfilePage() {
   useEffect(() => {
     const id = localStorage.getItem("my_member_id");
     setMyMemberId(id || "");
+    
+    // 初回ロード時に保存されている最大数を復元
+    const savedStats = JSON.parse(localStorage.getItem("metacog_achievements") || "{}");
+    if (savedStats.maxCount) {
+      setMaxReportCount(savedStats.maxCount);
+    }
+
     fetchProfileData();
   }, []);
 
@@ -104,7 +125,7 @@ export default function ProfilePage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3 mb-12">
           <StatBox label="User ID" value={myMemberId || "---"} sub="あなたの番号" />
-          <StatBox label="Reports" value={myLogs.length} sub="あなたの報告数" />
+          <StatBox label="Reports" value={myLogs.length} sub="現在の報告数" />
           <StatBox label="Stocks" value={favLogs.length} sub="保存済み" />
         </div>
 
@@ -153,7 +174,7 @@ export default function ProfilePage() {
               <div className="text-center mb-8"><h2 className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 mb-2">Development Rank</h2></div>
               <div className="space-y-6">
                 {RANKS.slice().reverse().map((r) => (
-                  <div key={r.threshold} className={`flex items-center gap-4 ${myLogs.length >= r.threshold ? 'opacity-100' : 'opacity-20'}`}>
+                  <div key={r.threshold} className={`flex items-center gap-4 ${maxReportCount >= r.threshold ? 'opacity-100' : 'opacity-20'}`}>
                     <div className="text-[10px] font-mono font-bold w-8">{r.threshold}+</div>
                     <div><div className="text-[11px] font-bold text-[#243B53] uppercase">{r.title}</div><div className="text-[8px] font-bold opacity-50">{r.sub}</div></div>
                   </div>
