@@ -1,12 +1,14 @@
-export const dynamic = "force-dynamic";
 "use client";
+
 export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Scroll, Sparkles, Bird } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function PoemPage() {
+  // ...以下は今のコードと同じで大丈夫です
   const [poem, setPoem] = useState(null);
   const [isOpening, setIsOpening] = useState(false);
   const [dbPoems, setDbPoems] = useState([]); // Supabaseから取得した詩のリスト

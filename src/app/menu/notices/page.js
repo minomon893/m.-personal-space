@@ -1,12 +1,14 @@
-export const dynamic = "force-dynamic";
 "use client";
+
 export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Terminal, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function NoticesPage() {
+  // ... 以下、元のコードと同じ
   const [viewedIds, setViewedIds] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [notices, setNotices] = useState([]); // Supabaseから取得したデータを格納
