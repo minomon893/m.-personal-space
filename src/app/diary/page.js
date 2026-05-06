@@ -17,14 +17,24 @@ export default function DiaryPage() {
   // 初期読み込み
   useEffect(() => {
     const saved = localStorage.getItem("mood_logs");
-    if (saved) setLogs(JSON.parse(saved));
+    if (saved) {
+      try {
+        setLogs(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse logs", e);
+      }
+    }
   }, []);
 
   // 全期間平均
   const getAverage = (days) => {
     if (!logs.length) return 0;
-    const recent = logs.slice(0, days);
-    return Math.round(recent.reduce((a, b) => a + (b.score || 0), 0) / Math.max(recent.length, 1));
+    const now = Date.now();
+    const msInDay = 24 * 60 * 60 * 1000;
+    const recent = logs.filter(log => (now - log.id) < (days * msInDay));
+    
+    if (recent.length === 0) return 0;
+    return Math.round(recent.reduce((a, b) => a + (b.score || 0), 0) / recent.length);
   };
 
   /**
@@ -104,6 +114,7 @@ export default function DiaryPage() {
     
     setText("");
     setPercentage(50);
+    // 保存時に最新の月/年に表示を合わせる
     setViewDate(new Date());
   };
 
