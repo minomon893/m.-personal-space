@@ -172,13 +172,26 @@ export default function AdminPage() {
           {items.map((item) => (
             <div key={item.id} className="bg-white/60 p-6 rounded-2xl border border-white flex justify-between items-start group hover:bg-white/80 transition-all">
               <div className="flex-1 pr-4">
-                <p className="text-[14px] leading-relaxed mb-2 whitespace-pre-wrap">{item.body || item.content}</p>
-                <div className="flex gap-2 items-center">
-                  <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.title}</span>
-                  {(item.tag && activeTab === "notices") && (
-                    <span className="text-[8px] px-2 border border-[#4F5D6B]/20 rounded-full opacity-50">{item.tag}</span>
-                  )}
-                </div>
+                {activeTab === "notices" ? (
+                  /* お知らせ（Notice）の場合：タイトルを上にする */
+                  <>
+                    <div className="flex gap-2 items-center mb-2">
+                      <span className="text-[10px] font-bold text-[#4F5D6B] uppercase tracking-widest">【{item.title}】</span>
+                      {item.tag && (
+                        <span className="text-[8px] px-2 border border-[#4F5D6B]/20 rounded-full opacity-50">{item.tag}</span>
+                      )}
+                    </div>
+                    <p className="text-[14px] leading-relaxed whitespace-pre-wrap opacity-80">{item.content || item.body}</p>
+                  </>
+                ) : (
+                  /* ポエム（Poem）の場合：本文を上にする（従来通り） */
+                  <>
+                    <p className="text-[14px] leading-relaxed mb-2 whitespace-pre-wrap">{item.body || item.content}</p>
+                    <div className="flex gap-2 items-center">
+                      <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.title}</span>
+                    </div>
+                  </>
+                )}
               </div>
               <button onClick={() => handleDelete(item.id)} className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors">
                 <Trash2 size={18} />
