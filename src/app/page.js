@@ -16,7 +16,14 @@ export default function HomePage() {
 
   useEffect(() => {
     async function handleVisitorCount() {
-      const today = new Date().toISOString().split('T')[0];
+      // --- 日本時間(JST)での yyyy-mm-dd 取得 ---
+      const today = new Intl.DateTimeFormat('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: 'Asia/Tokyo'
+      }).format(new Date()).replace(/\//g, '-');
+
       const storageKey = `has_counted_home_${today}`;
       const guestIdKey = 'visitor_guest_id';
       const hidePromptKey = `hide_install_prompt_${today}`;
@@ -57,7 +64,6 @@ export default function HomePage() {
         }
 
         // 3. 今日の日付のレコード数（デバイス数）を取得
-        // 日付でeq（一致）させているため、深夜0時に自動で0リセットされます
         const { count, error } = await supabase
           .from('daily_access_logs')
           .select('*', { count: 'exact', head: true })
@@ -76,7 +82,13 @@ export default function HomePage() {
 
   // 案内を閉じる処理
   const handleClosePrompt = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo'
+    }).format(new Date()).replace(/\//g, '-');
+    
     localStorage.setItem(`hide_install_prompt_${today}`, "true");
     setShowInstallPrompt(false);
   };
