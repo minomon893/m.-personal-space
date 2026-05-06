@@ -26,7 +26,7 @@ export default function TextCounselingPage() {
           </h1>
           <div className="flex flex-wrap gap-6 text-[13px] font-bold opacity-70 border-y border-[#5F6F7A]/10 py-4">
             <span className="flex items-center gap-2"><FileText size={16} className="text-[#B5A773]"/> 最大 5,000文字</span>
-            <span className="flex items-center gap-2"><Tag size={16} className="text-[#B5A773]"/> 1往復：¥1,200</span>
+            <span className="flex items-center gap-2"><Tag size={16} className="text-[#B5A773]"/> 1往復：¥1,000</span>
             <span className="flex items-center gap-2"><Clock size={16} className="text-[#B5A773]"/> 24時間以内に返信</span>
           </div>
         </header>
@@ -80,7 +80,7 @@ export default function TextCounselingPage() {
         <div className="sticky bottom-6 md:bottom-12 bg-white/90 backdrop-blur-md p-6 md:p-8 rounded-[3rem] border border-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-1">Text Consultation</p>
-            <p className="text-[16px] font-bold text-[#4A5568]">¥1,200 / 1往復</p>
+            <p className="text-[16px] font-bold text-[#4A5568]">¥1,000 / 1往復</p>
           </div>
           <a 
             href={LINE_URL} 

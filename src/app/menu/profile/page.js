@@ -11,7 +11,7 @@ export default function HighContrastProfilePage() {
   const printRef = useRef(null);
 
   const [data, setData] = useState({
-    date: { y: "2026", m: "05", d: "05" },
+    date: { y: "2026", m: "05", d: "06" },
     basic: { name: "", sexuality: "", mbti: "", birthday: "", anniversary: "", charms: "", title: "", future: "" },
     fillIn: { morningNight: "", sleep: "", smartphone: "", exercise: "", likes: "", dislikes: "", mine: "", depression: "", moodUp: "", benefit: "", oneWord: "", motto: "" },
     interests: { fashion: 50, sports: 50, love: 50, work: 50, hobby: 50, food: 50 },
@@ -19,21 +19,28 @@ export default function HighContrastProfilePage() {
     hexagon: [
       { label: "爪の長さ", val: 3 },
       { label: "喧嘩時のLINEの長さ", val: 3 },
-      { label: "筋トレ継続力", val: 3 },
+      { label: "旅行時のガチャガチャの回数", val: 3 },
       { label: "しょうもない怪我の回数", val: 3 },
-      { label: "彼氏大好き度", val: 3 },
-      { label: "早起きの得意さ", val: 3 }
+      { label: "動物大好き度", val: 3 },
+      { label: "独り言の回数", val: 3 }
     ],
     eval: { 
       self: ["", "", ""], 
       others: ["", "", ""] 
     },
     episodes: { pride: "", happy: "", angry: "", gaveUp: "", secret: "" },
-    choice: { emotion: "", rest: "", logic: "", plan: "", action: "", risk: "" },
+    choice: { 
+      emotion: "", 
+      rest: "", 
+      logic: "", 
+      action: "",
+      comm: "",
+      location: "",
+      order: ""
+    },
     freeSpace: ""
   });
 
-  // 初回読み込み時にlocalStorageから復元
   useEffect(() => {
     const savedData = localStorage.getItem("my_profile_data");
     if (savedData) {
@@ -45,7 +52,6 @@ export default function HighContrastProfilePage() {
     }
   }, []);
 
-  // dataが更新されるたびにlocalStorageに保存
   useEffect(() => {
     localStorage.setItem("my_profile_data", JSON.stringify(data));
   }, [data]);
@@ -96,6 +102,9 @@ export default function HighContrastProfilePage() {
     setData({ ...data, hexagon: newHex });
   };
 
+  const selfPlaceholders = ["自立している", "やさしい", "かわいい、など"];
+  const currentPlaceholders = ["自分でお金を稼いでいる", "人の気持ちを想像する", "好きな服を見るとテンションが上がる、など"];
+
   return (
     <div className="min-h-screen bg-[#E5E2DA] p-2 md:p-4 text-[#222222] font-sans antialiased overflow-x-hidden">
       <div className="max-w-5xl mx-auto">
@@ -107,13 +116,16 @@ export default function HighContrastProfilePage() {
           </Link>
           
           <div className="flex gap-2">
-            {!isEditing && (
-              <button onClick={handleDownloadFull} disabled={isGenerating} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white border-2 border-[#222222] text-[#222222] px-4 py-2.5 rounded-full shadow-lg disabled:opacity-50">
-                <Download size={14} /> {isGenerating ? '...' : 'SAVE'}
-              </button>
-            )}
+            <button onClick={handleDownloadFull} disabled={isGenerating} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white border-2 border-[#222222] text-[#222222] px-4 py-2.5 rounded-full shadow-lg disabled:opacity-50">
+              <Download size={14} /> {isGenerating ? '...' : 'SAVE IMAGE'}
+            </button>
+            
             <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#222222] text-[#FFFFFF] px-6 py-2.5 rounded-full shadow-xl">
-              {isEditing ? <><Eye size={14} /> View</> : <><Edit3 size={14} /> Edit</>}
+              {isEditing ? (
+                <><Eye size={14} /> Switch to View Mode</>
+              ) : (
+                <><Edit3 size={14} /> Switch to Edit Mode</>
+              )}
             </button>
           </div>
         </div>
@@ -137,35 +149,35 @@ export default function HighContrastProfilePage() {
             <Section title="01" en="IDENTIFICATION" jp="基本情報">
               <Input label="Name / 名前" value={data.basic.name} placeholder="名前を入力" onChange={v => handleChange('basic.name', v)} isEditing={isEditing} />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Sex / 性別" value={data.basic.sexuality} placeholder="セクシュアリティ" onChange={v => handleChange('basic.sexuality', v)} isEditing={isEditing} />
-                <Input label="MBTI" value={data.basic.mbti} placeholder="ESFJ, INTP など" onChange={v => handleChange('basic.mbti', v)} isEditing={isEditing} />
+                <Input label="Sex / 性別" value={data.basic.sexuality} placeholder="セクシュアリティでもOK" onChange={v => handleChange('basic.sexuality', v)} isEditing={isEditing} />
+                <Input label="MBTI / 16タイプ" value={data.basic.mbti} placeholder="ESFJ、 INTP、など" onChange={v => handleChange('basic.mbti', v)} isEditing={isEditing} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Birthday" value={data.basic.birthday} placeholder="YYYY.MM.DD" onChange={v => handleChange('basic.birthday', v)} isEditing={isEditing} />
-                <Input label="Anniv." value={data.basic.anniversary} placeholder="記念日(〇〇の日)" onChange={v => handleChange('basic.anniversary', v)} isEditing={isEditing} />
+                <Input label="Birthday / 誕生日" value={data.basic.birthday} placeholder="YYYY.MM.DD" onChange={v => handleChange('basic.birthday', v)} isEditing={isEditing} />
+                <Input label="Anniv / 記念日" value={data.basic.anniversary} placeholder="YYYY.MM.DD (◯◯の日)" onChange={v => handleChange('basic.anniversary', v)} isEditing={isEditing} />
               </div>
-              <Input label="Charm Points / 推しポイント" value={data.basic.charms} placeholder="外見、内面" onChange={v => handleChange('basic.charms', v)} isEditing={isEditing} />
-              <Input label="Future Design / 将来設計" value={data.basic.future} isArea={true} placeholder="将来の設計図..." onChange={v => handleChange('basic.future', v)} isEditing={isEditing} />
+              <Input label="Charm Points / 推しポイント" value={data.basic.charms} placeholder="片側にしかできないえくぼ、仲のいい人専用の愛嬌、つるつるのかかと、など" onChange={v => handleChange('basic.charms', v)} isEditing={isEditing} />
+              <Input label="Future Design / 将来設計" value={data.basic.future} isArea={true} placeholder="異国のスイーツを食べる、もう一回△△に旅行に行く、▢▢の資格を取る、など" onChange={v => handleChange('basic.future', v)} isEditing={isEditing} />
             </Section>
 
             {/* 02: Personal Bits */}
             <Section title="02" en="PERSONAL BITS" jp="穴埋め紹介">
-              <div className="space-y-4 bg-[#F9F9F9] p-5 md:p-8 rounded-3xl border border-[#22222208]">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-6 bg-[#F9F9F9] p-6 md:p-10 rounded-[2rem] border-2 border-[#2222220A]">
+                <div className="grid grid-cols-2 gap-6">
                   <MiniInput label="朝型 or 夜型" value={data.fillIn.morningNight} onChange={v => handleChange('fillIn.morningNight', v)} isEditing={isEditing} />
                   <MiniInput label="睡眠時間" value={data.fillIn.sleep} onChange={v => handleChange('fillIn.sleep', v)} isEditing={isEditing} />
                 </div>
                 <MiniInput label="すきなこと、人" value={data.fillIn.likes} onChange={v => handleChange('fillIn.likes', v)} isEditing={isEditing} />
                 <MiniInput label="きらいなこと、人" value={data.fillIn.dislikes} onChange={v => handleChange('fillIn.dislikes', v)} isEditing={isEditing} />
                 <MiniInput label="地雷（NG）" value={data.fillIn.mine} onChange={v => handleChange('fillIn.mine', v)} isEditing={isEditing} />
-                <MiniInput label="機嫌を取るには" value={data.fillIn.moodUp} onChange={v => handleChange('fillIn.moodUp', v)} isEditing={isEditing} />
+                <MiniInput label="機謙を取るには" value={data.fillIn.moodUp} onChange={v => handleChange('fillIn.moodUp', v)} isEditing={isEditing} />
                 <MiniInput label="自分を一言で" value={data.fillIn.oneWord} onChange={v => handleChange('fillIn.oneWord', v)} isEditing={isEditing} />
               </div>
             </Section>
 
             {/* 03: Interests */}
             <Section title="03" en="INTERESTS" jp="興味度パーセンテージ">
-              <div className="space-y-8 pt-2">
+              <div className="space-y-10 pt-2">
                 {[
                   { k: 'fashion', l: 'FASHION / ファッション' },
                   { k: 'sports', l: 'SPORTS / スポーツ' },
@@ -175,7 +187,7 @@ export default function HighContrastProfilePage() {
                   { k: 'food', l: 'FOOD / 食' }
                 ].map(({ k, l }) => (
                   <div key={k} className="relative">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center mb-3">
                       <span className="text-[12px] font-black text-[#222222]">{l}</span>
                       <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded ${
                         data.interests[k] < 0 ? 'bg-red-100 text-red-600' : 
@@ -189,7 +201,7 @@ export default function HighContrastProfilePage() {
                       value={data.interests[k]} 
                       onChange={(e) => handleChange(`interests.${k}`, parseInt(e.target.value))} 
                       disabled={!isEditing} 
-                      className="w-full h-1.5 bg-[#22222214] appearance-none cursor-pointer accent-[#222222] rounded-full" 
+                      className="w-full h-3 bg-[#22222214] appearance-none cursor-pointer accent-[#222222] rounded-full [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-[#222222] [&::-webkit-slider-thumb]:rounded-full" 
                     />
                   </div>
                 ))}
@@ -204,21 +216,26 @@ export default function HighContrastProfilePage() {
                 </p>
                 <RadarChart data={data.hexagon} />
                 {isEditing && (
-                  <div className="grid grid-cols-1 gap-4 w-full bg-[#F5F5F5] p-5 rounded-2xl mt-8 border border-[#22222208]">
+                  <div className="grid grid-cols-1 gap-6 w-full bg-[#F5F5F5] p-6 md:p-8 rounded-[2rem] mt-8 border-2 border-[#2222220A]">
                     {data.hexagon.map((item, i) => (
-                      <div key={i} className="flex flex-col gap-2">
-                        <div className="flex justify-between items-center text-[10px] font-black">
-                          <div className="flex items-center gap-2 text-[#222222]">
-                            <Edit3 size={10} className="text-[#888888]" />
+                      <div key={i} className="flex flex-col gap-4">
+                        <div className="flex justify-between items-center text-[12px] font-black">
+                          <div className="flex items-center gap-2 text-[#222222] flex-1">
+                            <Edit3 size={14} className="text-[#888888]" />
                             <input 
-                              className="bg-transparent border-b border-[#22222233] focus:border-[#222222] outline-none w-32" 
+                              className="bg-[#FFFFFF] border border-[#2222221A] focus:border-[#222222] outline-none w-full px-3 py-1.5 rounded-lg shadow-sm" 
                               value={item.label} 
                               onChange={e => handleHexChange(i, 'label', e.target.value)}
                             />
                           </div>
-                          <span className="font-mono">{item.val}/6</span>
+                          <span className="font-mono ml-4 bg-[#222222] text-white px-2 py-0.5 rounded text-[11px]">{item.val}/6</span>
                         </div>
-                        <input type="range" min="0" max="6" step="1" value={item.val} onChange={e => handleHexChange(i, 'val', parseInt(e.target.value))} className="w-full h-1 accent-[#222222]" />
+                        <input 
+                          type="range" min="0" max="6" step="1" 
+                          value={item.val} 
+                          onChange={e => handleHexChange(i, 'val', parseInt(e.target.value))} 
+                          className="w-full h-3 accent-[#222222] cursor-pointer appearance-none bg-[#22222214] rounded-full [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-[#222222] [&::-webkit-slider-thumb]:rounded-full shadow-inner" 
+                        />
                       </div>
                     ))}
                   </div>
@@ -227,33 +244,54 @@ export default function HighContrastProfilePage() {
             </Section>
 
             {/* 05: Evaluation */}
-            <Section title="05" en="STORYLINE" jp="遍歴と評価">
-              <Input 
-                label="過去に沼ったコンテンツ" 
-                value={data.history} 
-                isArea={true} 
-                placeholder={"ダンゴムシ集め（小学校低学年）など"}
-                onChange={v => handleChange('history', v)} 
-                isEditing={isEditing} 
-              />
-              <div className="grid grid-cols-1 gap-8 mt-12">
-                <RankingSection title="自己評価（しっくり度）" icon={<Heart size={16} className="text-[#EF4444]" />} type="self" items={data.eval.self} onUpdate={handleRankChange} isEditing={isEditing} />
-                <RankingSection title="他己評価（言われる度）" icon={<Target size={16} className="text-[#3B82F6]" />} type="others" items={data.eval.others} onUpdate={handleRankChange} isEditing={isEditing} />
-              </div>
-            </Section>
+            <div className="md:col-span-2">
+              <Section title="05" en="STORYLINE" jp="遍歴と自己定義">
+                <Input 
+                  label="過去に沼ったコンテンツ" 
+                  value={data.history} 
+                  isArea={true} 
+                  placeholder={"ダンゴムシ集め（小学校低学年）など"}
+                  onChange={v => handleChange('history', v)} 
+                  isEditing={isEditing} 
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12">
+                  <RankingSection 
+                    title="なりたい自分" 
+                    icon={<Heart size={16} className="text-[#EF4444]" />} 
+                    type="self" 
+                    items={data.eval.self} 
+                    placeholders={selfPlaceholders}
+                    onUpdate={handleRankChange} 
+                    isEditing={isEditing} 
+                  />
+                  <RankingSection 
+                    title="今の自分との共通点" 
+                    icon={<Target size={16} className="text-[#3B82F6]" />} 
+                    type="others" 
+                    items={data.eval.others} 
+                    placeholders={currentPlaceholders}
+                    onUpdate={handleRankChange} 
+                    isEditing={isEditing} 
+                  />
+                </div>
+              </Section>
+            </div>
 
-            {/* 06: Values */}
+            {/* 06: Values - UPDATED WITH NEW QUESTIONS */}
             <Section title="06" en="VALUES" jp="二者択一">
               <div className="grid grid-cols-1 gap-6 pt-2">
-                <Choice label="感情表現" left="大きめ" right="控えめ" active={data.choice.emotion} onSelect={v => handleChange('choice.emotion', v)} isEditing={isEditing} />
-                <Choice label="疲れたとき" left="遊ぶ" right="休む" active={data.choice.rest} onSelect={v => handleChange('choice.rest', v)} isEditing={isEditing} />
-                <Choice label="思考回路" left="論理的" right="人情的" active={data.choice.logic} onSelect={v => handleChange('choice.logic', v)} isEditing={isEditing} />
-                <Choice label="トラブル時" left="考える" right="まず動く" active={data.choice.action} onSelect={v => handleChange('choice.action', v)} isEditing={isEditing} />
+                <Choice label="感情表現は" left="大きめ" right="控えめ" active={data.choice.emotion} onSelect={v => handleChange('choice.emotion', v)} isEditing={isEditing} />
+                <Choice label="疲れたときは" left="遊ぶ" right="休む" active={data.choice.rest} onSelect={v => handleChange('choice.rest', v)} isEditing={isEditing} />
+                <Choice label="思考回路は" left="論理的" right="人情的" active={data.choice.logic} onSelect={v => handleChange('choice.logic', v)} isEditing={isEditing} />
+                <Choice label="トラブル時は" left="考える" right="まず動く" active={data.choice.action} onSelect={v => handleChange('choice.action', v)} isEditing={isEditing} />
+                <Choice label="コミュニケーションでは" left="聞く側" right="話す側" active={data.choice.comm} onSelect={v => handleChange('choice.comm', v)} isEditing={isEditing} />
+                <Choice label="住むなら" left="都会" right="田舎" active={data.choice.location} onSelect={v => handleChange('choice.location', v)} isEditing={isEditing} />
+                <Choice label="注文は" left="冒険" right="安定" active={data.choice.order} onSelect={v => handleChange('choice.order', v)} isEditing={isEditing} />
               </div>
             </Section>
 
             {/* 07: Free Space */}
-            <div className="md:col-span-2">
+            <div>
               <Section title="07" en="FREE JOURNAL" jp="フリースペース">
                 <div className="bg-[#222222] p-6 md:p-10 shadow-2xl min-h-[200px] rounded-[1.5rem] md:rounded-[2rem]">
                   {isEditing ? (
@@ -294,27 +332,22 @@ function Section({ title, en, jp, children }) {
   );
 }
 
-function RankingSection({ title, icon, type, items, onUpdate, isEditing }) {
-  const ranks = [{ label: "1st", color: "#FFD700" }, { label: "2nd", color: "#C0C0C0" }, { label: "3rd", color: "#CD7F32" }];
+function RankingSection({ title, icon, type, items, placeholders, onUpdate, isEditing }) {
   return (
     <div className="w-full">
       <p className="text-[12px] font-black mb-4 uppercase flex items-center gap-2">{icon} {title}</p>
       <div className="space-y-3">
         {items.map((val, i) => (
-          <div key={i} className="flex items-center gap-4 bg-[#F5F5F5] p-5 rounded-2xl border border-[#22222205]">
-            <div className="flex flex-col items-center justify-center">
-               <Trophy size={18} style={{ color: ranks[i].color }} />
-               <span className="text-[8px] font-mono font-bold mt-1" style={{ color: ranks[i].color }}>{ranks[i].label}</span>
-            </div>
+          <div key={i} className="flex items-center gap-4 bg-[#F5F5F5] p-4 rounded-xl border border-[#22222205]">
             {isEditing ? (
               <input 
-                className="flex-1 bg-transparent border-b-2 border-[#2222221A] text-[16px] font-black outline-none focus:border-[#222222] pb-1 placeholder:text-[#22222233]" 
+                className="flex-1 bg-transparent border-b border-[#2222221A] text-[14px] font-black outline-none focus:border-[#222222] pb-1 placeholder:text-[#22222233]" 
                 value={val} 
                 onChange={e => onUpdate(type, i, e.target.value)} 
-                placeholder={`${i+1}位`}
+                placeholder={placeholders[i] || `項目 ${i+1}`}
               />
             ) : (
-              <span className="text-[16px] font-black">{val || "---"}</span>
+              <span className="text-[14px] font-black">{val || "---"}</span>
             )}
           </div>
         ))}
@@ -376,12 +409,16 @@ function Input({ label, value, onChange, isEditing, isArea = false, placeholder 
 
 function MiniInput({ label, value, onChange, isEditing }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[9px] font-black text-[#888888] uppercase">{label}</span>
+    <div className="flex flex-col gap-2 mb-2">
+      <span className="text-[10px] font-black text-[#888888] uppercase tracking-wider">{label}</span>
       {isEditing ? (
-        <input className="bg-[#FFFFFF] border-b border-[#2222221A] text-[12px] font-black py-1 px-1 outline-none focus:border-[#222222]" value={value} onChange={e => onChange(e.target.value)} />
+        <input 
+          className="bg-[#FFFFFF] border border-[#2222221A] text-[14px] font-black py-2 px-3 rounded-lg outline-none focus:border-[#222222] shadow-sm transition-all" 
+          value={value} 
+          onChange={e => onChange(e.target.value)} 
+        />
       ) : (
-        <span className="text-[12px] font-black min-h-[20px]">{value || "---"}</span>
+        <span className="text-[15px] font-black min-h-[24px] pl-1">{value || "---"}</span>
       )}
     </div>
   );

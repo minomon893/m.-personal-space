@@ -52,7 +52,7 @@ export default function BookingPage() {
           <PlanCard 
             icon={<MessageSquare size={20} />}
             title="テキスト相談 (1往復)"
-            price="¥1,200"
+            price="¥1,000"
             description="ご相談1回＋返信1回。LINEのトーク画面でそのままやり取りが可能です。まずは試してみたい方へ。"
             tag="最安プラン"
             href="/booking/text" 
