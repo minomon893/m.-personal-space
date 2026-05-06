@@ -148,7 +148,10 @@ export default function ProfilePage() {
                   onCancel={() => setEditingId(null)}
                 />
               )) : (
-                <p className="text-[11px] opacity-30 text-center py-10 italic">まだ報告がありません。</p>
+                <div className="text-center py-10 space-y-2">
+                  <p className="text-[11px] opacity-30 italic text-[#486581]">まだ報告がありません。</p>
+                  <p className="text-[10px] font-bold text-[#627D98] opacity-60 uppercase tracking-tighter">最初の報告を投稿すると、<br/>あなた専用の研究員番号が発行されます。</p>
+                </div>
               )}
             </div>
           </section>
