@@ -2,25 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine } from "lucide-react";
+import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState("poems"); // "poems" か "notices"
+  // 初期値を notices に変更
+  const [activeTab, setActiveTab] = useState("notices"); 
   
-  // フォーム用
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
-  const [noticeTag, setNoticeTag] = useState("Update"); // お知らせ用タグ
-  
-  // データ一覧用
+  const [noticeTag, setNoticeTag] = useState("Update");
   const [items, setItems] = useState([]); 
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false); // 保存完了通知用
 
   const fetchItems = async () => {
-    const table = activeTab; // "poems" または "notices"
+    const table = activeTab;
     const { data, error } = await supabase
       .from(table)
       .select("*")
@@ -48,7 +47,6 @@ export default function AdminPage() {
     setLoading(true);
     
     const table = activeTab;
-    // お知らせ(notices)の場合は content/title/tag、詩(poems)の場合は body/title
     const payload = table === "notices" 
       ? { title, content: body, tag: noticeTag }
       : { title, body };
@@ -60,7 +58,12 @@ export default function AdminPage() {
     } else {
       setBody("");
       setTitle("");
-      fetchItems();
+      // 保存完了の視覚的フィードバック
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      
+      // リストを即座に再取得して反映
+      await fetchItems();
     }
     setLoading(false);
   };
@@ -90,25 +93,34 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F1E1] p-6 text-[#4F5D6B] font-sans">
+    <div className="min-h-screen bg-[#F4F1E1] p-6 text-[#4F5D6B] font-sans relative">
+      
+      {/* 保存完了トースト通知 */}
+      {showSuccess && (
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#2D363F] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 size={20} className="text-[#B5A773]" />
+          <span className="text-sm font-bold tracking-widest">SAVED SUCCESSFULLY</span>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto">
         <Link href="/" className="text-[10px] tracking-widest opacity-50 flex items-center gap-2 mb-8 hover:opacity-100 transition-all">
           <ArrowLeft size={12} /> BACK TO HOME
         </Link>
 
-        {/* タブ切り替え */}
+        {/* 【修正箇所】タブ切り替え：Noticesが左、Poemsが右 */}
         <div className="flex gap-4 mb-10">
-          <button 
-            onClick={() => setActiveTab("poems")}
-            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "poems" ? "bg-[#B5A773] text-white shadow-md" : "bg-white/40 opacity-60"}`}
-          >
-            <PenLine size={18} /> Poems
-          </button>
           <button 
             onClick={() => setActiveTab("notices")}
             className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "notices" ? "bg-[#5F6F7A] text-white shadow-md" : "bg-white/40 opacity-60"}`}
           >
             <Megaphone size={18} /> Notices
+          </button>
+          <button 
+            onClick={() => setActiveTab("poems")}
+            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "poems" ? "bg-[#B5A773] text-white shadow-md" : "bg-white/40 opacity-60"}`}
+          >
+            <PenLine size={18} /> Poems
           </button>
         </div>
 
@@ -140,7 +152,7 @@ export default function AdminPage() {
             />
           </div>
           <div className="mb-8">
-            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">CONTENT</label>
+            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">CONTENT / BODY</label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -165,10 +177,13 @@ export default function AdminPage() {
           {items.map((item) => (
             <div key={item.id} className="bg-white/60 p-6 rounded-2xl border border-white flex justify-between items-start group hover:bg-white/80 transition-all">
               <div className="flex-1 pr-4">
-                <p className="text-[14px] leading-relaxed mb-2">{item.body || item.content}</p>
+                {/* whitespace-pre-wrap で改行を保持 */}
+                <p className="text-[14px] leading-relaxed mb-2 whitespace-pre-wrap">{item.body || item.content}</p>
                 <div className="flex gap-2 items-center">
                   <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.title}</span>
-                  {item.tag && <span className="text-[8px] px-2 border rounded-full opacity-30">{item.tag}</span>}
+                  {(item.tag && activeTab === "notices") && (
+                    <span className="text-[8px] px-2 border border-[#4F5D6B]/20 rounded-full opacity-50">{item.tag}</span>
+                  )}
                 </div>
               </div>
               <button onClick={() => handleDelete(item.id)} className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors">
