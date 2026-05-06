@@ -8,7 +8,7 @@ import Link from "next/link";
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  // 初期値を notices に変更
+  // デフォルトを notices に設定
   const [activeTab, setActiveTab] = useState("notices"); 
   
   const [body, setBody] = useState("");
@@ -16,8 +16,9 @@ export default function AdminPage() {
   const [noticeTag, setNoticeTag] = useState("Update");
   const [items, setItems] = useState([]); 
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false); // 保存完了通知用
+  const [showSuccess, setShowSuccess] = useState(false);
 
+  // データを取得する関数
   const fetchItems = async () => {
     const table = activeTab;
     const { data, error } = await supabase
@@ -58,11 +59,10 @@ export default function AdminPage() {
     } else {
       setBody("");
       setTitle("");
-      // 保存完了の視覚的フィードバック
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       
-      // リストを即座に再取得して反映
+      // 保存完了後、即座にリストを再取得して反映
       await fetchItems();
     }
     setLoading(false);
@@ -78,7 +78,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-[#E6E1CF] flex items-center justify-center p-6">
         <form onSubmit={handleLogin} className="bg-white/50 p-8 rounded-2xl shadow-xl w-full max-w-sm border border-white">
-          <h1 className="text-xl font-bold mb-6 text-[#4F5D6B] text-center tracking-widest text-[#2D363F]">ADMIN ACCESS</h1>
+          <h1 className="text-xl font-bold mb-6 text-[#4F5D6B] text-center tracking-widest">ADMIN ACCESS</h1>
           <input
             type="password"
             value={password}
@@ -95,7 +95,6 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#F4F1E1] p-6 text-[#4F5D6B] font-sans relative">
       
-      {/* 保存完了トースト通知 */}
       {showSuccess && (
         <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#2D363F] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
           <CheckCircle2 size={20} className="text-[#B5A773]" />
@@ -108,7 +107,7 @@ export default function AdminPage() {
           <ArrowLeft size={12} /> BACK TO HOME
         </Link>
 
-        {/* 【修正箇所】タブ切り替え：Noticesが左、Poemsが右 */}
+        {/* タブの配置：Noticesが左、Poemsが右 */}
         <div className="flex gap-4 mb-10">
           <button 
             onClick={() => setActiveTab("notices")}
@@ -177,7 +176,6 @@ export default function AdminPage() {
           {items.map((item) => (
             <div key={item.id} className="bg-white/60 p-6 rounded-2xl border border-white flex justify-between items-start group hover:bg-white/80 transition-all">
               <div className="flex-1 pr-4">
-                {/* whitespace-pre-wrap で改行を保持 */}
                 <p className="text-[14px] leading-relaxed mb-2 whitespace-pre-wrap">{item.body || item.content}</p>
                 <div className="flex gap-2 items-center">
                   <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.title}</span>
