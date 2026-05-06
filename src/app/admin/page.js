@@ -2,31 +2,37 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Trash2, PlusCircle, List, ArrowLeft } from "lucide-react";
+import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
+  const [activeTab, setActiveTab] = useState("poems"); // "poems" か "notices"
+  
+  // フォーム用
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
-  const [poems, setPoems] = useState([]); // 一覧用の状態
+  const [noticeTag, setNoticeTag] = useState("Update"); // お知らせ用タグ
+  
+  // データ一覧用
+  const [items, setItems] = useState([]); 
   const [loading, setLoading] = useState(false);
 
-  // 一覧を取得する関数
-  const fetchPoems = async () => {
+  const fetchItems = async () => {
+    const table = activeTab; // "poems" または "notices"
     const { data, error } = await supabase
-      .from("poems")
+      .from(table)
       .select("*")
       .order("created_at", { ascending: false });
-    if (!error) setPoems(data);
+    if (!error) setItems(data);
   };
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchPoems();
+      fetchItems();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, activeTab]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -40,40 +46,36 @@ export default function AdminPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase
-      .from("poems")
-      .insert([{ body, title }]);
+    
+    const table = activeTab;
+    // お知らせ(notices)の場合は content/title/tag、詩(poems)の場合は body/title
+    const payload = table === "notices" 
+      ? { title, content: body, tag: noticeTag }
+      : { title, body };
+
+    const { error } = await supabase.from(table).insert([payload]);
 
     if (error) {
       alert("エラーが発生しました: " + error.message);
     } else {
       setBody("");
       setTitle("");
-      fetchPoems(); // 投稿後に一覧を更新
+      fetchItems();
     }
     setLoading(false);
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("本当にこのポエムを削除しますか？")) return;
-
-    const { error } = await supabase
-      .from("poems")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      alert("削除に失敗しました");
-    } else {
-      fetchPoems(); // 削除後に一覧を更新
-    }
+    if (!confirm(`この${activeTab === "notices" ? "お知らせ" : "ポエム"}を削除しますか？`)) return;
+    const { error } = await supabase.from(activeTab).delete().eq("id", id);
+    if (!error) fetchItems();
   };
 
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#E6E1CF] flex items-center justify-center p-6">
         <form onSubmit={handleLogin} className="bg-white/50 p-8 rounded-2xl shadow-xl w-full max-w-sm border border-white">
-          <h1 className="text-xl font-bold mb-6 text-[#4F5D6B] text-center tracking-widest">ADMIN ACCESS</h1>
+          <h1 className="text-xl font-bold mb-6 text-[#4F5D6B] text-center tracking-widest text-[#2D363F]">ADMIN ACCESS</h1>
           <input
             type="password"
             value={password}
@@ -81,9 +83,7 @@ export default function AdminPage() {
             className="w-full p-4 rounded-xl border border-[#4F5D6B]/20 mb-4 outline-none focus:ring-2 focus:ring-[#B5A773]"
             placeholder="合言葉を入力"
           />
-          <button className="w-full py-4 bg-[#4F5D6B] text-white rounded-xl font-bold hover:bg-[#3d4852] transition-all">
-            Unlock
-          </button>
+          <button className="w-full py-4 bg-[#4F5D6B] text-white rounded-xl font-bold hover:bg-[#3d4852] transition-all">Unlock</button>
         </form>
       </div>
     );
@@ -96,36 +96,61 @@ export default function AdminPage() {
           <ArrowLeft size={12} /> BACK TO HOME
         </Link>
 
-        <h1 className="text-2xl font-light mb-10 tracking-[0.2em] flex items-center gap-3">
+        {/* タブ切り替え */}
+        <div className="flex gap-4 mb-10">
+          <button 
+            onClick={() => setActiveTab("poems")}
+            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "poems" ? "bg-[#B5A773] text-white shadow-md" : "bg-white/40 opacity-60"}`}
+          >
+            <PenLine size={18} /> Poems
+          </button>
+          <button 
+            onClick={() => setActiveTab("notices")}
+            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "notices" ? "bg-[#5F6F7A] text-white shadow-md" : "bg-white/40 opacity-60"}`}
+          >
+            <Megaphone size={18} /> Notices
+          </button>
+        </div>
+
+        <h1 className="text-2xl font-light mb-8 tracking-[0.2em] flex items-center gap-3">
           <PlusCircle size={24} className="text-[#B5A773]" /> 
-          NEW POEM
+          NEW {activeTab === "notices" ? "NOTICE" : "POEM"}
         </h1>
 
-        {/* 投稿フォーム */}
         <form onSubmit={handleSubmit} className="bg-white/40 p-8 rounded-3xl border border-white shadow-sm mb-16">
+          {activeTab === "notices" && (
+            <div className="mb-6">
+              <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">TAG (Update, Info, etc.)</label>
+              <input
+                type="text"
+                value={noticeTag}
+                onChange={(e) => setNoticeTag(e.target.value)}
+                className="w-full p-4 rounded-2xl bg-white/60 border border-[#4F5D6B]/10 outline-none focus:border-[#B5A773] transition-all"
+              />
+            </div>
+          )}
           <div className="mb-6">
-            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">MESSAGE</label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="w-full p-4 rounded-2xl bg-white/60 border border-[#4F5D6B]/10 h-32 outline-none focus:border-[#B5A773] transition-all"
-              placeholder="心に残った言葉を..."
-              required
-            />
-          </div>
-          <div className="mb-8">
-            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">AUTHOR / TITLE</label>
+            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">TITLE / AUTHOR</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full p-4 rounded-2xl bg-white/60 border border-[#4F5D6B]/10 outline-none focus:border-[#B5A773] transition-all"
-              placeholder="著者名や出典など"
+              required
+            />
+          </div>
+          <div className="mb-8">
+            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">CONTENT</label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              className="w-full p-4 rounded-2xl bg-white/60 border border-[#4F5D6B]/10 h-32 outline-none focus:border-[#B5A773] transition-all"
+              required
             />
           </div>
           <button
             disabled={loading}
-            className="w-full py-4 bg-[#B5A773] text-white rounded-2xl font-bold shadow-lg hover:bg-[#a39665] disabled:opacity-50 transition-all"
+            className={`w-full py-4 text-white rounded-2xl font-bold shadow-lg transition-all ${activeTab === "notices" ? "bg-[#5F6F7A] hover:bg-[#4d5b65]" : "bg-[#B5A773] hover:bg-[#a39665]"}`}
           >
             {loading ? "SAVING..." : "SAVE TO DATABASE"}
           </button>
@@ -133,30 +158,24 @@ export default function AdminPage() {
 
         <h2 className="text-2xl font-light mb-6 tracking-[0.2em] flex items-center gap-3">
           <List size={24} className="text-[#B5A773]" /> 
-          DATABASE LIST
+          LIST
         </h2>
 
-        {/* 一覧表示部分 */}
         <div className="space-y-4">
-          {poems.length === 0 ? (
-            <p className="text-center py-10 opacity-40 italic">まだ登録された言葉はありません</p>
-          ) : (
-            poems.map((p) => (
-              <div key={p.id} className="bg-white/60 p-6 rounded-2xl border border-white flex justify-between items-start group hover:bg-white/80 transition-all">
-                <div className="flex-1 pr-4">
-                  <p className="text-[14px] leading-relaxed mb-2">{p.body}</p>
-                  <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {p.title || "Unknown"}</p>
+          {items.map((item) => (
+            <div key={item.id} className="bg-white/60 p-6 rounded-2xl border border-white flex justify-between items-start group hover:bg-white/80 transition-all">
+              <div className="flex-1 pr-4">
+                <p className="text-[14px] leading-relaxed mb-2">{item.body || item.content}</p>
+                <div className="flex gap-2 items-center">
+                  <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.title}</span>
+                  {item.tag && <span className="text-[8px] px-2 border rounded-full opacity-30">{item.tag}</span>}
                 </div>
-                <button
-                  onClick={() => handleDelete(p.id)}
-                  className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors"
-                  title="削除"
-                >
-                  <Trash2 size={18} />
-                </button>
               </div>
-            ))
-          )}
+              <button onClick={() => handleDelete(item.id)} className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors">
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
