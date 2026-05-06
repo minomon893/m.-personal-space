@@ -112,14 +112,16 @@ export default function NoticesPage() {
                 </button>
 
                 <div 
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    isExpanded ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                   }`}
                 >
-                  <div className="px-6 pb-6 pt-1 border-t border-[#4F5D6B]/5">
-                    <p className="text-[12px] leading-relaxed opacity-60 font-light mt-2 whitespace-pre-wrap">
-                      {item.content}
-                    </p>
+                  <div className="overflow-hidden">
+                    <div className="px-6 pb-6 pt-1 border-t border-[#4F5D6B]/5">
+                      <p className="text-[12px] leading-relaxed opacity-60 font-light mt-2 whitespace-pre-wrap">
+                        {item.content}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </article>
