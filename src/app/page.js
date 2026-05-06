@@ -157,8 +157,15 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="text-center text-[9px] tracking-[0.4em] opacity-30 italic">
-          &copy; 2026 m. personal space
+        <div className="text-center text-[9px] tracking-[0.4em] opacity-30 italic flex justify-center items-center gap-1">
+          &copy; 2026 
+          <Link 
+            href="/admin" 
+            className="hover:opacity-100 hover:text-[#B5A773] transition-all cursor-default"
+          >
+            m.
+          </Link> 
+          personal space
         </div>
       </footer>
 
