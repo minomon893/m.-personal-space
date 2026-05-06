@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2 } from "lucide-react";
@@ -8,7 +10,6 @@ import Link from "next/link";
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  // デフォルトを notices に設定
   const [activeTab, setActiveTab] = useState("notices"); 
   
   const [body, setBody] = useState("");
@@ -18,14 +19,13 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // データを取得する関数
   const fetchItems = async () => {
     const table = activeTab;
     const { data, error } = await supabase
       .from(table)
       .select("*")
       .order("created_at", { ascending: false });
-    if (!error) setItems(data);
+    if (!error) setItems(data || []);
   };
 
   useEffect(() => {
@@ -61,8 +61,6 @@ export default function AdminPage() {
       setTitle("");
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
-      
-      // 保存完了後、即座にリストを再取得して反映
       await fetchItems();
     }
     setLoading(false);
@@ -94,7 +92,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F1E1] p-6 text-[#4F5D6B] font-sans relative">
-      
       {showSuccess && (
         <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#2D363F] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
           <CheckCircle2 size={20} className="text-[#B5A773]" />
@@ -107,7 +104,6 @@ export default function AdminPage() {
           <ArrowLeft size={12} /> BACK TO HOME
         </Link>
 
-        {/* タブの配置：Noticesが左、Poemsが右 */}
         <div className="flex gap-4 mb-10">
           <button 
             onClick={() => setActiveTab("notices")}
