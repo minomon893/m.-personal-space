@@ -147,7 +147,7 @@ export default function MenuPage() {
         </div>
 
         <footer className="mt-24 mb-10 text-center opacity-30 text-[9px] tracking-[0.3em] uppercase">
-          &copy; 2026 Minori Yofu
+          &copy; 2026 m. personla space
         </footer>
 
       </div>
