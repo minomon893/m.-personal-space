@@ -7,19 +7,37 @@ import Link from "next/link";
 import { ArrowLeft, Scroll, Sparkles, Bird } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
+// もともとの格言リストをバックアップとして保持
+const originalPoems = [
+  { text: "人は、歳を重ねるにつれ変われなくなるというけれど、人の行動はいつだって変えられる。", author: "Applied Behavior Analysis" },
+  { text: "It is not the strongest of the species that survives, nor the most intelligent. It is the one that is most adaptable to change.", author: "Charles Darwin" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Stay Hungry, Stay Foolish.", author: "Whole Earth Catalog" }
+];
+
 export default function PoemPage() {
-  // ...以下は今のコードと同じで大丈夫です
   const [poem, setPoem] = useState(null);
   const [isOpening, setIsOpening] = useState(false);
-  const [dbPoems, setDbPoems] = useState([]); // Supabaseから取得した詩のリスト
+  const [dbPoems, setDbPoems] = useState([]);
 
   useEffect(() => {
     const fetchPoems = async () => {
-      const { data, error } = await supabase
-        .from('poems')
-        .select('*');
-      if (!error && data) {
-        setDbPoems(data);
+      try {
+        const { data, error } = await supabase
+          .from('poems')
+          .select('*');
+        
+        if (error) throw error;
+        // DBにデータがあればセット、なければ元の格言を使う
+        if (data && data.length > 0) {
+          setDbPoems(data);
+        } else {
+          setDbPoems(originalPoems.map(p => ({ body: p.text, title: p.author })));
+        }
+      } catch (err) {
+        console.error("Error fetching poems:", err.message);
+        // エラー時も元の格言を表示できるようにセット
+        setDbPoems(originalPoems.map(p => ({ body: p.text, title: p.author })));
       }
     };
     fetchPoems();
@@ -27,15 +45,17 @@ export default function PoemPage() {
 
   const pullPoem = () => {
     if (isOpening || dbPoems.length === 0) return;
+
     setPoem(null);
     setIsOpening(true);
     
     setTimeout(() => {
-      // データベースから取得した配列からランダムに選択
-      const randomPoem = dbPoems[Math.floor(Math.random() * dbPoems.length)];
+      const randomIndex = Math.floor(Math.random() * dbPoems.length);
+      const randomPoem = dbPoems[randomIndex];
+      
       setPoem({ 
-        text: randomPoem.body, 
-        author: randomPoem.title || "Unknown" 
+        text: randomPoem.body || randomPoem.text, 
+        author: randomPoem.title || randomPoem.author || "Unknown" 
       });
       setIsOpening(false);
     }, 1800);

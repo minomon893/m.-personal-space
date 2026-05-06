@@ -8,13 +8,11 @@ import { ArrowLeft, Sparkles, Terminal, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function NoticesPage() {
-  // ... 以下、元のコードと同じ
   const [viewedIds, setViewedIds] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
-  const [notices, setNotices] = useState([]); // Supabaseから取得したデータを格納
+  const [notices, setNotices] = useState([]); 
 
   useEffect(() => {
-    // Supabaseからお知らせを取得
     const fetchNotices = async () => {
       const { data, error } = await supabase
         .from('notices')
@@ -23,7 +21,6 @@ export default function NoticesPage() {
 
       if (!error && data) {
         setNotices(data);
-        // メインメニューの通知バッジ用に最新記事IDをセット
         if (data.length > 0) {
           localStorage.setItem("last_viewed_notice", data[0].id);
         }
@@ -72,7 +69,6 @@ export default function NoticesPage() {
           {notices.map((item) => {
             const isRead = viewedIds.includes(item.id);
             const isExpanded = expandedId === item.id;
-            // 日付表示を YYYY.MM.DD 形式に整形
             const displayDate = new Date(item.created_at).toLocaleDateString('ja-JP').replace(/\//g, '.');
             
             return (
@@ -91,8 +87,7 @@ export default function NoticesPage() {
                       <span className="text-[10px] font-mono font-medium opacity-30">
                         {displayDate}
                       </span>
-                      {/* タグがない場合は 'Update' をデフォルトに */}
-                      <span className="text-[8px] font-bold px-2 py-0.5 border border-[#4F5D6B]/20 rounded-full opacity-50 uppercase tracking-widest text-[9px]">
+                      <span className="text-[8px] font-bold px-2 py-0.5 border border-[#4F5D6B]/20 rounded-full opacity-50 uppercase tracking-widest">
                         {item.tag || "Update"}
                       </span>
                     </div>

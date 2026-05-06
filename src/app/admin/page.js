@@ -1,5 +1,6 @@
-export const dynamic = "force-dynamic";
 "use client";
+
+export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { ArrowLeft, Send, BookOpen, Bell, CheckCircle2, Lock } from "lucide-react";
@@ -14,19 +15,20 @@ export default function AdminPage() {
   const [status, setStatus] = useState(null);
   const [formData, setFormData] = useState({ title: "", content: "" });
 
-  // パスワードチェック
+  // 1. パスワードチェックの修正
+  // || "fallback" を削除し、環境変数が未設定の場合はログインできないようにしています
   const handleLogin = (e) => {
     e.preventDefault();
-    const correctPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "fallback_password";
-    if (passwordInput === correctPassword) {
+    const correctPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
+    
+    if (correctPassword && passwordInput === correctPassword) {
       setIsAuthorized(true);
-      sessionStorage.setItem("admin_auth", "true"); // ブラウザを閉じるまで有効
+      sessionStorage.setItem("admin_auth", "true");
     } else {
-      alert("合言葉が違います。");
+      alert("合言葉が違います。もしくは環境変数が設定されていません。");
     }
   };
 
-  // リロード時もセッションがあればログイン状態を維持
   useEffect(() => {
     if (sessionStorage.getItem("admin_auth") === "true") {
       setIsAuthorized(true);
@@ -58,7 +60,6 @@ export default function AdminPage() {
     }
   };
 
-  // ロック画面
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-[#E6E1CF] flex items-center justify-center p-6 text-[#5F6F7A]">
@@ -85,7 +86,6 @@ export default function AdminPage() {
     );
   }
 
-  // ログイン後の管理画面（以前のコードに少し装飾を追加）
   return (
     <div className="min-h-screen bg-[#E6E1CF] p-6 text-[#5F6F7A] font-sans">
       <div className="max-w-md mx-auto">
