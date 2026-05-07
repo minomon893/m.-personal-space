@@ -110,7 +110,11 @@ export default function HomePage() {
             className="bg-[#F2F0E9] w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-[2.5rem] p-8 shadow-2xl border border-white relative flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg italic text-[#B5A773] mb-6 tracking-widest text-center">Guide</h2>
+            <h2 className="text-lg italic text-[#B5A773] mb-2 tracking-widest text-center">Guide</h2>
+            <p className="text-[11px] text-center mb-6 opacity-70">
+              ここはあなたが、あなたの本音を大切に扱うための<br />
+              パーソナルスペースです。
+            </p>
 
             <div className="space-y-6 text-[12px] leading-relaxed text-[#5F6F7A]">
               <section>
@@ -124,10 +128,10 @@ export default function HomePage() {
                 <p className="font-bold text-[#B5A773] mb-1">Tools</p>
                 <div className="space-y-2">
                   <p>
-                    ● <b>Main Menu</b>：思考を整えるワークや診断、そして専門的に深掘りした「Ezine」が揃っています。
+                    ● <b>Main Menu</b>：思考を整えるワークや診断、生きづらさ解消のための読み物などが揃っています。
                   </p>
                   <p>
-                    ● <b>Counseling</b>：もっと深く、マンツーマンで向き合いたい時に。
+                    ● <b>Counseling</b>：プロの手を借りて自分を深堀したくなった際は、カウンセリングの予約も可能です。
                   </p>
                   <p>
                     ● <b>Diary</b>：今日の自分を%で記録。心の波を可視化し、自分との対話を深めます。
@@ -139,13 +143,7 @@ export default function HomePage() {
                 <p className="font-bold text-[#B5A773] mb-1">Privacy & Data</p>
                 <div className="opacity-90 text-[11px] space-y-2 leading-relaxed">
                   <p>
-                    大切な記録はあなたのデバイス内に保存されます。
-                    ブラウザの自動削除からデータを守り、オフラインでもスムーズに利用できるよう
-                    <b>「ホーム画面に追加」</b>しての使用を推奨しています。
-                  </p>
-                  <p>
-                    アイコンからすぐに起動できるため、日々の習慣化にも最適です。
-                    Diaryの記録は、手動でのバックアップや引き継ぎにも対応しています。
+                    大切な記録はあなたのデバイス内に保存されます。ブラウザの自動削除からデータを守るため<b>「ホーム画面に追加」</b>しての使用を推奨しています。
                   </p>
                 </div>
               </section>
@@ -160,11 +158,10 @@ export default function HomePage() {
                     <b>ちょこっとーく</b>：心おきなくつぶやいて、リアクションで温かく繋がる場所。
                   </p>
                   <p>
-                    <b>オタトーーーーク！！！</b>
-                    ：写真なし・返信1回。余計な気を遣わずに好きなことを語り合えます。
+                    <b>オタトーーーーク！！！</b>：好きなことを、気兼ねなく語り合えます。
                   </p>
                   <p>
-                    <b>コラム</b>：管理人個人の日記に近い、ここだけの内緒の話やこっそりした気づき。
+                    <b>コラム</b>：管理人個人の日記に近い、ここだけの内緒の話や気づき。
                   </p>
                 </div>
                 <Link href="/subscription" className="block pt-2">
