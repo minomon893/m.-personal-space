@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2 } from "lucide-react";
+import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2, MessageSquareQuote } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -48,9 +48,17 @@ export default function AdminPage() {
     setLoading(true);
     
     const table = activeTab;
-    const payload = table === "notices" 
-      ? { title, content: body, tag: noticeTag }
-      : { title, body };
+    let payload = {};
+
+    // テーブル構造に合わせたペイロードの切り替え
+    if (table === "notices") {
+      payload = { title, content: body, tag: noticeTag };
+    } else if (table === "feedbacks") {
+      // 属性（年代等）をtitle、内容をcontentとして保存
+      payload = { attribute: title, content: body, service_tag: noticeTag };
+    } else {
+      payload = { title, body };
+    }
 
     const { error } = await supabase.from(table).insert([payload]);
 
@@ -67,7 +75,8 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm(`この${activeTab === "notices" ? "お知らせ" : "ポエム"}を削除しますか？`)) return;
+    const typeLabel = activeTab === "notices" ? "お知らせ" : activeTab === "feedbacks" ? "フィードバック" : "ポエム";
+    if (!confirm(`この${typeLabel}を削除しますか？`)) return;
     const { error } = await supabase.from(activeTab).delete().eq("id", id);
     if (!error) fetchItems();
   };
@@ -104,40 +113,53 @@ export default function AdminPage() {
           <ArrowLeft size={12} /> BACK TO HOME
         </Link>
 
-        <div className="flex gap-4 mb-10">
+        {/* タブ切り替え */}
+        <div className="flex gap-2 mb-10 overflow-x-auto pb-2 scrollbar-hide">
           <button 
             onClick={() => setActiveTab("notices")}
-            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "notices" ? "bg-[#5F6F7A] text-white shadow-md" : "bg-white/40 opacity-60"}`}
+            className={`flex-1 min-w-[100px] py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-xs font-bold ${activeTab === "notices" ? "bg-[#5F6F7A] text-white shadow-md" : "bg-white/40 opacity-60"}`}
           >
-            <Megaphone size={18} /> Notices
+            <Megaphone size={16} /> Notices
+          </button>
+          <button 
+            onClick={() => setActiveTab("feedbacks")}
+            className={`flex-1 min-w-[100px] py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-xs font-bold ${activeTab === "feedbacks" ? "bg-[#8E9B8D] text-white shadow-md" : "bg-white/40 opacity-60"}`}
+          >
+            <MessageSquareQuote size={16} /> Feedback
           </button>
           <button 
             onClick={() => setActiveTab("poems")}
-            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "poems" ? "bg-[#B5A773] text-white shadow-md" : "bg-white/40 opacity-60"}`}
+            className={`flex-1 min-w-[100px] py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-xs font-bold ${activeTab === "poems" ? "bg-[#B5A773] text-white shadow-md" : "bg-white/40 opacity-60"}`}
           >
-            <PenLine size={18} /> Poems
+            <PenLine size={16} /> Poems
           </button>
         </div>
 
-        <h1 className="text-2xl font-light mb-8 tracking-[0.2em] flex items-center gap-3">
+        <h1 className="text-2xl font-light mb-8 tracking-[0.2em] flex items-center gap-3 uppercase">
           <PlusCircle size={24} className="text-[#B5A773]" /> 
-          NEW {activeTab === "notices" ? "NOTICE" : "POEM"}
+          NEW {activeTab.slice(0, -1)}
         </h1>
 
         <form onSubmit={handleSubmit} className="bg-white/40 p-8 rounded-3xl border border-white shadow-sm mb-16">
-          {activeTab === "notices" && (
+          {(activeTab === "notices" || activeTab === "feedbacks") && (
             <div className="mb-6">
-              <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">TAG (Update, Info, etc.)</label>
+              <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60 uppercase">
+                {activeTab === "feedbacks" ? "Service Name (Behavior, Text, Live)" : "TAG (Update, Info, etc.)"}
+              </label>
               <input
                 type="text"
                 value={noticeTag}
                 onChange={(e) => setNoticeTag(e.target.value)}
                 className="w-full p-4 rounded-2xl bg-white/60 border border-[#4F5D6B]/10 outline-none focus:border-[#B5A773] transition-all"
+                placeholder={activeTab === "feedbacks" ? "例: Behavior" : "Update"}
               />
             </div>
           )}
+          
           <div className="mb-6">
-            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">TITLE / AUTHOR</label>
+            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60 uppercase">
+              {activeTab === "feedbacks" ? "User Attribute (e.g. 30s Female)" : "TITLE / AUTHOR"}
+            </label>
             <input
               type="text"
               value={title}
@@ -146,8 +168,9 @@ export default function AdminPage() {
               required
             />
           </div>
+
           <div className="mb-8">
-            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60">CONTENT / BODY</label>
+            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60 uppercase">CONTENT / BODY</label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -155,9 +178,13 @@ export default function AdminPage() {
               required
             />
           </div>
+
           <button
             disabled={loading}
-            className={`w-full py-4 text-white rounded-2xl font-bold shadow-lg transition-all ${activeTab === "notices" ? "bg-[#5F6F7A] hover:bg-[#4d5b65]" : "bg-[#B5A773] hover:bg-[#a39665]"}`}
+            className={`w-full py-4 text-white rounded-2xl font-bold shadow-lg transition-all 
+              ${activeTab === "notices" ? "bg-[#5F6F7A] hover:bg-[#4d5b65]" : 
+                activeTab === "feedbacks" ? "bg-[#8E9B8D] hover:bg-[#7a8779]" : 
+                "bg-[#B5A773] hover:bg-[#a39665]"}`}
           >
             {loading ? "SAVING..." : "SAVE TO DATABASE"}
           </button>
@@ -168,12 +195,11 @@ export default function AdminPage() {
           LIST
         </h2>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pb-20">
           {items.map((item) => (
             <div key={item.id} className="bg-white/60 p-6 rounded-2xl border border-white flex justify-between items-start group hover:bg-white/80 transition-all">
               <div className="flex-1 pr-4">
                 {activeTab === "notices" ? (
-                  /* お知らせ（Notice）の場合：タイトルを上にする */
                   <>
                     <div className="flex gap-2 items-center mb-2">
                       <span className="text-[10px] font-bold text-[#4F5D6B] uppercase tracking-widest">【{item.title}】</span>
@@ -181,12 +207,21 @@ export default function AdminPage() {
                         <span className="text-[8px] px-2 border border-[#4F5D6B]/20 rounded-full opacity-50">{item.tag}</span>
                       )}
                     </div>
-                    <p className="text-[14px] leading-relaxed whitespace-pre-wrap opacity-80">{item.content || item.body}</p>
+                    <p className="text-[14px] leading-relaxed whitespace-pre-wrap opacity-80">{item.content}</p>
+                  </>
+                ) : activeTab === "feedbacks" ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[8px] bg-[#8E9B8D] text-white px-2 py-0.5 rounded tracking-tighter uppercase font-bold">
+                        {item.service_tag || "General"}
+                      </span>
+                      <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.attribute}</span>
+                    </div>
+                    <p className="text-[13px] leading-relaxed italic opacity-90 whitespace-pre-wrap">「{item.content}」</p>
                   </>
                 ) : (
-                  /* ポエム（Poem）の場合：本文を上にする（従来通り） */
                   <>
-                    <p className="text-[14px] leading-relaxed mb-2 whitespace-pre-wrap">{item.body || item.content}</p>
+                    <p className="text-[14px] leading-relaxed mb-2 whitespace-pre-wrap">{item.body}</p>
                     <div className="flex gap-2 items-center">
                       <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.title}</span>
                     </div>
