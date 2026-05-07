@@ -101,7 +101,7 @@ export default function NoticesPage() {
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <h2 className={`text-[14px] font-bold tracking-tight ${isExpanded ? 'text-[#2D363F]' : 'text-[#4F5D6B]'}`}>
+                    <h2 className={`text-[13px] font-medium tracking-[0.05em] ${isExpanded ? 'text-[#2D363F]' : 'text-[#4F5D6B] opacity-80'}`}>
                       {item.title}
                     </h2>
                     <ChevronDown 
@@ -118,7 +118,7 @@ export default function NoticesPage() {
                 >
                   <div className="overflow-hidden">
                     <div className="px-6 pb-6 pt-1 border-t border-[#4F5D6B]/5">
-                      <p className="text-[12px] leading-relaxed opacity-60 font-light mt-2 whitespace-pre-wrap">
+                      <p className="text-[12px] leading-[1.8] opacity-70 font-light mt-2 whitespace-pre-wrap tracking-wide">
                         {item.content}
                       </p>
                     </div>
