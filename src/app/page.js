@@ -35,7 +35,7 @@ export default function HomePage() {
       }
 
       try {
-        // 1. ブラウザ独自のIDを取得または生成 (crypto.randomUUIDの代替え)
+        // 1. ブラウザ独自のIDを取得または生成
         let guestId = localStorage.getItem(guestIdKey);
         if (!guestId) {
           guestId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -146,7 +146,8 @@ export default function HomePage() {
       <footer className="w-full max-w-sm space-y-12 border-t border-[#B5A773]/30 pt-14 pb-12">
         <nav className="flex justify-center gap-10 text-[10px] font-bold tracking-[0.2em] opacity-60">
           <Link href="/about" className="hover:text-[#B5A773] transition-colors">作者情報</Link>
-          <Link href="/contact" className="hover:text-[#B5A773] transition-colors">コンタクト</Link>
+          {/* 表示名を「お便り」に変更、リンク先は /contact ページ */}
+          <Link href="/contact" className="hover:text-[#B5A773] transition-colors">お問い合わせ</Link>
           <Link href="/terms" className="hover:text-[#B5A773] transition-colors">利用規約</Link>
         </nav>
 
