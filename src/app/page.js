@@ -6,8 +6,8 @@ import { createClient } from "@supabase/supabase-js";
 
 // Supabaseクライアントの初期化
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 );
 
 export default function HomePage() {
@@ -35,10 +35,10 @@ export default function HomePage() {
       }
 
       try {
-        // 1. ブラウザ独自のIDを取得または生成
+        // 1. ブラウザ独自のIDを取得または生成 (crypto.randomUUIDの代替え)
         let guestId = localStorage.getItem(guestIdKey);
         if (!guestId) {
-          guestId = crypto.randomUUID();
+          guestId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
           localStorage.setItem(guestIdKey, guestId);
         }
 
@@ -57,13 +57,12 @@ export default function HomePage() {
               { onConflict: 'guest_id, accessed_at' }
             );
           
-          // 送信に成功したらフラグを立てる（リロード対策）
           if (!upsertError) {
             localStorage.setItem(storageKey, "true");
           }
         }
 
-        // 3. 今日の日付のレコード数（デバイス数）を取得
+        // 3. 今日の日付のレコード数を取得
         const { count, error } = await supabase
           .from('daily_access_logs')
           .select('*', { count: 'exact', head: true })
@@ -80,7 +79,6 @@ export default function HomePage() {
     handleVisitorCount();
   }, []);
 
-  // 案内を閉じる処理
   const handleClosePrompt = () => {
     const today = new Intl.DateTimeFormat('ja-JP', {
       year: 'numeric',
@@ -146,7 +144,6 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer className="w-full max-w-sm space-y-12 border-t border-[#B5A773]/30 pt-14 pb-12">
-        {/* リンクを3つ並べるために gap を調整 */}
         <nav className="flex justify-center gap-10 text-[10px] font-bold tracking-[0.2em] opacity-60">
           <Link href="/about" className="hover:text-[#B5A773] transition-colors">作者情報</Link>
           <Link href="/contact" className="hover:text-[#B5A773] transition-colors">コンタクト</Link>
@@ -161,10 +158,7 @@ export default function HomePage() {
 
         <div className="text-center text-[9px] tracking-[0.4em] opacity-30 italic flex justify-center items-center gap-1">
           &copy; 2026 
-          <Link 
-            href="/admin" 
-            className="hover:opacity-100 hover:text-[#B5A773] transition-all cursor-default"
-          >
+          <Link href="/admin" className="hover:opacity-100 hover:text-[#B5A773] transition-all cursor-default">
             m.
           </Link> 
           personal space
@@ -176,28 +170,15 @@ export default function HomePage() {
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-xs z-50 animate-bounce">
           <div className="bg-[#5F6F7A] text-white p-4 rounded-2xl shadow-2xl border border-white/20 relative">
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#5F6F7A] rotate-45"></div>
-            
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white rounded-xl flex-shrink-0 flex items-center justify-center text-[#5F6F7A] font-bold shadow-inner">
-                m.
-              </div>
+              <div className="w-10 h-10 bg-white rounded-xl flex-shrink-0 flex items-center justify-center text-[#5F6F7A] font-bold shadow-inner">m.</div>
               <div className="flex-1">
-                <p className="text-[11px] font-bold leading-tight">
-                  アプリとしてホーム画面に追加
-                </p>
+                <p className="text-[11px] font-bold leading-tight">アプリとしてホーム画面に追加</p>
                 <p className="text-[9px] opacity-80 mt-1 leading-tight">
-                  下の共有ボタン <span className="inline-block border border-white/40 px-1 rounded mx-0.5">
-                    <svg className="w-2.5 h-2.5 inline mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.5 10l3.5-3.5 3.5 3.5M12 6.5v10M7 14.5v3.5a2 2 0 002 2h6a2 2 0 002-2v-3.5" />
-                    </svg>
-                  </span> を押して「ホーム画面に追加」
+                  共有ボタンから「ホーム画面に追加」
                 </p>
               </div>
-              <button 
-                onClick={handleClosePrompt}
-                className="text-white/40 hover:text-white p-1 transition-colors"
-                aria-label="案内を閉じる"
-              >
+              <button onClick={handleClosePrompt} className="text-white/40 hover:text-white p-1">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
