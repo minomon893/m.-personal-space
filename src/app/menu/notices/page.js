@@ -21,9 +21,7 @@ export default function NoticesPage() {
 
       if (!error && data) {
         setNotices(data);
-        if (data.length > 0) {
-          localStorage.setItem("last_viewed_notice", data[0].id);
-        }
+        // 【修正点】ページ読み込み時に勝手に last_viewed_notice を更新しないよう、ここにあった処理を削除しました。
       }
     };
 
@@ -34,12 +32,22 @@ export default function NoticesPage() {
   }, []);
 
   const toggleNotice = (id) => {
-    setExpandedId(expandedId === id ? null : id);
+    const isExpanding = expandedId !== id;
+    setExpandedId(isExpanding ? id : null);
     
-    if (!viewedIds.includes(id)) {
-      const newViewed = [...viewedIds, id];
-      setViewedIds(newViewed);
-      localStorage.setItem("metacog_read_notices", JSON.stringify(newViewed));
+    if (isExpanding) {
+      // 1. この個別ページ内の「New」バッジ用
+      if (!viewedIds.includes(id)) {
+        const newViewed = [...viewedIds, id];
+        setViewedIds(newViewed);
+        localStorage.setItem("metacog_read_notices", JSON.stringify(newViewed));
+      }
+
+      // 2. 【重要】メニュー画面のバッジを消すための処理
+      // 一番上の（最新の）お知らせを開いた時に、メニューの通知マークを既読にする
+      if (notices.length > 0 && id === notices[0].id) {
+        localStorage.setItem("last_viewed_notice", id);
+      }
     }
   };
 
@@ -142,7 +150,7 @@ export default function NoticesPage() {
         @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,200;1,400&family=Inter:wght@300;400;700&display=swap');
         
         .font-serif {
-          font-family: 'Crimson+Pro', serif;
+          font-family: 'Crimson Pro', serif;
         }
         .font-sans {
           font-family: 'Inter', sans-serif;

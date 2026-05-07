@@ -15,7 +15,7 @@ export default function MenuPage() {
   const LATEST_NOTICE_ID = "v1.1-update";
 
   useEffect(() => {
-    // お知らせの既読チェックのみ継続
+    // お知らせの既読チェック
     const lastViewed = localStorage.getItem("last_viewed_notice");
     if (lastViewed !== LATEST_NOTICE_ID) {
       setHasNewNotice(true);
@@ -23,6 +23,7 @@ export default function MenuPage() {
   }, []);
 
   const handleNoticeClick = () => {
+    // クリックした瞬間にステートを更新してバッジを消し、ストレージに保存する
     setHasNewNotice(false);
     localStorage.setItem("last_viewed_notice", LATEST_NOTICE_ID);
   };
@@ -51,9 +52,8 @@ export default function MenuPage() {
             <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-4 border-b border-[#5F6F7A]/10 pb-1 uppercase">
               Basic
             </h2>
-            <Link href="/menu/notices">
+            <Link href="/menu/notices" onClick={handleNoticeClick}>
               <button
-                onClick={handleNoticeClick}
                 className="relative w-full py-5 px-6 bg-white/45 border border-white/40 rounded-2xl hover:bg-white/70 transition-all text-left shadow-sm shadow-black/[0.02]"
               >
                 <span className="text-[14px] font-bold block">お知らせ</span>
