@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
 
@@ -13,6 +13,9 @@ export default function DiaryPage() {
   // グラフ制御
   const [graphPeriod, setGraphPeriod] = useState(null); 
   const [viewDate, setViewDate] = useState(new Date());
+
+  // スクロール用リファレンス
+  const logRefs = useRef({});
 
   // 初期読み込み
   useEffect(() => {
@@ -63,7 +66,7 @@ export default function DiaryPage() {
           ? dayLogs.reduce((sum, log) => sum + log.score, 0) / dayLogs.length 
           : 0;
 
-        return { label: `${day}`, score: avg, hasData: dayLogs.length > 0 };
+        return { label: `${day}`, score: avg, hasData: dayLogs.length > 0, dateKey: targetKey };
       });
     }
 
@@ -71,19 +74,21 @@ export default function DiaryPage() {
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       
       return months.map((m, i) => {
-        const targetMonthKey = `${year}-${String(i + 1).padStart(2, '0')}`;
-        
         const monthLogs = logs.filter(l => {
           const d = new Date(l.id);
-          const logMonthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          return logMonthKey === targetMonthKey;
+          return d.getFullYear() === year && d.getMonth() === i;
         });
 
         const avg = monthLogs.length 
           ? monthLogs.reduce((sum, log) => sum + log.score, 0) / monthLogs.length 
           : 0;
 
-        return { label: m, score: avg, hasData: monthLogs.length > 0 };
+        return { 
+          label: m, 
+          score: avg, 
+          hasData: monthLogs.length > 0, 
+          firstLogIdInMonth: monthLogs.length > 0 ? monthLogs[monthLogs.length - 1].id : null 
+        };
       });
     }
     return [];
@@ -114,8 +119,32 @@ export default function DiaryPage() {
     
     setText("");
     setPercentage(50);
-    // 保存時に最新の月/年に表示を合わせる
     setViewDate(new Date());
+  };
+
+  // グラフクリック時に日記へスクロール
+  const handleBarClick = (data) => {
+    if (!data.hasData) return;
+    setShowLogs(true);
+    
+    setTimeout(() => {
+      let targetElement = null;
+
+      if (graphPeriod === "month") {
+        const [y, m, d] = data.dateKey.split("-");
+        const formattedDate = `${parseInt(y)}/${parseInt(m)}/${parseInt(d)}`;
+        targetElement = logRefs.current[formattedDate];
+      } else if (graphPeriod === "year") {
+        targetElement = document.getElementById(`log-${data.firstLogIdInMonth}`);
+      }
+
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        const originalBg = targetElement.style.backgroundColor;
+        targetElement.style.backgroundColor = "rgba(181, 167, 115, 0.2)";
+        setTimeout(() => { targetElement.style.backgroundColor = originalBg; }, 1500);
+      }
+    }, 100);
   };
 
   return (
@@ -125,22 +154,20 @@ export default function DiaryPage() {
           <ArrowLeft size={12}/> BACK TO MENU
         </Link>
 
-        {/* --- 修正箇所: タイトルセクション --- */}
         <header className="mb-10">
           <h1 className="text-2xl font-bold tracking-[0.15em] text-[#4F5F6A] uppercase">
             Condition <span className="font-light opacity-60 italic">Diary</span>
           </h1>
           <div className="h-[1px] w-12 bg-[#4F5F6A] opacity-20 mt-2" />
         </header>
-        {/* ---------------------------- */}
 
-        {/* STATS BUTTONS */}
+        {/* STATS BUTTONS - MonthlyもYearlyと同じ#B5A773を使用 */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <button
             onClick={() => { setGraphPeriod(graphPeriod === "month" ? null : "month"); setViewDate(new Date()); }}
-            className={`p-5 rounded-3xl border transition-all ${graphPeriod === "month" ? "bg-white border-[#6D7A86] shadow-md scale-[1.02]" : "bg-white/60 border-white/40"}`}
+            className={`p-5 rounded-3xl border transition-all ${graphPeriod === "month" ? "bg-[#B5A773] border-[#B5A773] text-white shadow-md scale-[1.02]" : "bg-white/60 border-white/40"}`}
           >
-            <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1 font-bold">Monthly</p>
+            <p className={`text-[9px] uppercase tracking-widest mb-1 font-bold ${graphPeriod === "month" ? "text-white/70" : "opacity-50"}`}>Monthly</p>
             <span className="text-2xl font-light">{getAverage(30)}%</span>
           </button>
 
@@ -153,7 +180,7 @@ export default function DiaryPage() {
           </button>
         </div>
 
-        {/* CHART AREA */}
+        {/* CHART AREA - 棒の色を#B5A773に統一 */}
         {graphPeriod && (
           <div className="mb-8 p-6 bg-white/50 rounded-[2.5rem] border border-white shadow-sm animate-in fade-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-6">
@@ -168,15 +195,19 @@ export default function DiaryPage() {
 
             <div className="flex items-end justify-between h-32 gap-[2px] px-1">
               {graphData.map((data, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center h-full group">
+                <div 
+                  key={i} 
+                  className={`flex-1 flex flex-col items-center h-full group ${data.hasData ? "cursor-pointer" : ""}`}
+                  onClick={() => handleBarClick(data)}
+                >
                   <div className="relative w-full h-full flex items-end">
                     <div 
                       style={{ height: data.hasData ? `${data.score}%` : '4%' }}
                       className={`w-full rounded-full transition-all duration-700 ease-out ${
                         data.hasData 
-                          ? (graphPeriod === 'year' ? 'bg-[#B5A773]' : 'bg-[#6D7A86]') 
+                          ? 'bg-[#B5A773]' 
                           : 'bg-black/5'
-                      }`}
+                      } ${data.hasData ? "group-hover:opacity-80" : ""}`}
                     />
                     {data.hasData && (
                       <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-[8px] bg-[#4F5F6A] text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 font-bold">
@@ -233,7 +264,12 @@ export default function DiaryPage() {
         {showLogs && (
           <div className="mt-4 space-y-3 pb-20 animate-in slide-in-from-bottom-4 duration-500">
             {logs.map((log) => (
-              <div key={log.id} className="p-6 rounded-[2rem] bg-white/40 border border-white flex justify-between items-center shadow-sm">
+              <div 
+                key={log.id} 
+                id={`log-${log.id}`}
+                ref={(el) => (logRefs.current[log.date] = el)}
+                className="p-6 rounded-[2rem] bg-white/40 border border-white flex justify-between items-center shadow-sm transition-all duration-300"
+              >
                 <div className="flex-1 px-2">
                   <p className="text-[11px] font-bold">{log.date} <span className="ml-2 opacity-30 font-normal">{log.time}</span></p>
                   {log.comment && <p className="text-xs italic opacity-60 mt-1 leading-relaxed">{log.comment}</p>}
