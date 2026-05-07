@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Download, Upload } from "lucide-react";
 
 export default function DiaryPage() {
   const [logs, setLogs] = useState([]);
@@ -28,6 +28,45 @@ export default function DiaryPage() {
       }
     }
   }, []);
+
+  // バックアップ：書き出し
+  const exportData = () => {
+    const dataStr = JSON.stringify(logs, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `diary_backup_${date}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // バックアップ：読み込み
+  const importData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+        if (Array.isArray(json)) {
+          const confirmed = confirm("データを上書きします。よろしいですか？");
+          if (confirmed) {
+            setLogs(json);
+            localStorage.setItem("mood_logs", JSON.stringify(json));
+            alert("バックアップを復元しました");
+          }
+        } else {
+          alert("正しい形式のファイルではありません");
+        }
+      } catch (err) {
+        alert("読み込みに失敗しました");
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // 全期間平均
   const getAverage = (days) => {
@@ -161,7 +200,7 @@ export default function DiaryPage() {
           <div className="h-[1px] w-12 bg-[#4F5F6A] opacity-20 mt-2" />
         </header>
 
-        {/* STATS BUTTONS - MonthlyもYearlyと同じ#B5A773を使用 */}
+        {/* STATS BUTTONS */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <button
             onClick={() => { setGraphPeriod(graphPeriod === "month" ? null : "month"); setViewDate(new Date()); }}
@@ -180,7 +219,7 @@ export default function DiaryPage() {
           </button>
         </div>
 
-        {/* CHART AREA - 棒の色を#B5A773に統一 */}
+        {/* CHART AREA */}
         {graphPeriod && (
           <div className="mb-8 p-6 bg-white/50 rounded-[2.5rem] border border-white shadow-sm animate-in fade-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-6">
@@ -262,7 +301,7 @@ export default function DiaryPage() {
         </button>
 
         {showLogs && (
-          <div className="mt-4 space-y-3 pb-20 animate-in slide-in-from-bottom-4 duration-500">
+          <div className="mt-4 space-y-3 pb-2 animate-in slide-in-from-bottom-4 duration-500">
             {logs.map((log) => (
               <div 
                 key={log.id} 
@@ -281,6 +320,21 @@ export default function DiaryPage() {
             ))}
           </div>
         )}
+
+        {/* BACKUP CONTROLS */}
+        <div className="mt-12 mb-20 flex justify-center gap-8 border-t border-[#4F5F6A]/10 pt-8">
+          <button 
+            onClick={exportData}
+            className="flex items-center gap-2 text-[9px] font-bold tracking-widest text-[#4F5F6A] opacity-40 hover:opacity-100 transition-opacity"
+          >
+            <Download size={14} /> EXPORT
+          </button>
+          
+          <label className="flex items-center gap-2 text-[9px] font-bold tracking-widest text-[#4F5F6A] opacity-40 hover:opacity-100 transition-opacity cursor-pointer">
+            <Upload size={14} /> IMPORT
+            <input type="file" accept=".json" onChange={importData} className="hidden" />
+          </label>
+        </div>
       </div>
     </div>
   );
