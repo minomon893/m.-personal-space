@@ -3,30 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// URLやKeyが設定されていない場合にエラーを出して教えてくれる安全策
+// 安全策：値がない場合はここで止める
 if (!supabaseUrl || !supabaseKey) {
-  console.error("Supabaseの環境変数が設定されていません。.env.local ファイルを確認してください。")
+  throw new Error("Supabaseの環境変数が設定されていません。")
 }
 
-// グローバル変数としてインスタンスを保持する（開発中の二重作成防止）
-let supabaseClient;
-
-if (typeof window !== "undefined" && window.supabaseInstance) {
-  // すでにブラウザ上にインスタンスがある場合はそれを使う
-  supabaseClient = window.supabaseInstance;
-} else {
-  // ない場合は新しく作成する
-  supabaseClient = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    }
-  });
-
-  // ブラウザ環境であれば、作成したものをグローバルに保存しておく
-  if (typeof window !== "undefined") {
-    window.supabaseInstance = supabaseClient;
+// 修正ポイント：よりシンプルでNext.jsと相性の良いインスタンス保持
+// (windowに無理やり入れなくても、このファイルが一度読み込まれればキャッシュされます)
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
   }
-}
-
-export const supabase = supabaseClient;
+});

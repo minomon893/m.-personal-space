@@ -158,7 +158,7 @@ export default function HomePage() {
                     <b>ちょこっとーく</b>：心おきなくつぶやいて、リアクションで温かく繋がる場所。
                   </p>
                   <p>
-                    <b>オタトーーーーク！！！</b>：好きなことを、気兼ねなく語り合えます。
+                    <b>オタトーーーーク！！！</b>：好きなことを, 気兼ねなく語り合えます。
                   </p>
                   <p>
                     <b>コラム</b>：管理人個人の日記に近い、ここだけの内緒の話や気づき。
@@ -196,34 +196,51 @@ export default function HomePage() {
 
       {/* MAIN */}
       <main className="w-full max-w-xs space-y-4 mb-24">
-        <Link href="/menu" className="block text-left">
-          <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all">
-            <div>
-              <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase">Main Menu</span>
+        <Link href="/menu" className="block">
+          <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all group">
+            <div className="text-left flex-1">
+              <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">Main Menu</span>
               <span className="text-[13px] opacity-80">メインメニュー / Ezine</span>
             </div>
-            <span className="opacity-30">→</span>
+            <span className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
           </button>
         </Link>
 
-        <Link href="/booking" className="block text-left">
-          <button className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center hover:bg-[#52606A] hover:-translate-y-[1px] transition-all">
-            <div>
-              <span className="block text-xs font-bold opacity-60 mb-1 uppercase">Counseling</span>
+        <Link href="/booking" className="block">
+          <button className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center hover:bg-[#52606A] hover:-translate-y-[1px] transition-all group">
+            <div className="text-left flex-1">
+              <span className="block text-xs font-bold opacity-60 mb-1 uppercase tracking-wider">Counseling</span>
               <span className="text-[13px]">カウンセリング予約</span>
             </div>
-            <span className="opacity-60">→</span>
+            <span className="opacity-60 group-hover:translate-x-1 transition-all">→</span>
           </button>
         </Link>
 
-        <Link href="/diary" className="block text-left">
-          <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all">
-            <div>
-              <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase">Diary</span>
+        <Link href="/diary" className="block pb-2">
+          <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all group">
+            <div className="text-left flex-1">
+              <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">Diary</span>
               <span className="text-[13px] opacity-80">コンディション記録 / 日記</span>
             </div>
-            <span className="opacity-30">→</span>
+            <span className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
           </button>
+        </Link>
+
+        {/* --- REVISED: M. picnic space Entrance --- */}
+        <Link href="/subscription" className="block pt-4">
+          <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all group">
+            <div className="text-left flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="block text-xs font-bold text-[#B5A773] uppercase tracking-wider">M. picnic space</span>
+                <span className="text-[8px] bg-[#B5A773]/10 text-[#B5A773] px-1.5 py-0.5 rounded tracking-tighter font-bold">MEMBERSHIP</span>
+              </div>
+              <span className="text-[13px] opacity-80 italic">みんなとゆるく繋がる広場</span>
+            </div>
+            <span className="text-[#B5A773] opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
+          </button>
+          <p className="text-[9px] text-center mt-3 opacity-40 tracking-[0.1em]">
+            ※こちらは有料メンバーシップ限定の空間です
+          </p>
         </Link>
       </main>
 
