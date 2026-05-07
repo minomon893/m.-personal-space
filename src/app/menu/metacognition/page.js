@@ -5,7 +5,7 @@ import Link from "next/link";
 import { 
   ArrowLeft, Rocket, PlusCircle, History, ChevronDown, 
   ChevronUp, Star, Settings, Target, PlayCircle, TrendingUp, FlaskConical, Clock, User,
-  Pencil, Trash2, Check, X, RefreshCw, Users
+  Pencil, Trash2, Check, X, RefreshCw, Users, Sparkles, BookOpen
 } from "lucide-react";
 // 正しいパス: ../../../lib/supabase
 import { supabase } from "../../../lib/supabase"; 
@@ -20,7 +20,6 @@ export default function MetacognitionPortal() {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ material: "", scene: "", action: "", result: "", note: "" });
 
-  // 送信状態管理
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const fetchInitial = async () => {
@@ -52,7 +51,6 @@ export default function MetacognitionPortal() {
 
   const handleReportSubmit = async (e) => {
     e.preventDefault();
-    // note以外が空ならリターン
     if (!formData.material || !formData.scene || !formData.action || !formData.result) return;
     
     let currentId = myMemberId;
@@ -84,7 +82,7 @@ export default function MetacognitionPortal() {
       incrementTotalCreated();
       setLogs(prev => [data[0], ...prev].slice(0, 3));
       setFormData({ material: "", scene: "", action: "", result: "", note: "" });
-      setIsSubmitted(true); // 送信完了状態にする
+      setIsSubmitted(true);
     }
   };
 
@@ -111,22 +109,71 @@ export default function MetacognitionPortal() {
   return (
     <div className="min-h-screen bg-[#F0F4F8] text-[#334E68] font-sans p-6 pb-20">
       <div className="max-w-md mx-auto">
-        <div className="flex justify-between items-start mb-8">
+        {/* ナビゲーション */}
+        <div className="flex justify-between items-center mb-8">
           <Link href="/menu" className="text-[11px] font-bold opacity-50 flex items-center gap-2 uppercase tracking-widest hover:opacity-100 transition-all">
             <ArrowLeft size={12}/> Back
           </Link>
           <div className="flex gap-2">
-            <Link href="/menu/metacognition/logs" className="p-2 bg-white border border-[#BCCCDC] rounded-full hover:shadow-md transition-all text-[#627D98]"><History size={16} /></Link>
-            <Link href="/menu/metacognition/profile" className="p-2 bg-white border border-[#BCCCDC] rounded-full hover:shadow-md transition-all text-[#627D98]"><User size={16} /></Link>
+            <Link href="/menu/metacognition/logs" className="flex items-center gap-2 px-3 py-1.5 bg-white border border-[#BCCCDC] rounded-full hover:shadow-md transition-all text-[#627D98] text-[10px] font-bold">
+              <History size={14} /> <span>みんなの報告</span>
+            </Link>
+            <Link href="/menu/metacognition/profile" className="flex items-center gap-2 px-3 py-1.5 bg-white border border-[#BCCCDC] rounded-full hover:shadow-md transition-all text-[#627D98] text-[10px] font-bold">
+              <User size={14} /> <span>自分の報告</span>
+            </Link>
           </div>
         </div>
 
+        {/* ヘッダー */}
         <div className="flex flex-col items-center gap-2 mb-10 text-center">
           <Rocket size={24} className="text-[#627D98]" />
           <h1 className="text-lg font-bold tracking-[0.2em] uppercase italic text-[#243B53]">Metacognition Lab</h1>
           <p className="text-[9px] font-bold opacity-40 tracking-[0.3em]">メタ認知トリガー開発部</p>
         </div>
 
+        {/* 活動内容解説 */}
+        <section className="mb-10">
+          <div className="bg-white border-2 border-[#D9E2EC] rounded-3xl p-6 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <Sparkles size={60} className="text-[#486581]" />
+            </div>
+            
+            <h3 className="text-[13px] font-extrabold mb-4 flex items-center gap-2 text-[#243B53]">
+              <BookOpen size={16} className="text-[#486581]" /> ラボの活動内容
+            </h3>
+            
+            <div className="space-y-4 text-[12px] text-[#486581] leading-relaxed">
+              <p>
+                <strong>「メタ認知」</strong>とは、思考や感情にのまれそうな自分を「もう一人の自分」が空から客観的に眺めるスキルのことである。
+              </p>
+              <p>
+                当ラボではメタ認知に必要不可欠な、不安や怒りと適切な距離を置く心理技術<strong>「脱フュージョン」</strong>をトレーニングする。
+              </p>
+              
+              <div className="bg-[#F0F4F8] rounded-2xl p-4 border border-[#BCCCDC]/50">
+                <p className="font-bold text-[11px] mb-2 text-[#243B53]">具体的なトレーニング例：</p>
+                <p className="text-[11px] mb-3">
+                  感情を自分から切り離すための<strong>「操作スイッチ（トリガー）」</strong>を開発し、報告せよ。
+                </p>
+                <ul className="space-y-3 text-[11px] border-t border-[#BCCCDC]/50 pt-3">
+                  <li className="flex flex-col gap-1">
+                    <span className="font-bold text-[#243B53]">【例1：不安がいっぱいになった時】</span>
+                    <span>「脳内のラジオ」のつまみを回すイメージを持ち、不安な声を小さく絞る。</span>
+                  </li>
+                  <li className="flex flex-col gap-1">
+                    <span className="font-bold text-[#243B53]">【例2：イライラが止まらない時】</span>
+                    <span>空に浮かぶ雲にその気持ちを乗せて、流れていくのをただ眺める。</span>
+                  </li>
+                </ul>
+              </div>
+              <p className="text-center font-bold text-[#627D98] pt-1">
+                君が見つけた「心のスイッチ」をみんなに共有しよう。 
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* フォーム */}
         <section className="mb-12">
           <div className="flex justify-between items-end mb-3 px-2">
             <h2 className="text-[10px] font-bold opacity-50 uppercase flex items-center gap-2"><PlusCircle size={10}/> New Report</h2>
@@ -138,10 +185,10 @@ export default function MetacognitionPortal() {
           <div className="bg-white border border-[#BCCCDC] rounded-2xl p-6 shadow-md">
             {!isSubmitted ? (
               <form onSubmit={handleReportSubmit} className="space-y-5 animate-in fade-in duration-500">
-                <FormField label="Material" value={formData.material} onChange={(v)=>setFormData({...formData, material:v})} icon={<Settings size={14}/>} placeholder="素材" />
-                <FormField label="Scene" value={formData.scene} onChange={(v)=>setFormData({...formData, scene:v})} icon={<Target size={14}/>} placeholder="状況" />
-                <FormField label="Action" value={formData.action} onChange={(v)=>setFormData({...formData, action:v})} icon={<PlayCircle size={14}/>} placeholder="操作" isTextarea />
-                <FormField label="Result" value={formData.result} onChange={(v)=>setFormData({...formData, result:v})} icon={<TrendingUp size={14}/>} placeholder="変化" />
+                <FormField label="Material" value={formData.material} onChange={(v)=>setFormData({...formData, material:v})} icon={<Settings size={14}/>} placeholder="素材（例：ラジオ、雲、つまみ）" />
+                <FormField label="Scene" value={formData.scene} onChange={(v)=>setFormData({...formData, scene:v})} icon={<Target size={14}/>} placeholder="どんな状況・感情で？（例：不安、焦り）" />
+                <FormField label="Action" value={formData.action} onChange={(v)=>setFormData({...formData, action:v})} icon={<PlayCircle size={14}/>} placeholder="どう操作する？（例：音量を下げる、見送る）" isTextarea />
+                <FormField label="Result" value={formData.result} onChange={(v)=>setFormData({...formData, result:v})} icon={<TrendingUp size={14}/>} placeholder="気持ちはどう変わった？" />
                 <FormField label="Bug Reporting (Optional)" value={formData.note} onChange={(v)=>setFormData({...formData, note:v})} icon={<FlaskConical size={14}/>} placeholder="バグ報告（任意）" />
                 <button type="submit" className="w-full py-4 bg-[#486581] text-white rounded-xl font-bold text-sm hover:bg-[#334E68] transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95">
                   <Rocket size={16}/> 開発報告を送信する
@@ -152,8 +199,8 @@ export default function MetacognitionPortal() {
                 <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check size={32} />
                 </div>
-                <h3 className="font-bold text-[#243B53] mb-2">報告の送信が完了しました</h3>
-                <p className="text-[11px] opacity-60 mb-8">データが正常にアーカイブされました</p>
+                <h3 className="font-bold text-[#243B53] mb-2">報告完了！</h3>
+                <p className="text-[11px] opacity-60 mb-8">保存完了！</p>
                 <div className="flex flex-col gap-3">
                   <button 
                     onClick={() => setIsSubmitted(false)}
@@ -173,6 +220,7 @@ export default function MetacognitionPortal() {
           </div>
         </section>
 
+        {/* 最近のログリスト */}
         <section className="space-y-4">
           <h2 className="text-[10px] font-bold opacity-50 mb-3 uppercase flex items-center gap-2 px-2"><Clock size={10}/> Latest Reports</h2>
           {logs.map((log) => {
