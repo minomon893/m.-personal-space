@@ -34,16 +34,13 @@ export default function SoftKotoBot() {
             </div>
           </div>
 
-          {/* コンセプトメッセージ */}
-          <div className="max-w-[280px] mx-auto space-y-2 text-center mb-20">
-            <p className="text-[11px] leading-relaxed tracking-[0.15em] opacity-85 font-normal">
-              「正しさ」より「調和」を大切に。
-            </p>
-            <p className="text-[11px] leading-relaxed tracking-[0.15em] opacity-85 font-normal">
-              心の余裕をデザインするための
-            </p>
-            <p className="text-[11px] leading-relaxed tracking-[0.15em] opacity-85 font-normal">
-              アサーティブ・ツールです。
+          {/* アサーティブの説明を追加 */}
+          <div className="max-w-[300px] mx-auto mb-10 text-center">
+            <h2 className="text-[10px] font-bold tracking-[0.2em] opacity-40 uppercase mb-4">What is Assertive?</h2>
+            <p className="text-[11px] leading-[2] tracking-[0.05em] opacity-70 font-normal">
+              相手を負かすためでも、自分を押し殺すためでもなく。<br />
+              「自分も相手も、どちらも大切にする」ための<br />
+              誠実で対等なコミュニケーション。
             </p>
           </div>
 

@@ -28,7 +28,6 @@ export default function PoemPage() {
           .select('*');
         
         if (error) throw error;
-        // DBにデータがあればセット、なければ元の格言を使う
         if (data && data.length > 0) {
           setDbPoems(data);
         } else {
@@ -36,7 +35,6 @@ export default function PoemPage() {
         }
       } catch (err) {
         console.error("Error fetching poems:", err.message);
-        // エラー時も元の格言を表示できるようにセット
         setDbPoems(originalPoems.map(p => ({ body: p.text, title: p.author })));
       }
     };
@@ -65,9 +63,18 @@ export default function PoemPage() {
     <div className="min-h-screen bg-[#E6E1CF] p-8 text-[#4F5D6B] font-sans selection:bg-[#C2B280]/20">
       <div className="max-w-md mx-auto h-[90vh] flex flex-col">
         
-        <Link href="/menu" className="text-[10px] tracking-[0.3em] font-bold opacity-40 uppercase flex items-center gap-2 mb-12 hover:opacity-100 transition-all">
+        <Link href="/menu" className="text-[10px] tracking-[0.3em] font-bold opacity-40 uppercase flex items-center gap-2 mb-8 hover:opacity-100 transition-all">
           <ArrowLeft size={12} /> Back to Menu
         </Link>
+
+        {/* 【追加】導入メッセージ */}
+        <header className="mb-12 text-center space-y-3">
+          <h1 className="text-[13px] font-bold tracking-[0.2em] opacity-80">Free a poem</h1>
+          <p className="text-[11px] leading-relaxed opacity-50 font-light tracking-wide">
+            鳥かごの中に眠る言葉たちが、<br />
+            今のあなたに必要な一節を届けてくれます。
+          </p>
+        </header>
 
         <div className="flex-1 flex flex-col items-center justify-center relative">
           
@@ -96,13 +103,18 @@ export default function PoemPage() {
               </div>
 
               <div className="absolute inset-0 flex items-center justify-center">
-                <button 
-                  onClick={pullPoem}
-                  disabled={isOpening}
-                  className="z-20 px-10 py-4 bg-[#4F5D6B]/90 text-[#E6E1CF] rounded-sm text-[11px] font-bold tracking-[0.4em] shadow-2xl hover:bg-[#4F5D6B] active:scale-95 disabled:opacity-0 transition-all duration-700 outline-none border border-white/10"
-                >
-                  {isOpening ? "" : "Free a poem"}
-                </button>
+                <div className="flex flex-col items-center gap-4">
+                  <button 
+                    onClick={pullPoem}
+                    disabled={isOpening}
+                    className="z-20 px-10 py-4 bg-[#4F5D6B]/90 text-[#E6E1CF] rounded-sm text-[11px] font-bold tracking-[0.4em] shadow-2xl hover:bg-[#4F5D6B] active:scale-95 disabled:opacity-0 transition-all duration-700 outline-none border border-white/10"
+                  >
+                    {isOpening ? "" : "Free a poem"}
+                  </button>
+                  {!isOpening && !poem && (
+                    <span className="text-[9px] tracking-[0.2em] opacity-30 animate-pulse uppercase">Click to release</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

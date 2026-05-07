@@ -9,29 +9,39 @@ import {
   Lock,
   BookOpen,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase"; // 追加
 
 export default function MenuPage() {
   const [hasNewNotice, setHasNewNotice] = useState(false);
-  const LATEST_NOTICE_ID = "v1.1-update";
 
   useEffect(() => {
-    const lastViewed = localStorage.getItem("last_viewed_notice");
-    if (lastViewed !== LATEST_NOTICE_ID) {
-      setHasNewNotice(true);
-    }
+    const checkNewNotices = async () => {
+      // 最新の1件だけ取得
+      const { data, error } = await supabase
+        .from('notices')
+        .select('id')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!error && data) {
+        const lastViewed = localStorage.getItem("last_viewed_notice");
+        // 最新のIDが、最後に詳細を開いたIDと違えばバッジを表示
+        if (lastViewed !== data.id) {
+          setHasNewNotice(true);
+        }
+      }
+    };
+
+    checkNewNotices();
   }, []);
 
+  // リンクをクリックしただけでは既読にしない（詳細はNoticesPage側で処理）
   const handleNoticeClick = () => {
-    setHasNewNotice(false);
-    localStorage.setItem("last_viewed_notice", LATEST_NOTICE_ID);
+    // 遷移時の視覚的な反応が必要なければ空でもOK
   };
 
   return (
-    /* 
-       朝の空 (#D0D9DF) から始まり、
-       昼の生暖かい黄色 (#E6E1CF, #F2EBD4) を経て、
-       夜の静かな紺色 (#2C3E50) へと続くロンググラデーション
-    */
     <div className="min-h-screen bg-gradient-to-b from-[#D0D9DF] via-[#E6E1CF] via-[#F2EBD4] to-[#2C3E50] p-6 text-[#5F6F7A] font-[var(--font-sans)] transition-colors duration-500">
       <div className="max-w-md mx-auto">
 
@@ -143,7 +153,6 @@ export default function MenuPage() {
 
         </div>
 
-        {/* FOOTER: 夜の紺背景に合わせて文字色を明るく調整 */}
         <footer className="mt-28 mb-12 text-center text-white/20 text-[9px] tracking-[0.4em] uppercase">
           &copy; 2026 m. personal space
         </footer>
@@ -152,8 +161,6 @@ export default function MenuPage() {
     </div>
   );
 }
-
-/* ===== COMPONENT ===== */
 
 function MenuButton({ title, subtitle, isSmall = false, highlight = false, isDisabled = false, onClick }) {
   return (
@@ -166,9 +173,7 @@ function MenuButton({ title, subtitle, isSmall = false, highlight = false, isDis
       ${
         isDisabled 
           ? "bg-black/5 border-transparent cursor-not-allowed opacity-40" 
-          : highlight
-            ? "bg-[#B5A773]/15 border-[#B5A773]/40 hover:bg-white/70 active:scale-[0.98]"
-            : "bg-white/60 border-white/40 hover:bg-white/80 active:scale-[0.98]"
+          : "bg-white/60 border-white/40 hover:bg-white/80 active:scale-[0.98]"
       }`}
     >
       <div className="flex justify-between items-center">

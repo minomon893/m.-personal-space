@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 export default function NoticesPage() {
   const [viewedIds, setViewedIds] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
-  const [notices, setNotices] = useState([]); 
+  const [notices, setNotices] = useState([]);
 
   useEffect(() => {
     const fetchNotices = async () => {
@@ -21,7 +21,6 @@ export default function NoticesPage() {
 
       if (!error && data) {
         setNotices(data);
-        // 【修正点】ページ読み込み時に勝手に last_viewed_notice を更新しないよう、ここにあった処理を削除しました。
       }
     };
 
@@ -36,15 +35,15 @@ export default function NoticesPage() {
     setExpandedId(isExpanding ? id : null);
     
     if (isExpanding) {
-      // 1. この個別ページ内の「New」バッジ用
+      // 1. 個別のお知らせの「New」バッジ用
       if (!viewedIds.includes(id)) {
         const newViewed = [...viewedIds, id];
         setViewedIds(newViewed);
         localStorage.setItem("metacog_read_notices", JSON.stringify(newViewed));
       }
 
-      // 2. 【重要】メニュー画面のバッジを消すための処理
-      // 一番上の（最新の）お知らせを開いた時に、メニューの通知マークを既読にする
+      // 2. メニュー画面の通知バッジを消すための処理
+      // 開いたお知らせが、リストの中で最も新しいものであれば localStorage を更新
       if (notices.length > 0 && id === notices[0].id) {
         localStorage.setItem("last_viewed_notice", id);
       }

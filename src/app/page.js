@@ -146,8 +146,10 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer className="w-full max-w-sm space-y-12 border-t border-[#B5A773]/30 pt-14 pb-12">
-        <nav className="flex justify-center gap-16 text-[10px] font-bold tracking-[0.2em] opacity-60">
+        {/* リンクを3つ並べるために gap を調整 */}
+        <nav className="flex justify-center gap-10 text-[10px] font-bold tracking-[0.2em] opacity-60">
           <Link href="/about" className="hover:text-[#B5A773] transition-colors">作者情報</Link>
+          <Link href="/contact" className="hover:text-[#B5A773] transition-colors">コンタクト</Link>
           <Link href="/terms" className="hover:text-[#B5A773] transition-colors">利用規約</Link>
         </nav>
 
