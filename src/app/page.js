@@ -2,20 +2,22 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
+import { createBrowserClient } from "@supabase/ssr"; // @supabase/ssr に統一
 
 export default function HomePage() {
   const [visitorCount, setVisitorCount] = useState(0);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
+  // クライアントコンポーネント内でSupabaseを初期化
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
   useEffect(() => {
     async function handleVisitorCount() {
+      // 日本時間の今日の日付 (YYYY-MM-DD)
       const today = new Intl.DateTimeFormat("ja-JP", {
         year: "numeric",
         month: "2-digit",
@@ -29,42 +31,57 @@ export default function HomePage() {
       const guestIdKey = "visitor_guest_id";
       const hidePromptKey = `hide_install_prompt_${today}`;
 
+      // インストールプロンプトの表示制御
       if (!localStorage.getItem(hidePromptKey)) {
         setShowInstallPrompt(true);
       }
 
       try {
+        // 1. デバイス固有の guest_id を取得または生成
         let guestId = localStorage.getItem(guestIdKey);
         if (!guestId) {
           guestId = Math.random().toString(36).substring(2, 15);
           localStorage.setItem(guestIdKey, guestId);
         }
 
+        // 2. 今日まだカウントされていなければDBに登録
         if (!localStorage.getItem(storageKey)) {
+          // ログインしている場合は user_id を取得
           const {
             data: { user },
           } = await supabase.auth.getUser();
+
           const { error: upsertError } = await supabase
             .from("daily_access_logs")
             .upsert(
-              { guest_id: guestId, accessed_at: today, user_id: user?.id || null },
+              { 
+                guest_id: guestId, 
+                accessed_at: today, 
+                user_id: user?.id || null // ログインしてればID、してなければnull
+              },
               { onConflict: "guest_id, accessed_at" }
             );
-          if (!upsertError) localStorage.setItem(storageKey, "true");
+          
+          if (!upsertError) {
+            localStorage.setItem(storageKey, "true");
+          }
         }
 
+        // 3. 今日の全訪問者数（デバイス数）を取得
         const { count, error } = await supabase
           .from("daily_access_logs")
           .select("*", { count: "exact", head: true })
           .eq("accessed_at", today);
 
-        if (!error && count !== null) setVisitorCount(count);
+        if (!error && count !== null) {
+          setVisitorCount(count);
+        }
       } catch (err) {
         console.error("Counter Error:", err);
       }
     }
     handleVisitorCount();
-  }, []);
+  }, [supabase]); // supabase を依存配列に追加
 
   const handleClosePrompt = () => {
     const today = new Intl.DateTimeFormat("ja-JP", {
@@ -226,7 +243,6 @@ export default function HomePage() {
           </button>
         </Link>
 
-        {/* --- REVISED: M. picnic space Entrance --- */}
         <Link href="/subscription" className="block pt-4">
           <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all group">
             <div className="text-left flex-1">
