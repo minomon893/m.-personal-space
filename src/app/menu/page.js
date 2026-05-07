@@ -15,7 +15,6 @@ export default function MenuPage() {
   const LATEST_NOTICE_ID = "v1.1-update";
 
   useEffect(() => {
-    // お知らせの既読チェック
     const lastViewed = localStorage.getItem("last_viewed_notice");
     if (lastViewed !== LATEST_NOTICE_ID) {
       setHasNewNotice(true);
@@ -23,87 +22,87 @@ export default function MenuPage() {
   }, []);
 
   const handleNoticeClick = () => {
-    // クリックした瞬間にステートを更新してバッジを消し、ストレージに保存する
     setHasNewNotice(false);
     localStorage.setItem("last_viewed_notice", LATEST_NOTICE_ID);
   };
 
   return (
-    <div className="min-h-screen bg-[#E6E1CF] p-6 text-[#5F6F7A] font-[var(--font-sans)] transition-colors duration-500">
+    /* 
+       朝の空 (#D0D9DF) から始まり、
+       昼の生暖かい黄色 (#E6E1CF, #F2EBD4) を経て、
+       夜の静かな紺色 (#2C3E50) へと続くロンググラデーション
+    */
+    <div className="min-h-screen bg-gradient-to-b from-[#D0D9DF] via-[#E6E1CF] via-[#F2EBD4] to-[#2C3E50] p-6 text-[#5F6F7A] font-[var(--font-sans)] transition-colors duration-500">
       <div className="max-w-md mx-auto">
 
         {/* BACK */}
         <Link
           href="/"
-          className="text-[10px] tracking-widest font-bold opacity-60 uppercase flex items-center gap-2 mb-10 hover:opacity-100 transition-all"
+          className="text-[10px] tracking-widest font-bold opacity-60 uppercase flex items-center gap-2 mb-12 hover:opacity-100 transition-all hover:-translate-x-1"
         >
           <ArrowLeft size={12} /> Back to Top
         </Link>
 
         {/* TITLE */}
-        <h1 className="text-xl font-[var(--font-serif)] font-medium tracking-[0.2em] mb-12 text-center italic opacity-80">
+        <h1 className="text-2xl font-[var(--font-serif)] font-medium tracking-[0.35em] mb-16 text-center italic opacity-90">
           Main Menu
         </h1>
 
-        <div className="space-y-12">
+        <div className="space-y-14">
 
-          {/* BASIC */}
+          {/* BASIC (Morning area) */}
           <section>
-            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-4 border-b border-[#5F6F7A]/10 pb-1 uppercase">
+            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase">
               Basic
             </h2>
             <Link href="/menu/notices" onClick={handleNoticeClick}>
               <button
-                className="relative w-full py-5 px-6 bg-white/45 border border-white/40 rounded-2xl hover:bg-white/70 transition-all text-left shadow-sm shadow-black/[0.02]"
+                className="relative w-full py-6 px-7 bg-white/60 border border-white/40 rounded-2xl hover:bg-white/80 transition-all text-left shadow-sm shadow-black/[0.02]"
               >
-                <span className="text-[14px] font-bold block">お知らせ</span>
+                <span className="text-[15px] font-bold block mb-0.5">お知らせ</span>
                 <span className="text-[10px] opacity-40 uppercase tracking-wider">News & Updates</span>
 
                 {hasNewNotice && (
-                  <span className="absolute top-4 right-6 flex h-2 w-2">
+                  <span className="absolute top-6 right-8 flex h-2.5 w-2.5">
                     <span className="animate-ping absolute h-full w-full rounded-full bg-[#B5A773] opacity-60"></span>
-                    <span className="relative h-2 w-2 rounded-full bg-[#B5A773]"></span>
+                    <span className="relative h-2.5 w-2.5 rounded-full bg-[#B5A773]"></span>
                   </span>
                 )}
               </button>
             </Link>
           </section>
 
-          {/* PROBLEM SOLVING */}
+          {/* PROBLEM SOLVING (Mid-day area) */}
           <section>
-            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-4 border-b border-[#5F6F7A]/10 pb-1 uppercase flex items-center gap-2">
+            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase flex items-center gap-2">
               <Sparkles size={10} /> Problem Solving
             </h2>
 
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               <Link href="/menu/bot">
                 <MenuButton title="やわらかことぼっとくん" subtitle="アサーティブ変換ツール" />
               </Link>
-
               <Link href="/menu/metacognition">
                 <MenuButton title="メタ認知トリガー開発部" subtitle="交流型脱フュージョントレーニング" />
               </Link>
-
               <Link href="/menu/support">
                 <MenuButton title="福祉サービス案内" subtitle="緊急・DV・生活困窮の窓口" />
               </Link>
             </div>
           </section>
 
-          {/* SELF UNDERSTANDING */}
+          {/* SELF UNDERSTANDING (Afternoon area) */}
           <section>
-            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-4 border-b border-[#5F6F7A]/10 pb-1 uppercase flex items-center gap-2">
+            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase flex items-center gap-2">
               <User size={10} /> Self Understanding
             </h2>
 
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               <Link href="/menu/profile">
                 <MenuButton title="プロフィール帳" subtitle="自分を整理" />
               </Link>
-
               <MenuButton title="RPGカード" subtitle="特性の可視化" isDisabled />
               <MenuButton title="恋愛タイプ診断" subtitle="Relationship Dynamics" isDisabled />
-
               <Link href="/menu/external">
                 <MenuButton 
                   title="外部ソース" 
@@ -113,41 +112,40 @@ export default function MenuPage() {
             </div>
           </section>
 
-          {/* CONTENT */}
+          {/* CONTENT (Evening area) */}
           <section>
-            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-4 border-b border-[#5F6F7A]/10 pb-1 uppercase flex items-center gap-2">
+            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase flex items-center gap-2">
               <BookOpen size={10} /> Original Content
             </h2>
 
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               <Link href="/menu/poem">
                 <MenuButton title="Free a poem" subtitle="今日のおまもり" />
               </Link>
-
               <Link href="/menu/ezine">
                 <MenuButton title="Ezine" subtitle="Support / ¥500~" highlight />
               </Link>
-
               <Link href="/menu/stickers">
                 <MenuButton title="LINE Stamp" subtitle="もっちりシリーズ" />
               </Link>
             </div>
           </section>
 
-          {/* LOCKED */}
-          <section className="bg-white/20 p-5 rounded-[2rem] border border-white/20">
-            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-30 mb-4 flex items-center gap-2 uppercase">
+          {/* LOCKED (Night area) */}
+          <section className="bg-white/10 p-6 rounded-[2.5rem] border border-white/20 text-center shadow-inner backdrop-blur-sm">
+            <h2 className="text-[10px] tracking-[0.2em] font-bold text-white/50 mb-4 flex justify-center items-center gap-2 uppercase">
               <Lock size={10} /> Members Only
             </h2>
-            <p className="text-[11px] font-bold italic opacity-40 tracking-widest">
+            <p className="text-[11px] font-bold italic text-white/30 tracking-widest">
               Coming Soon...
             </p>
           </section>
 
         </div>
 
-        <footer className="mt-24 mb-10 text-center opacity-30 text-[9px] tracking-[0.3em] uppercase">
-          &copy; 2026 m. personla space
+        {/* FOOTER: 夜の紺背景に合わせて文字色を明るく調整 */}
+        <footer className="mt-28 mb-12 text-center text-white/20 text-[9px] tracking-[0.4em] uppercase">
+          &copy; 2026 m. personal space
         </footer>
 
       </div>
@@ -163,22 +161,22 @@ function MenuButton({ title, subtitle, isSmall = false, highlight = false, isDis
       onClick={isDisabled ? undefined : onClick}
       disabled={isDisabled}
       className={`w-full ${
-        isSmall ? "py-3" : "py-5"
-      } px-6 border rounded-2xl transition-all text-left relative overflow-hidden shadow-sm shadow-black/[0.01]
+        isSmall ? "py-4" : "py-6"
+      } px-7 border rounded-2xl transition-all text-left relative overflow-hidden shadow-sm
       ${
         isDisabled 
-          ? "bg-black/[0.05] border-transparent cursor-not-allowed opacity-40" 
+          ? "bg-black/5 border-transparent cursor-not-allowed opacity-40" 
           : highlight
-            ? "bg-[#B5A773]/10 border-[#B5A773]/30 hover:bg-white/60 active:scale-[0.98]"
-            : "bg-white/45 border-white/40 hover:bg-white/70 active:scale-[0.98]"
+            ? "bg-[#B5A773]/15 border-[#B5A773]/40 hover:bg-white/70 active:scale-[0.98]"
+            : "bg-white/60 border-white/40 hover:bg-white/80 active:scale-[0.98]"
       }`}
     >
       <div className="flex justify-between items-center">
         <div>
           <span
             className={`${
-              isSmall ? "text-xs" : "text-[14px]"
-            } font-bold block`}
+              isSmall ? "text-xs" : "text-[15px]"
+            } font-bold block mb-0.5`}
           >
             {title}
           </span>
