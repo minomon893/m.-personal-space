@@ -1,37 +1,46 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // useEffectを追加
 import Link from "next/link";
 import { 
   ArrowLeft, CheckCircle2, MessageCircle, Clock, Tag, 
   Quote, Sparkles, BookOpen, FileText, ChevronLeft, ChevronRight 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-// アドミン管理を想定したデータ構造
-const FEEDBACKS = [
-  {
-    id: 1,
-    content: "自分のペースで文章を整えて送れるので、焦らずに済みました。頂いたお返事は何度も読み返せるし、その度に新しい発見があります。1,000円でこの安心感はとても心強いです。",
-    attribute: "20代 ユーザー"
-  },
-  {
-    id: 2,
-    content: "誰かに話を聞いてほしいけれど、リアルタイムだと緊張してしまう。そんな私にとって、この1往復の距離感は絶妙でした。深い分析をいただけて、霧が晴れたような気分です。",
-    attribute: "30代 ユーザー"
-  },
-  {
-    id: 3,
-    content: "深夜に思いを吐き出すように送ってしまいましたが、翌日には丁寧な返信があり、一人じゃないんだと感じられました。言葉が丁寧で、大切に扱われている実感があります。",
-    attribute: "40代 ユーザー"
-  }
-];
+import { supabase } from "@/lib/supabase"; // インポートを追加
 
 export default function TextCounselingPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [feedbacks, setFeedbacks] = useState([]); // ステートに変更
+  const [loading, setLoading] = useState(true);
 
-  const nextFeedback = () => setCurrentIndex((prev) => (prev + 1) % FEEDBACKS.length);
-  const prevFeedback = () => setCurrentIndex((prev) => (prev - 1 + FEEDBACKS.length) % FEEDBACKS.length);
+  // --- データの取得 ---
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      const { data, error } = await supabase
+        .from("feedbacks")
+        .select("*")
+        .eq("service_tag", "text") // アドミンで "text" と入れたものを取得
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setFeedbacks(data);
+      }
+      setLoading(false);
+    };
+
+    fetchFeedbacks();
+  }, []);
+
+  const nextFeedback = () => {
+    if (feedbacks.length === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % feedbacks.length);
+  };
+  
+  const prevFeedback = () => {
+    if (feedbacks.length === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + feedbacks.length) % feedbacks.length);
+  };
 
   return (
     <div className="min-h-screen bg-[#E6E1CF] text-[#454D53] font-[var(--font-sans)] tracking-tight">
@@ -57,6 +66,7 @@ export default function TextCounselingPage() {
           </div>
         </header>
 
+        {/* About Section */}
         <section className="mb-12 space-y-5">
           <div className="flex items-center gap-3">
             <BookOpen size={16} className="opacity-60" />
@@ -70,6 +80,7 @@ export default function TextCounselingPage() {
           </div>
         </section>
 
+        {/* Detail Section */}
         <section className="mb-20">
           <div className="bg-white/40 backdrop-blur-sm p-8 md:p-10 rounded-[2.5rem] border border-white/60 shadow-sm space-y-6">
             <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 flex items-center gap-2">
@@ -91,48 +102,54 @@ export default function TextCounselingPage() {
           </div>
         </section>
 
-        <section className="mb-28">
-          <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-8 opacity-60 text-center">User Feedback</h2>
-          <div className="relative group max-w-sm mx-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="bg-white/30 p-8 rounded-[2rem] border border-white/40 relative text-center"
-              >
-                <Quote size={18} className="mx-auto mb-5 opacity-20 text-[#B5A773]" />
-                <p className="text-[13px] leading-7 italic opacity-85 font-light mb-5">
-                  「{FEEDBACKS[currentIndex].content}」
-                </p>
-                <div className="text-[9px] font-bold opacity-60 tracking-[0.3em] uppercase">
-                  — {FEEDBACKS[currentIndex].attribute}
+        {/* --- フィードバックセクション (動的) --- */}
+        {feedbacks.length > 0 && (
+          <section className="mb-28 animate-in fade-in duration-1000">
+            <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-8 opacity-60 text-center">User Feedback</h2>
+            <div className="relative group max-w-sm mx-auto">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={feedbacks[currentIndex].id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="bg-white/30 p-8 rounded-[2rem] border border-white/40 relative text-center"
+                >
+                  <Quote size={18} className="mx-auto mb-5 opacity-20 text-[#B5A773]" />
+                  <p className="text-[13px] leading-7 italic opacity-85 font-light mb-5 whitespace-pre-wrap text-justify">
+                    {feedbacks[currentIndex].content}
+                  </p>
+                  <div className="text-[9px] font-bold opacity-60 tracking-[0.3em] uppercase">
+                    — {feedbacks[currentIndex].attribute}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* ナビゲーションボタン（2件以上ある場合のみ表示） */}
+              {feedbacks.length > 1 && (
+                <div className="flex justify-center items-center gap-6 mt-6">
+                  <button onClick={prevFeedback} className="p-2 opacity-50 hover:opacity-100 transition-opacity">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <div className="flex gap-2">
+                    {feedbacks.map((_, i) => (
+                      <div 
+                        key={i} 
+                        className={`h-1 rounded-full transition-all duration-300 ${i === currentIndex ? "w-4 bg-[#B5A773]" : "w-1 bg-[#B5A773]/30"}`} 
+                      />
+                    ))}
+                  </div>
+                  <button onClick={nextFeedback} className="p-2 opacity-50 hover:opacity-100 transition-opacity">
+                    <ChevronRight size={18} />
+                  </button>
                 </div>
-              </motion.div>
-            </AnimatePresence>
-
-            <div className="flex justify-center items-center gap-6 mt-6">
-              <button onClick={prevFeedback} className="p-2 opacity-50 hover:opacity-100 transition-opacity">
-                <ChevronLeft size={18} />
-              </button>
-              <div className="flex gap-2">
-                {FEEDBACKS.map((_, i) => (
-                  <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === currentIndex ? "w-4 bg-[#B5A773]" : "w-1 bg-[#B5A773]/30"}`} />
-                ))}
-              </div>
-              <button onClick={nextFeedback} className="p-2 opacity-50 hover:opacity-100 transition-opacity">
-                <ChevronRight size={18} />
-              </button>
+              )}
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        {/* 
-            Sticky Action Bar: 楕円形の「LINEを追加 / よくある質問」に変更
-            背景色: #A9B9A8 / 文字色: #3A4238
-        */}
+        {/* Sticky Action Bar */}
         <div className="sticky bottom-8 flex justify-center z-50">
           <Link 
             href="/booking/line" 

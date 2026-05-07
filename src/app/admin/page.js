@@ -14,7 +14,7 @@ export default function AdminPage() {
   
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
-  const [noticeTag, setNoticeTag] = useState("Update");
+  const [noticeTag, setNoticeTag] = useState("Update"); 
   const [items, setItems] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -28,7 +28,14 @@ export default function AdminPage() {
     if (!error) setItems(data || []);
   };
 
+  // タブ切り替え時の自動入力制御
   useEffect(() => {
+    if (activeTab === "notices") {
+      setNoticeTag("Update"); 
+    } else {
+      setNoticeTag(""); // Feedbackタブなどの時は完全に空にする
+    }
+    
     if (isAuthenticated) {
       fetchItems();
     }
@@ -39,7 +46,7 @@ export default function AdminPage() {
     if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
       setIsAuthenticated(true);
     } else {
-      alert("合言葉が違います");
+      alert("Invalid password");
     }
   };
 
@@ -50,12 +57,11 @@ export default function AdminPage() {
     const table = activeTab;
     let payload = {};
 
-    // テーブル構造に合わせたペイロードの切り替え
     if (table === "notices") {
-      payload = { title, content: body, tag: noticeTag };
+      payload = { title, content: body, tag: noticeTag || "Update" };
     } else if (table === "feedbacks") {
-      // 属性（年代等）をtitle、内容をcontentとして保存
-      payload = { attribute: title, content: body, service_tag: noticeTag };
+      // Feedbackの場合は、入力がなければ空文字のまま保存
+      payload = { attribute: title, content: body, service_tag: noticeTag || "" };
     } else {
       payload = { title, body };
     }
@@ -63,10 +69,12 @@ export default function AdminPage() {
     const { error } = await supabase.from(table).insert([payload]);
 
     if (error) {
-      alert("エラーが発生しました: " + error.message);
+      alert("Error: " + error.message);
     } else {
       setBody("");
       setTitle("");
+      // 保存後のリセット処理
+      setNoticeTag(activeTab === "notices" ? "Update" : "");
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       await fetchItems();
@@ -75,165 +83,169 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id) => {
-    const typeLabel = activeTab === "notices" ? "お知らせ" : activeTab === "feedbacks" ? "フィードバック" : "ポエム";
-    if (!confirm(`この${typeLabel}を削除しますか？`)) return;
+    const typeLabel = activeTab === "notices" ? "Notice" : activeTab === "feedbacks" ? "Feedback" : "Poem";
+    if (!confirm(`Delete this ${typeLabel}?`)) return;
     const { error } = await supabase.from(activeTab).delete().eq("id", id);
     if (!error) fetchItems();
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#E6E1CF] flex items-center justify-center p-6">
-        <form onSubmit={handleLogin} className="bg-white/50 p-8 rounded-2xl shadow-xl w-full max-w-sm border border-white">
-          <h1 className="text-xl font-bold mb-6 text-[#4F5D6B] text-center tracking-widest">ADMIN ACCESS</h1>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-4 rounded-xl border border-[#4F5D6B]/20 mb-4 outline-none focus:ring-2 focus:ring-[#B5A773]"
-            placeholder="合言葉を入力"
-          />
-          <button className="w-full py-4 bg-[#4F5D6B] text-white rounded-xl font-bold hover:bg-[#3d4852] transition-all">Unlock</button>
+      <div className="min-h-screen bg-[#E6E1CF] flex items-center justify-center p-6 font-sans tracking-tight">
+        <form onSubmit={handleLogin} className="w-full max-w-sm space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-sm font-bold tracking-[0.4em] text-[#4F5D6B] uppercase opacity-80">Admin Access</h1>
+            <p className="text-[10px] text-[#4F5D6B] opacity-40 uppercase tracking-widest italic">Restricted Area</p>
+          </div>
+          <div className="space-y-4">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-white/40 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/60 outline-none focus:ring-1 focus:ring-[#B5A773]/50 transition-all text-center text-sm tracking-[0.2em]"
+              placeholder="PASSWORD"
+            />
+            <button className="w-full py-4 bg-[#4F5D6B] text-white rounded-2xl text-[11px] font-bold tracking-[0.3em] uppercase hover:bg-[#3A4238] transition-all shadow-sm">
+              Unlock
+            </button>
+          </div>
         </form>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F1E1] p-6 text-[#4F5D6B] font-sans relative">
+    <div className="min-h-screen bg-[#F4F1E1] p-6 text-[#4F5D6B] font-sans tracking-tight relative">
       {showSuccess && (
-        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#2D363F] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
-          <CheckCircle2 size={20} className="text-[#B5A773]" />
-          <span className="text-sm font-bold tracking-widest">SAVED SUCCESSFULLY</span>
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#3A4238] text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 size={16} className="text-[#B5A773]" />
+          <span className="text-[10px] font-bold tracking-[0.2em]">SUCCESSFULLY SAVED</span>
         </div>
       )}
 
       <div className="max-w-2xl mx-auto">
-        <Link href="/" className="text-[10px] tracking-widest opacity-50 flex items-center gap-2 mb-8 hover:opacity-100 transition-all">
-          <ArrowLeft size={12} /> BACK TO HOME
-        </Link>
+        <header className="flex justify-between items-center mb-12">
+          <Link href="/" className="text-[9px] tracking-[0.3em] font-bold opacity-40 flex items-center gap-2 hover:opacity-100 transition-all uppercase">
+            <ArrowLeft size={12} /> Exit Admin
+          </Link>
+          <div className="text-[9px] font-bold tracking-[0.3em] opacity-30 uppercase italic">m. personal space</div>
+        </header>
 
-        {/* タブ切り替え */}
-        <div className="flex gap-2 mb-10 overflow-x-auto pb-2 scrollbar-hide">
-          <button 
-            onClick={() => setActiveTab("notices")}
-            className={`flex-1 min-w-[100px] py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-xs font-bold ${activeTab === "notices" ? "bg-[#5F6F7A] text-white shadow-md" : "bg-white/40 opacity-60"}`}
-          >
-            <Megaphone size={16} /> Notices
-          </button>
-          <button 
-            onClick={() => setActiveTab("feedbacks")}
-            className={`flex-1 min-w-[100px] py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-xs font-bold ${activeTab === "feedbacks" ? "bg-[#8E9B8D] text-white shadow-md" : "bg-white/40 opacity-60"}`}
-          >
-            <MessageSquareQuote size={16} /> Feedback
-          </button>
-          <button 
-            onClick={() => setActiveTab("poems")}
-            className={`flex-1 min-w-[100px] py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-xs font-bold ${activeTab === "poems" ? "bg-[#B5A773] text-white shadow-md" : "bg-white/40 opacity-60"}`}
-          >
-            <PenLine size={16} /> Poems
-          </button>
+        <div className="flex gap-2 mb-12 border-b border-[#4F5D6B]/5 pb-4">
+          {[
+            { id: "notices", icon: <Megaphone size={14} />, label: "Notices" },
+            { id: "feedbacks", icon: <MessageSquareQuote size={14} />, label: "Feedback" },
+            { id: "poems", icon: <PenLine size={14} />, label: "Poems" }
+          ].map((tab) => (
+            <button 
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-[10px] font-bold tracking-widest uppercase ${activeTab === tab.id ? "bg-[#5F6F7A] text-white shadow-sm" : "hover:bg-white/40 opacity-50"}`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
         </div>
 
-        <h1 className="text-2xl font-light mb-8 tracking-[0.2em] flex items-center gap-3 uppercase">
-          <PlusCircle size={24} className="text-[#B5A773]" /> 
-          NEW {activeTab.slice(0, -1)}
-        </h1>
+        <form onSubmit={handleSubmit} className="bg-white/30 backdrop-blur-sm p-8 rounded-[2.5rem] border border-white/60 shadow-sm mb-20">
+          <div className="mb-10">
+            <h2 className="text-[11px] font-bold tracking-[0.3em] uppercase opacity-70 flex items-center gap-2 mb-8">
+              <PlusCircle size={16} className="text-[#B5A773]" /> Create New {activeTab.slice(0, -1)}
+            </h2>
+            
+            <div className="space-y-6">
+              {(activeTab === "notices" || activeTab === "feedbacks") && (
+                <div>
+                  <label className="block text-[9px] font-bold tracking-[0.2em] mb-2 opacity-50 uppercase">
+                    {activeTab === "feedbacks" ? "Service Path (text / realtime / guide)" : "Notice Tag"}
+                  </label>
+                  <input
+                    type="text"
+                    value={noticeTag}
+                    onChange={(e) => setNoticeTag(e.target.value)}
+                    className="w-full p-4 rounded-2xl bg-white/50 border border-white/60 outline-none focus:border-[#B5A773] transition-all text-sm"
+                    // placeholderから "guide" を削除
+                    placeholder={activeTab === "feedbacks" ? "" : "Update"}
+                  />
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-[9px] font-bold tracking-[0.2em] mb-2 opacity-50 uppercase">
+                  {activeTab === "feedbacks" ? "User Attribute (e.g. 30s Female)" : "Title / Author"}
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full p-4 rounded-2xl bg-white/50 border border-white/60 outline-none focus:border-[#B5A773] transition-all text-sm"
+                  required
+                />
+              </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/40 p-8 rounded-3xl border border-white shadow-sm mb-16">
-          {(activeTab === "notices" || activeTab === "feedbacks") && (
-            <div className="mb-6">
-              <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60 uppercase">
-                {activeTab === "feedbacks" ? "Service Name (Behavior, Text, Live)" : "TAG (Update, Info, etc.)"}
-              </label>
-              <input
-                type="text"
-                value={noticeTag}
-                onChange={(e) => setNoticeTag(e.target.value)}
-                className="w-full p-4 rounded-2xl bg-white/60 border border-[#4F5D6B]/10 outline-none focus:border-[#B5A773] transition-all"
-                placeholder={activeTab === "feedbacks" ? "例: Behavior" : "Update"}
-              />
+              <div>
+                <label className="block text-[9px] font-bold tracking-[0.2em] mb-2 opacity-50 uppercase">Content Body</label>
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  className="w-full p-4 rounded-2xl bg-white/50 border border-white/60 h-40 outline-none focus:border-[#B5A773] transition-all text-sm leading-relaxed"
+                  required
+                />
+              </div>
             </div>
-          )}
-          
-          <div className="mb-6">
-            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60 uppercase">
-              {activeTab === "feedbacks" ? "User Attribute (e.g. 30s Female)" : "TITLE / AUTHOR"}
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-4 rounded-2xl bg-white/60 border border-[#4F5D6B]/10 outline-none focus:border-[#B5A773] transition-all"
-              required
-            />
-          </div>
-
-          <div className="mb-8">
-            <label className="block text-[10px] font-bold tracking-widest mb-2 opacity-60 uppercase">CONTENT / BODY</label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="w-full p-4 rounded-2xl bg-white/60 border border-[#4F5D6B]/10 h-32 outline-none focus:border-[#B5A773] transition-all"
-              required
-            />
           </div>
 
           <button
             disabled={loading}
-            className={`w-full py-4 text-white rounded-2xl font-bold shadow-lg transition-all 
-              ${activeTab === "notices" ? "bg-[#5F6F7A] hover:bg-[#4d5b65]" : 
-                activeTab === "feedbacks" ? "bg-[#8E9B8D] hover:bg-[#7a8779]" : 
-                "bg-[#B5A773] hover:bg-[#a39665]"}`}
+            className="w-full py-4 bg-[#4F5D6B] text-white rounded-2xl text-[11px] font-bold tracking-[0.3em] uppercase hover:bg-[#3A4238] transition-all shadow-md disabled:opacity-50"
           >
-            {loading ? "SAVING..." : "SAVE TO DATABASE"}
+            {loading ? "Processing..." : "Save to Database"}
           </button>
         </form>
 
-        <h2 className="text-2xl font-light mb-6 tracking-[0.2em] flex items-center gap-3">
-          <List size={24} className="text-[#B5A773]" /> 
-          LIST
-        </h2>
+        <section className="pb-20">
+          <h2 className="text-[11px] font-bold tracking-[0.3em] uppercase opacity-70 flex items-center gap-2 mb-8">
+            <List size={16} className="text-[#B5A773]" /> Entry List
+          </h2>
 
-        <div className="space-y-4 pb-20">
-          {items.map((item) => (
-            <div key={item.id} className="bg-white/60 p-6 rounded-2xl border border-white flex justify-between items-start group hover:bg-white/80 transition-all">
-              <div className="flex-1 pr-4">
-                {activeTab === "notices" ? (
-                  <>
-                    <div className="flex gap-2 items-center mb-2">
-                      <span className="text-[10px] font-bold text-[#4F5D6B] uppercase tracking-widest">【{item.title}】</span>
-                      {item.tag && (
-                        <span className="text-[8px] px-2 border border-[#4F5D6B]/20 rounded-full opacity-50">{item.tag}</span>
-                      )}
+          <div className="space-y-4">
+            {items.map((item) => (
+              <div key={item.id} className="bg-white/40 p-6 rounded-3xl border border-white/60 flex justify-between items-start group hover:bg-white/60 transition-all">
+                <div className="flex-1 pr-4">
+                  {activeTab === "notices" ? (
+                    <div className="space-y-2">
+                      <div className="flex gap-2 items-center">
+                        <span className="text-[10px] font-bold text-[#4F5D6B] uppercase tracking-widest underline decoration-[#B5A773]/40 decoration-2 underline-offset-4">{item.title}</span>
+                        {item.tag && <span className="text-[8px] px-2 py-0.5 bg-[#4F5D6B]/5 rounded-full opacity-50 font-bold">{item.tag}</span>}
+                      </div>
+                      <p className="text-[13px] leading-relaxed opacity-70 whitespace-pre-wrap">{item.content}</p>
                     </div>
-                    <p className="text-[14px] leading-relaxed whitespace-pre-wrap opacity-80">{item.content}</p>
-                  </>
-                ) : activeTab === "feedbacks" ? (
-                  <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[8px] bg-[#8E9B8D] text-white px-2 py-0.5 rounded tracking-tighter uppercase font-bold">
-                        {item.service_tag || "General"}
-                      </span>
-                      <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.attribute}</span>
+                  ) : activeTab === "feedbacks" ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        {item.service_tag && (
+                          <span className="text-[8px] bg-[#B5A773]/20 text-[#B5A773] px-2 py-0.5 rounded font-bold uppercase tracking-tighter">
+                            {item.service_tag}
+                          </span>
+                        )}
+                        <span className="text-[9px] font-bold opacity-30 uppercase tracking-[0.2em]">— {item.attribute}</span>
+                      </div>
+                      <p className="text-[13px] leading-relaxed italic opacity-80 whitespace-pre-wrap font-light">"{item.content}"</p>
                     </div>
-                    <p className="text-[13px] leading-relaxed italic opacity-90 whitespace-pre-wrap">「{item.content}」</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[14px] leading-relaxed mb-2 whitespace-pre-wrap">{item.body}</p>
-                    <div className="flex gap-2 items-center">
-                      <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">— {item.title}</span>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-[13px] leading-relaxed opacity-80 whitespace-pre-wrap font-light">{item.body}</p>
+                      <span className="block text-[9px] font-bold opacity-30 uppercase tracking-[0.2em]">— {item.title}</span>
                     </div>
-                  </>
-                )}
+                  )}
+                </div>
+                <button onClick={() => handleDelete(item.id)} className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors">
+                  <Trash2 size={16} />
+                </button>
               </div>
-              <button onClick={() => handleDelete(item.id)} className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
