@@ -3,12 +3,18 @@
 import Link from "next/link";
 
 export default function SubscriptionPage() {
+  // Stripeの支払いリンクへ飛ばす関数
+  const handleJoin = () => {
+    const STRIPE_LINK = "https://buy.stripe.com/test_dRm5kD45G3ji9yTfVe0Ba06";
+    window.location.href = STRIPE_LINK;
+  };
+
   return (
     <div className="min-h-screen bg-[#F2F0E9] p-8 text-[#5F6F7A] flex flex-col items-center font-[var(--font-sans)]">
       {/* HEADER */}
       <header className="w-full max-w-md text-center mt-12 mb-16">
         <Link href="/" className="inline-block mb-8 opacity-60 hover:opacity-100 transition-opacity text-xs tracking-widest">
-          ← BACK TO HOME
+          &larr; BACK TO HOME
         </Link>
         <h1 className="text-3xl italic mb-3 text-[#B5A773]">
           M. <span className="font-light">picnic space</span>
@@ -33,7 +39,6 @@ export default function SubscriptionPage() {
       <div className="w-full max-w-sm space-y-6 mb-20">
         <h2 className="text-center text-[11px] font-bold tracking-[0.4em] opacity-40 uppercase mb-8">Contents</h2>
         
-        {/* Contents List */}
         {[
           { title: "ちょこっとーく", desc: "タイムライン形式のつぶやき場。リアクションで温かく反応し合えます。" },
           { title: "オタトーーーーク！！！", desc: "写真なし・返信1回。熱量をさらけ出す、気を遣わない趣味の場。" },
@@ -49,15 +54,18 @@ export default function SubscriptionPage() {
         ))}
       </div>
 
-      {/* JOIN BUTTON (Placeholder) */}
+      {/* JOIN BUTTON */}
       <div className="w-full max-w-xs text-center">
-        <p className="text-[10px] mb-6 opacity-60 tracking-wider">Monthly Support / ¥500</p>
+        <p className="text-[10px] mb-6 opacity-60 tracking-wider">Monthly Support / &yen;500</p>
+        
+        {/* ボタンをクリックでStripeへリダイレクト */}
         <button 
+          onClick={handleJoin}
           className="w-full py-5 bg-[#B5A773] text-white rounded-2xl text-[12px] font-bold tracking-[0.2em] shadow-lg shadow-[#B5A773]/30 hover:opacity-90 transition-all hover:-translate-y-0.5"
-          onClick={() => alert("決済機能は準備中です")}
         >
           メンバーシップに参加する
         </button>
+
         <p className="mt-6 text-[9px] opacity-40 leading-relaxed">
           ※いつでも解約可能です。いただいた応援は、<br />
           この場所の維持・運営に大切に活用させていただきます。
