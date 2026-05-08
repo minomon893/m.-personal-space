@@ -167,7 +167,7 @@ export default function MetacognitionPortal() {
                 </ul>
               </div>
               <p className="text-center font-bold text-[#627D98] pt-1">
-                君が見つけた「心のスイッチ」をみんなに共有しよう。 
+                君の発見をみんなに共有しよう。 
               </p>
             </div>
           </div>

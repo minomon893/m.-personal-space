@@ -9,37 +9,31 @@ import {
   Lock,
   BookOpen,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase"; // 追加
+import { supabase } from "@/lib/supabase";
 
 export default function MenuPage() {
   const [hasNewNotice, setHasNewNotice] = useState(false);
 
   useEffect(() => {
     const checkNewNotices = async () => {
-      // 最新の1件だけ取得
+      // 最新のお知らせ一覧のIDを取得
       const { data, error } = await supabase
         .from('notices')
         .select('id')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .order('created_at', { ascending: false });
 
       if (!error && data) {
-        const lastViewed = localStorage.getItem("last_viewed_notice");
-        // 最新のIDが、最後に詳細を開いたIDと違えばバッジを表示
-        if (lastViewed !== data.id) {
-          setHasNewNotice(true);
-        }
+        // NoticesPage側で管理している既読リストを取得
+        const readNotices = JSON.parse(localStorage.getItem("metacog_read_notices") || "[]");
+        
+        // 取得したお知らせの中に、既読リストに含まれていないIDが1つでもあればバッジを表示
+        const hasUnread = data.some(notice => !readNotices.includes(notice.id));
+        setHasNewNotice(hasUnread);
       }
     };
 
     checkNewNotices();
   }, []);
-
-  // リンクをクリックしただけでは既読にしない（詳細はNoticesPage側で処理）
-  const handleNoticeClick = () => {
-    // 遷移時の視覚的な反応が必要なければ空でもOK
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#D0D9DF] via-[#E6E1CF] via-[#F2EBD4] to-[#2C3E50] p-6 text-[#5F6F7A] font-[var(--font-sans)] transition-colors duration-500">
@@ -65,7 +59,7 @@ export default function MenuPage() {
             <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase">
               Basic
             </h2>
-            <Link href="/menu/notices" onClick={handleNoticeClick}>
+            <Link href="/menu/notices">
               <button
                 className="relative w-full py-6 px-7 bg-white/60 border border-white/40 rounded-2xl hover:bg-white/80 transition-all text-left shadow-sm shadow-black/[0.02]"
               >

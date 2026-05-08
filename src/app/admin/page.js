@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2, MessageSquareQuote } from "lucide-react";
+import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2, MessageSquareQuote, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -18,6 +18,9 @@ export default function AdminPage() {
   const [items, setItems] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // お知らせのアコーディオン用
+  const [expandedId, setExpandedId] = useState(null);
 
   const fetchItems = async () => {
     const table = activeTab;
@@ -28,12 +31,11 @@ export default function AdminPage() {
     if (!error) setItems(data || []);
   };
 
-  // タブ切り替え時の自動入力制御
   useEffect(() => {
     if (activeTab === "notices") {
       setNoticeTag("Update"); 
     } else {
-      setNoticeTag(""); // Feedbackタブなどの時は完全に空にする
+      setNoticeTag(""); 
     }
     
     if (isAuthenticated) {
@@ -60,7 +62,6 @@ export default function AdminPage() {
     if (table === "notices") {
       payload = { title, content: body, tag: noticeTag || "Update" };
     } else if (table === "feedbacks") {
-      // Feedbackの場合は、入力がなければ空文字のまま保存
       payload = { attribute: title, content: body, service_tag: noticeTag || "" };
     } else {
       payload = { title, body };
@@ -73,7 +74,6 @@ export default function AdminPage() {
     } else {
       setBody("");
       setTitle("");
-      // 保存後のリセット処理
       setNoticeTag(activeTab === "notices" ? "Update" : "");
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
@@ -164,7 +164,6 @@ export default function AdminPage() {
                     value={noticeTag}
                     onChange={(e) => setNoticeTag(e.target.value)}
                     className="w-full p-4 rounded-2xl bg-white/50 border border-white/60 outline-none focus:border-[#B5A773] transition-all text-sm"
-                    // placeholderから "guide" を削除
                     placeholder={activeTab === "feedbacks" ? "" : "Update"}
                   />
                 </div>
@@ -214,11 +213,19 @@ export default function AdminPage() {
                 <div className="flex-1 pr-4">
                   {activeTab === "notices" ? (
                     <div className="space-y-2">
-                      <div className="flex gap-2 items-center">
+                      <button 
+                        onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                        className="flex gap-2 items-center w-full text-left"
+                      >
                         <span className="text-[10px] font-bold text-[#4F5D6B] uppercase tracking-widest underline decoration-[#B5A773]/40 decoration-2 underline-offset-4">{item.title}</span>
                         {item.tag && <span className="text-[8px] px-2 py-0.5 bg-[#4F5D6B]/5 rounded-full opacity-50 font-bold">{item.tag}</span>}
+                        <ChevronDown size={14} className={`ml-auto transition-transform opacity-30 ${expandedId === item.id ? 'rotate-180' : ''}`} />
+                      </button>
+                      <div className={`grid transition-all duration-300 ${expandedId === item.id ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                          <p className="text-[13px] leading-relaxed opacity-70 whitespace-pre-wrap border-t border-[#4F5D6B]/5 pt-4">{item.content}</p>
+                        </div>
                       </div>
-                      <p className="text-[13px] leading-relaxed opacity-70 whitespace-pre-wrap">{item.content}</p>
                     </div>
                   ) : activeTab === "feedbacks" ? (
                     <div className="space-y-3">
@@ -239,7 +246,7 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
-                <button onClick={() => handleDelete(item.id)} className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors">
+                <button onClick={() => handleDelete(item.id)} className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors shrink-0">
                   <Trash2 size={16} />
                 </button>
               </div>
