@@ -181,9 +181,10 @@ export default function HomePage() {
                     <b>コラム</b>：管理人個人の日記に近い、ここだけの内緒の話や気づき。
                   </p>
                 </div>
-                <Link href="/subscription" className="block pt-2">
+                {/* href を /picnic に修正 */}
+                <Link href="/picnic" className="block pt-2">
                   <button className="w-full py-2.5 bg-[#B5A773] text-white rounded-xl text-[10px] font-bold tracking-[0.1em] hover:opacity-90 transition-opacity shadow-sm">
-                    M. picnic space に加入する
+                    M. picnic space に参加する
                   </button>
                 </Link>
               </section>
@@ -243,7 +244,8 @@ export default function HomePage() {
           </button>
         </Link>
 
-        <Link href="/subscription" className="block pt-4">
+        {/* href を /subscription から /picnic に修正 */}
+        <Link href="/picnic" className="block pt-4">
           <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all group">
             <div className="text-left flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -255,7 +257,7 @@ export default function HomePage() {
             <span className="text-[#B5A773] opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
           </button>
           <p className="text-[9px] text-center mt-3 opacity-40 tracking-[0.1em]">
-            ※こちらは有料メンバーシップ限定の空間です
+            ※こちらはメンバーシップ限定の空間です
           </p>
         </Link>
       </main>

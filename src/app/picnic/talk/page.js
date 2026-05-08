@@ -2,131 +2,107 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function TalkPage() {
-  const [posts, setPosts] = useState([]); // 修正: <any[]> を削除
-  const [content, setContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [myProfile, setMyProfile] = useState(null); // 修正: <any> を削除
+export default function PicnicPage() {
+  const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
+  const slackFont = { fontFamily: '"Zen Maru Gothic", "Kosugi Maru", "Meiryo", sans-serif' };
+
   useEffect(() => {
-    fetchPosts();
+    const fetchProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // 1. ログインしてなければログインページ（またはルート）へ
+      if (!session) {
+        router.push("/");
+        return;
+      }
+
+      // 2. プロフィールがあるか確認
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error || !data) {
+        // プロフィールがないならセットアップへ
+        router.push("/picnic/setup");
+      } else {
+        // プロフィールがあればセットして表示
+        setProfile(data);
+        setLoading(false);
+      }
+    };
+
     fetchProfile();
-  }, []);
+  }, [supabase, router]);
 
-  async function fetchProfile() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-    setMyProfile(data);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center">
+        <div className="animate-pulse text-[#B5A773] text-sm tracking-widest">LOADING...</div>
+      </div>
+    );
   }
-
-  async function fetchPosts() {
-    const { data, error } = await supabase
-      .from("talk_posts")
-      .select(`
-        *,
-        profiles (nickname, icon, title)
-      `)
-      .order("created_at", { ascending: false });
-    
-    if (!error) setPosts(data);
-  }
-
-  const handleSubmit = async (e) => { // 修正: <React.FormEvent> を削除
-    e.preventDefault();
-    if (!content.trim() || isSubmitting) return;
-
-    setIsSubmitting(true);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const { error } = await supabase.from("talk_posts").insert({
-      user_id: user?.id,
-      content: content,
-    });
-
-    if (!error) {
-      setContent("");
-      fetchPosts();
-    }
-    setIsSubmitting(false);
-  };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#5F6F7A] font-[var(--font-sans)] pb-20">
-      {/* HEADER */}
-      <header className="sticky top-0 z-30 bg-[#FDFBF7]/80 backdrop-blur-md border-b border-[#B5A773]/10 px-6 py-4 flex items-center justify-between">
-        <Link href="/picnic" className="text-[10px] tracking-widest opacity-60">← BACK</Link>
-        <h1 className="text-sm font-bold tracking-[0.2em] text-[#B5A773]">ちょこっとーく</h1>
-        <div className="w-10"></div>
+    <div style={slackFont} className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
+      {/* ユーザー情報表示 */}
+      <header className="text-center mb-16 space-y-6">
+        <h1 className="text-[10px] tracking-[0.6em] text-[#E5E1D8] uppercase font-black">Picnic</h1>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-24 h-24 bg-[#FAF9F6] rounded-[3rem] shadow-sm flex items-center justify-center overflow-hidden border border-[#F1EFEA]">
+            {profile?.icon?.startsWith("http") || profile?.icon?.startsWith("blob:") ? (
+              <img src={profile.icon} className="w-full h-full object-cover" alt="icon" />
+            ) : (
+              <span className="text-4xl">{profile?.icon || "🌸"}</span>
+            )}
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] text-[#A39C93] font-bold tracking-widest uppercase">{profile?.title}</p>
+            <p className="text-xl text-[#70695E] font-bold tracking-tight">{profile?.nickname}</p>
+          </div>
+        </div>
       </header>
 
-      {/* POST FORM */}
-      <div className="max-w-md mx-auto p-6">
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 shadow-sm border border-[#B5A773]/10 mb-10">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="今、なにしてる？（500文字まで）"
-            maxLength={500}
-            className="w-full h-24 resize-none bg-transparent text-sm focus:outline-none"
-          />
-          <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#B5A773]/5">
-            <span className="text-[10px] opacity-30">{content.length} / 500</span>
-            <button 
-              disabled={isSubmitting || !content.trim()}
-              className="px-6 py-2 bg-[#B5A773] text-white rounded-full text-[11px] font-bold tracking-widest disabled:opacity-30 transition-all"
-            >
-              つぶやく
-            </button>
-          </div>
-        </form>
-
-        {/* FEED */}
-        <div className="space-y-8">
-          {posts.map((post) => (
-            <div key={post.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 bg-[#F0F7F9] rounded-full flex items-center justify-center text-xl shadow-sm border border-white">
-                  {post.profiles?.icon}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12px] font-bold">{post.profiles?.nickname}</span>
-                    <span className="text-[8px] bg-[#B5A773]/10 text-[#B5A773] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">
-                      {post.profiles?.title}
-                    </span>
-                  </div>
-                  <p className="text-[9px] opacity-40 uppercase tracking-tighter">
-                    {new Date(post.created_at).toLocaleString("ja-JP")}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white/60 rounded-[2rem] rounded-tl-none p-6 shadow-sm border border-white relative">
-                <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{post.content}</p>
-                
-                <div className="flex gap-4 mt-5 pt-4 border-t border-[#B5A773]/5">
-                  <button className="flex items-center gap-1.5 grayscale hover:grayscale-0 transition-all">
-                    <span className="text-sm">🌸</span>
-                    <span className="text-[10px] opacity-50">分かる</span>
-                  </button>
-                  <button className="flex items-center gap-1.5 grayscale hover:grayscale-0 transition-all">
-                    <span className="text-sm">✨</span>
-                    <span className="text-[10px] opacity-50">気になる</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* メニューリンク */}
+      <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
+        <Link 
+          href="/picnic/talk" 
+          className="bg-[#F8FAFC] aspect-square rounded-[2.5rem] flex flex-col items-center justify-center gap-2 transition-all hover:bg-[#F1F5F9] active:scale-95 shadow-sm border border-[#F1F5F9]"
+        >
+          <span className="text-3xl">💬</span>
+          <span className="text-[11px] font-bold text-[#94A3B8]">トーク</span>
+        </Link>
+        <Link 
+          href="/picnic/otaku" 
+          className="bg-[#F0FDF4] aspect-square rounded-[2.5rem] flex flex-col items-center justify-center gap-2 transition-all hover:bg-[#DCFCE7] active:scale-95 shadow-sm border border-[#DCFCE7]"
+        >
+          <span className="text-3xl">🔥</span>
+          <span className="text-[11px] font-bold text-[#166534]/50">オタク</span>
+        </Link>
       </div>
+
+      {/* ログアウトやおまけなど（必要に応じて） */}
+      <button 
+        onClick={async () => {
+          await supabase.auth.signOut();
+          router.push("/");
+        }}
+        className="mt-12 text-[10px] text-[#C1B9AE] tracking-widest hover:text-[#8C8376] transition-colors"
+      >
+        LOGOUT
+      </button>
     </div>
   );
 }

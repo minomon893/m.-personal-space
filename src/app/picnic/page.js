@@ -1,240 +1,199 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 
-const ADJECTIVES = ["ねぼすけな", "忙しない", "あいくるしい", "うたたねの", "たそがれの", "名無しの", "ただの", "まどろみの", "おめかしした", "雨上がりの", "のんびり屋の", "きらきらした", "風に吹かれた", "おセンチな", "日向ぼっこ中の", "夢見がちな", "すったもんだな", "ちょっと浮かれた", "考えすぎの", "悟りを開いた", "挙動不審な", "崖っぷちの", "二度寝が趣味の", "明日から本気出す", "謎に包まれた", "世紀末な", "低燃費な", "圧倒的な", "物憂げな", "無邪気な", "旅する", "おなかがすいた", "限界を迎えた", "都会に染まった", "山に籠もりたい", "徹夜明けの", "推しに生かされた", "情緒不安定な", "日暮れ時の", "星を数える", "木漏れ日の", "月夜の", "凍てついた", "灼熱の", "ぼんやりした", "お人好しな", "意地っ張りな", "寂しがりな", "自信満々な", "不器用な", "慌てん坊な", "聞き上手な", "毒舌な", "バズり待ちの", "通知が止まらない", "課金が止まらない", "常にミュートの", "Wi-Fiを求める", "映えを狙う", "ROM専の", "封印された", "選ばれし", "異世界から来た", "伝説の", "呪われた", "転生した", "見習いの", "いにしえの", "聖なる", "洗濯物に囲まれた", "領収書に追われる", "納豆を練る", "靴下を片方なくした", "半額シールを待つ", "三日坊主の", "二度寝がデフォの", "筋肉痛の", "定時で帰りたい"];
-const NOUNS = ["クラゲ", "シマエナガ", "野良うさぎ", "カピバラ", "犬", "猫", "たんぽぽ", "アブラムシ", "深海魚", "ピザ", "タピオカ", "パクチー", "クリームソーダ", "担々麺", "塩おむすび", "牛乳", "プロテイン", "駄菓子", "シャンパン", "吟遊詩人", "通りすがり", "隠れファン", "権兵衛", "副業ライター", "幽霊部員", "永久幹事", "自称・賢者", "世話焼き", "不審者（自称）", "赤ちゃん", "箱推し", "古参", "遺骨", "夢女子", "二次元住人", "解釈の鬼", "考察厨", "塊", "砂時計"];
-
 export default function PicnicPage() {
-  const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
-  const [step, setStep] = useState("profile"); 
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  const [nickname, setNickname] = useState("");
-  const [iconUrl, setIconUrl] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
-
-  const [titleAdj, setTitleAdj] = useState(ADJECTIVES[0]);
-  const [titleNoun, setTitleNoun] = useState(NOUNS[0]);
-  const [isAdjSpinning, setIsAdjSpinning] = useState(false);
-  const [isNounSpinning, setIsNounSpinning] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [showSubscription, setShowSubscription] = useState(false); // サブスク案内の表示管理
+  const router = useRouter();
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
-  const slackFont = { fontFamily: '"Zen Maru Gothic", "Kosugi Maru", "Meiryo", sans-serif' };
-
-  useEffect(() => {
-    const checkUser = async () => {
-      // ログインチェックを行いますが、いなくても「ゲスト」として続行できるようにします
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setCurrentUser(session.user);
-        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        if (data) {
-          setProfile(data);
-          setStep("main");
-        }
-      } else {
-        // ログインしていない場合は仮のユーザー情報をセット（開発用）
-        setCurrentUser({ id: "guest-user" });
-      }
-      setLoading(false);
-    };
-    checkUser();
-  }, [supabase]);
-
-  useEffect(() => {
-    let adjInterval, nounInterval;
-    if (isAdjSpinning) adjInterval = setInterval(() => setTitleAdj(ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]), 80);
-    if (isNounSpinning) nounInterval = setInterval(() => setTitleNoun(NOUNS[Math.floor(Math.random() * NOUNS.length)]), 80);
-    return () => { clearInterval(adjInterval); clearInterval(nounInterval); };
-  }, [isAdjSpinning, isNounSpinning]);
-
-  const uploadIcon = async (e) => {
-    try {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const localPreview = URL.createObjectURL(file);
-      setPreviewUrl(localPreview);
-
-      // ゲストユーザーの場合はプレビュー表示のみでアップロードはスキップ
-      if (!currentUser || currentUser.id === "guest-user") {
-        setIconUrl(localPreview); 
-        return;
-      }
-
-      setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${currentUser.id}/icon.${fileExt}`;
-      const { error } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      setIconUrl(`${publicUrl}?t=${new Date().getTime()}`);
-    } catch (error) {
-      console.error(error);
-      alert('アップロードに失敗しました。');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleFinalSave = async () => {
-    const finalTitle = `${titleAdj}${titleNoun}`;
+  const fetchData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
     
-    // ゲストユーザーの場合はDB保存をスキップして画面だけ遷移させる
-    if (!currentUser || currentUser.id === "guest-user") {
-      setProfile({ nickname, icon: iconUrl || "🌸", title: finalTitle });
-      setStep("main");
+    // 1. ログインしていない場合は、まずログインが必要（本来はここでTopへ戻すか、Authへ）
+    if (!user) {
+      router.push("/");
       return;
     }
 
-    const { error } = await supabase.from("profiles").upsert({
-      id: currentUser.id, nickname, icon: iconUrl || "🌸", title: finalTitle, created_at: new Date(),
-    });
-    if (!error) {
-      setProfile({ nickname, icon: iconUrl || "🌸", title: finalTitle });
-      setStep("main");
-    } else {
-      alert("保存に失敗しました。ログイン状態を確認してください。");
+    // 2. プロフィール取得を試みる
+    const { data: profRes, error: profError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    // プロフィールがない ＝ まだ加入・セットアップが終わっていない
+    if (profError || !profRes) {
+      setShowSubscription(true); // サブスク案内（オーバーレイ）を表示
+      setLoading(false);
+      return;
     }
+
+    // 3. プロフィールがある場合は通常通りメッセージ取得
+    setProfile(profRes);
+    const { data: msgRes } = await supabase
+      .from("messages")
+      .select("*, profiles(nickname, icon)")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    setMessages(msgRes || []);
+    setShowSubscription(false);
+    setLoading(false);
   };
 
-  if (loading) return <div style={slackFont} className="min-h-screen bg-[#FAF9F6] flex items-center justify-center text-[#E5E7EB]">...</div>;
+  useEffect(() => {
+    fetchData();
 
-  if (step === "profile") {
-    return (
-      <div style={slackFont} className="min-h-screen bg-[#FAF9F6] p-8 flex flex-col items-center justify-center">
-        <div className="w-full max-w-xs space-y-12">
-          <h2 className="text-center text-[#8C8376] font-bold tracking-tight text-lg">プロフィール設定</h2>
-          
-          <div className="flex justify-center">
-            <label className="relative cursor-pointer">
-              <div className={`w-28 h-28 bg-white rounded-[2.8rem] shadow-sm flex items-center justify-center text-3xl overflow-hidden border border-[#F1EFEA] transition-all ${uploading ? 'opacity-40' : ''}`}>
-                {previewUrl ? (
-                  <img src={previewUrl} className="w-full h-full object-cover" alt="icon" />
-                ) : (
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="opacity-20 text-4xl">＋</span>
-                    <span className="text-[10px] text-[#C1B9AE] font-bold uppercase tracking-widest">Photo</span>
-                  </div>
-                )}
-              </div>
-              <input type="file" className="hidden" onChange={uploadIcon} accept="image/*" disabled={uploading} />
-              {uploading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-[#A39C93] border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-            </label>
-          </div>
+    const channel = supabase
+      .channel("realtime_messages")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        fetchData(); 
+      })
+      .subscribe();
 
-          <div className="space-y-6">
-            <div className="border-b border-[#E9E5DE] pb-2 text-center">
-              <input value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-transparent text-center focus:outline-none text-[#70695E] font-medium placeholder:text-[#D1CCC4]" placeholder="おなまえ" />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setIsAdjSpinning(!isAdjSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-bold border transition-all ${isAdjSpinning ? 'bg-[#F5F3F0] border-[#E9E5DE] text-[#8C8376]' : 'bg-white border-[#F1EFEA] text-[#A39C93]'}`}>
-                {titleAdj}
-              </button>
-              <button onClick={() => setIsNounSpinning(!isNounSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-bold border transition-all ${isNounSpinning ? 'bg-[#F5F3F0] border-[#E9E5DE] text-[#8C8376]' : 'bg-white border-[#F1EFEA] text-[#A39C93]'}`}>
-                {titleNoun}
-              </button>
-            </div>
-          </div>
+    return () => supabase.removeChannel(channel);
+  }, [supabase, router]);
 
-          <button onClick={() => {
-            if(!nickname) return alert("おなまえを教えてくださいね");
-            if(isAdjSpinning || isNounSpinning) return alert("ルーレットを止めてください");
-            setStep("terms");
-          }} className="w-full py-4 bg-[#8C8376] text-[#FAF9F6] rounded-[1.5rem] text-[14px] font-bold shadow-md active:scale-95 transition-all">
-            つぎへ
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
 
-  if (step === "terms") {
-    return (
-      <div style={slackFont} className="min-h-screen bg-[#FAF9F6] p-8 flex flex-col items-center justify-center">
-        <div className="w-full max-w-xs space-y-8">
-          <h2 className="font-bold text-center text-[#8C8376] text-lg">ピクニックの約束</h2>
-          <div className="bg-white p-7 rounded-[2.5rem] shadow-sm text-[12px] text-[#8C8376] space-y-5 leading-relaxed border border-[#F1EFEA]">
-            <p className="flex gap-3"><span>🌱</span><span>お名前とアイコンは、あとから変更できません。今の自分らしいものを選んでくださいね。</span></p>
-            <p className="flex gap-3"><span>🌱</span><span>ここはみんなの憩いの場です。お互いを尊重し、あたたかい言葉をかけ合いましょう。</span></p>
-            <p className="flex gap-3"><span>🌱</span><span>安心を守るため、住所や電話番号などの大切な個人情報は秘密にしておきましょう。</span></p>
-            <p className="flex gap-3"><span>🌱</span><span>みんながのんびり過ごせるよう、宣伝や勧誘などの目的での利用はご遠慮ください。</span></p>
-          </div>
-          <button onClick={() => setShowConfirm(true)} className="w-full py-4 bg-[#FCE7F3] text-[#BE185D] rounded-[1.5rem] font-bold shadow-sm active:scale-95 transition-all">
-            同意して確定する
-          </button>
-          <button onClick={() => setStep("profile")} className="w-full text-[11px] text-[#C1B9AE] underline">設定にもどる</button>
-        </div>
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-        {showConfirm && (
-          <div className="fixed inset-0 bg-[#FAF9F6]/95 backdrop-blur-md flex items-center justify-center p-8 z-50">
-            <div className="w-full max-w-xs text-center space-y-8">
-              <div className="space-y-4">
-                <p className="font-bold text-[#8C8376] text-lg">この内容で登録します</p>
-                <div className="bg-white py-8 rounded-[3rem] shadow-sm border border-[#F1EFEA] flex flex-col items-center gap-3">
-                  <div className="w-20 h-20 bg-[#FAF9F6] rounded-[2.2rem] flex items-center justify-center overflow-hidden border border-[#F1EFEA]">
-                    {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" alt="preview" /> : <span className="text-3xl">🌸</span>}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-[#A39C93] font-bold tracking-widest uppercase">{titleAdj}{titleNoun}</p>
-                    <p className="text-lg text-[#70695E] font-bold">{nickname}</p>
-                  </div>
-                </div>
-                <p className="text-[13px] text-[#8C8376] font-medium opacity-80">こちらでよろしいですか？</p>
-              </div>
-              <div className="flex flex-col gap-3">
-                <button onClick={handleFinalSave} className="py-4 bg-[#8C8376] text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">これで決定！</button>
-                <button onClick={() => setShowConfirm(false)} className="py-2 text-[12px] text-[#C1B9AE] font-medium">もうすこし考える</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+    const { error } = await supabase.from("messages").insert({
+      content: newMessage,
+      user_id: user.id
+    });
+
+    if (!error) setNewMessage("");
+  };
+
+  if (loading) return <div className="p-10 text-center text-[#B5A773] animate-pulse">ピクニック会場へ移動中...</div>;
 
   return (
-    <div style={slackFont} className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
-      <header className="text-center mb-16 space-y-6">
-        <h1 className="text-[10px] tracking-[0.6em] text-[#E5E1D8] uppercase font-black">Picnic</h1>
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-24 h-24 bg-[#FAF9F6] rounded-[3rem] shadow-sm flex items-center justify-center overflow-hidden border border-[#F1EFEA]">
-            {profile?.icon?.startsWith('blob:') || profile?.icon?.startsWith('http') ? (
-              <img src={profile.icon} className="w-full h-full object-cover" alt="icon" />
-            ) : (
-              <span className="text-4xl">{profile?.icon}</span>
-            )}
+    <div className="min-h-screen bg-[#F9F8F3] p-4 pb-24 font-[family-name:var(--font-sans)]">
+      
+      {/* --- サブスク案内オーバーレイ --- */}
+      {showSubscription && (
+        <div className="fixed inset-0 z-50 bg-[#F2F0E9] overflow-y-auto flex flex-col items-center p-8 animate-in fade-in duration-500">
+          <header className="w-full max-w-md text-center mt-12 mb-16">
+            <Link href="/" className="inline-block mb-8 opacity-60 hover:opacity-100 text-xs tracking-widest text-[#5F6F7A]">
+              &larr; BACK TO HOME
+            </Link>
+            <h1 className="text-3xl italic mb-3 text-[#B5A773]">
+              M. <span className="font-light">picnic space</span>
+            </h1>
+            <p className="text-[10px] tracking-[0.2em] opacity-70 uppercase leading-relaxed text-[#5F6F7A]">
+              自分の部屋をちょっと飛び出して、<br />
+              みんなとゆるく繋がる場所
+            </p>
+          </header>
+
+          <section className="w-full max-w-sm bg-white/50 rounded-[2.5rem] p-8 border border-white/60 shadow-sm mb-12">
+            <p className="text-[13px] leading-loose opacity-90 text-center text-[#5F6F7A]">
+              「一人の時間は大切だけど、たまには誰かの気配を感じたい」<br />
+              そんな時にふらっと立ち寄れるピクニック広場のような場所です。
+            </p>
+          </section>
+
+          <div className="w-full max-w-sm space-y-6 mb-20 text-[#5F6F7A]">
+            <h2 className="text-center text-[11px] font-bold tracking-[0.4em] opacity-40 uppercase mb-8">Contents</h2>
+            {[
+              { title: "ちょこっとーく", desc: "タイムライン形式のつぶやき場。" },
+              { title: "オタトーーーーク！！！", desc: "熱量をさらけ出す趣味の場。" },
+              { title: "限定コラム", desc: "ここだけの読み物。" }
+            ].map((item, index) => (
+              <div key={index} className="flex gap-4 items-start p-4 border-b border-[#B5A773]/20">
+                <span className="text-[#B5A773] text-lg">0{index + 1}</span>
+                <div>
+                  <h3 className="text-sm font-bold mb-1">{item.title}</h3>
+                  <p className="text-[11px] opacity-70">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="space-y-1">
-            <p className="text-[10px] text-[#A39C93] font-bold tracking-widest uppercase">{profile?.title}</p>
-            <p className="text-xl text-[#70695E] font-bold tracking-tight">{profile?.nickname}</p>
+
+          <div className="w-full max-w-xs text-center pb-12">
+            <button 
+              onClick={() => router.push("/picnic/setup")} // セットアップへ飛ばす
+              className="w-full py-5 bg-[#B5A773] text-white rounded-2xl text-[12px] font-bold tracking-[0.2em] shadow-lg shadow-[#B5A773]/30"
+            >
+              ピクニックに参加する
+            </button>
+            <p className="mt-6 text-[9px] opacity-40 text-[#5F6F7A]">
+              ※現在はプレビュー期間中のため無料です。
+            </p>
           </div>
         </div>
-      </header>
-      <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
-        <Link href="/picnic/talk" className="bg-[#F8FAFC] aspect-square rounded-[2.5rem] flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 shadow-sm border border-[#F1F5F9]">
-          <span className="text-3xl">💬</span>
-          <span className="text-[11px] font-bold text-[#94A3B8]">トーク</span>
-        </Link>
-        <Link href="/picnic/otaku" className="bg-[#F0FDF4] aspect-square rounded-[2.5rem] flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 shadow-sm border border-[#DCFCE7]">
-          <span className="text-3xl">🔥</span>
-          <span className="text-[11px] font-bold text-[#166534]/50">オタク</span>
-        </Link>
-      </div>
+      )}
+
+      {/* --- メインコンテンツ（加入済みの場合のみ表示） --- */}
+      {!showSubscription && profile && (
+        <>
+          {/* プロフィール表示 */}
+          <div className="max-w-2xl mx-auto mb-8 bg-white p-6 rounded-[2rem] flex items-center shadow-sm border border-[#F1EFEA]">
+            <div className="text-4xl mr-5 shadow-inner bg-[#F9F8F3] w-16 h-16 rounded-[1.5rem] flex items-center justify-center overflow-hidden">
+              {profile.icon?.startsWith('http') ? (
+                <img src={profile.icon} className="w-full h-full object-cover" alt="icon"/>
+              ) : (
+                profile.icon || "🌸"
+              )}
+            </div>
+            <div>
+              <div className="text-[10px] text-[#B5A773] font-bold tracking-widest uppercase mb-1">{profile.title}</div>
+              <div className="font-bold text-[#5F6F7A] text-lg">{profile.nickname}</div>
+            </div>
+          </div>
+
+          {/* トークエリア */}
+          <div className="max-w-2xl mx-auto space-y-6">
+            <h2 className="text-[#B5A773] font-black text-xs tracking-[0.3em] uppercase mb-6 ml-2">Open Space</h2>
+            {messages.map((msg) => (
+              <div key={msg.id} className="bg-white p-5 rounded-[1.8rem] shadow-sm border border-[#F1EFEA] animate-in slide-in-from-bottom-2 duration-500">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 rounded-full bg-[#F9F8F3] overflow-hidden mr-3 border border-[#F1EFEA]">
+                     {msg.profiles?.icon?.startsWith('http') ? (
+                        <img src={msg.profiles.icon} className="w-full h-full object-cover" alt="icon"/>
+                      ) : (
+                        <span className="flex items-center justify-center h-full text-sm">{msg.profiles?.icon || "🌸"}</span>
+                      )}
+                  </div>
+                  <span className="text-[11px] font-bold text-[#5F6F7A] mr-auto">{msg.profiles?.nickname || "ななし"}</span>
+                  <span className="text-[9px] text-[#C1B9AE]">{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+                <p className="text-[13px] text-[#5F6F7A] leading-loose ml-1">{msg.content}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* 投稿フォーム */}
+          <form onSubmit={handleSendMessage} className="fixed bottom-6 left-4 right-4 max-w-2xl mx-auto flex gap-3">
+            <input 
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="メッセージを入力..."
+              className="flex-1 px-6 py-4 rounded-full border border-[#F1EFEA] focus:outline-none focus:ring-2 focus:ring-[#B5A773]/20 bg-white shadow-xl text-sm"
+            />
+            <button type="submit" className="bg-[#B5A773] text-white w-14 h-14 rounded-full font-bold shadow-lg flex items-center justify-center hover:scale-105 transition-transform">
+              <span className="text-xl">＋</span>
+            </button>
+          </form>
+        </>
+      )}
     </div>
   );
 }
