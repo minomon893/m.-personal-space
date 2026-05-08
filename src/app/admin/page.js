@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2, MessageSquareQuote, ChevronDown } from "lucide-react";
+import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2, MessageSquareQuote, ChevronDown, Coffee } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -19,7 +19,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  // お知らせのアコーディオン用
+  // お知らせ・Jimmyのアコーディオン用
   const [expandedId, setExpandedId] = useState(null);
 
   const fetchItems = async () => {
@@ -34,6 +34,8 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeTab === "notices") {
       setNoticeTag("Update"); 
+    } else if (activeTab === "jimmys") {
+      setNoticeTag("JIMMY");
     } else {
       setNoticeTag(""); 
     }
@@ -63,6 +65,14 @@ export default function AdminPage() {
       payload = { title, content: body, tag: noticeTag || "Update" };
     } else if (table === "feedbacks") {
       payload = { attribute: title, content: body, service_tag: noticeTag || "" };
+    } else if (table === "jimmys") {
+      // Jimmy用のペイロード: contentの冒頭80文字を自動でexcerptにする
+      payload = { 
+        title, 
+        content: body, 
+        tag: noticeTag || "JIMMY",
+        excerpt: body.substring(0, 80).replace(/\n/g, ' ') + "..."
+      };
     } else {
       payload = { title, body };
     }
@@ -74,7 +84,7 @@ export default function AdminPage() {
     } else {
       setBody("");
       setTitle("");
-      setNoticeTag(activeTab === "notices" ? "Update" : "");
+      setNoticeTag(activeTab === "notices" ? "Update" : activeTab === "jimmys" ? "JIMMY" : "");
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       await fetchItems();
@@ -83,7 +93,9 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id) => {
-    const typeLabel = activeTab === "notices" ? "Notice" : activeTab === "feedbacks" ? "Feedback" : "Poem";
+    const labels = { notices: "Notice", feedbacks: "Feedback", poems: "Poem", jimmys: "Jimmy" };
+    const typeLabel = labels[activeTab] || "Item";
+    
     if (!confirm(`Delete this ${typeLabel}?`)) return;
     const { error } = await supabase.from(activeTab).delete().eq("id", id);
     if (!error) fetchItems();
@@ -131,16 +143,17 @@ export default function AdminPage() {
           <div className="text-[9px] font-bold tracking-[0.3em] opacity-30 uppercase italic">m. personal space</div>
         </header>
 
-        <div className="flex gap-2 mb-12 border-b border-[#4F5D6B]/5 pb-4">
+        <div className="flex gap-2 mb-12 border-b border-[#4F5D6B]/5 pb-4 overflow-x-auto">
           {[
             { id: "notices", icon: <Megaphone size={14} />, label: "Notices" },
+            { id: "jimmys", icon: <Coffee size={14} />, label: "Jimmy" },
             { id: "feedbacks", icon: <MessageSquareQuote size={14} />, label: "Feedback" },
             { id: "poems", icon: <PenLine size={14} />, label: "Poems" }
           ].map((tab) => (
             <button 
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-[10px] font-bold tracking-widest uppercase ${activeTab === tab.id ? "bg-[#5F6F7A] text-white shadow-sm" : "hover:bg-white/40 opacity-50"}`}
+              className={`flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all text-[10px] font-bold tracking-widest uppercase whitespace-nowrap ${activeTab === tab.id ? "bg-[#5F6F7A] text-white shadow-sm" : "hover:bg-white/40 opacity-50"}`}
             >
               {tab.icon} {tab.label}
             </button>
@@ -150,28 +163,28 @@ export default function AdminPage() {
         <form onSubmit={handleSubmit} className="bg-white/30 backdrop-blur-sm p-8 rounded-[2.5rem] border border-white/60 shadow-sm mb-20">
           <div className="mb-10">
             <h2 className="text-[11px] font-bold tracking-[0.3em] uppercase opacity-70 flex items-center gap-2 mb-8">
-              <PlusCircle size={16} className="text-[#B5A773]" /> Create New {activeTab.slice(0, -1)}
+              <PlusCircle size={16} className="text-[#B5A773]" /> Create New {activeTab === "jimmys" ? "Jimmy Column" : activeTab.slice(0, -1)}
             </h2>
             
             <div className="space-y-6">
-              {(activeTab === "notices" || activeTab === "feedbacks") && (
+              {(activeTab === "notices" || activeTab === "feedbacks" || activeTab === "jimmys") && (
                 <div>
                   <label className="block text-[9px] font-bold tracking-[0.2em] mb-2 opacity-50 uppercase">
-                    {activeTab === "feedbacks" ? "Service Path (text / realtime / guide)" : "Notice Tag"}
+                    {activeTab === "feedbacks" ? "Service Path" : "Tag"}
                   </label>
                   <input
                     type="text"
                     value={noticeTag}
                     onChange={(e) => setNoticeTag(e.target.value)}
                     className="w-full p-4 rounded-2xl bg-white/50 border border-white/60 outline-none focus:border-[#B5A773] transition-all text-sm"
-                    placeholder={activeTab === "feedbacks" ? "" : "Update"}
+                    placeholder={activeTab === "jimmys" ? "JIMMY" : "Update"}
                   />
                 </div>
               )}
               
               <div>
                 <label className="block text-[9px] font-bold tracking-[0.2em] mb-2 opacity-50 uppercase">
-                  {activeTab === "feedbacks" ? "User Attribute (e.g. 30s Female)" : "Title / Author"}
+                  {activeTab === "feedbacks" ? "User Attribute" : "Title"}
                 </label>
                 <input
                   type="text"
@@ -211,7 +224,7 @@ export default function AdminPage() {
             {items.map((item) => (
               <div key={item.id} className="bg-white/40 p-6 rounded-3xl border border-white/60 flex justify-between items-start group hover:bg-white/60 transition-all">
                 <div className="flex-1 pr-4">
-                  {activeTab === "notices" ? (
+                  {(activeTab === "notices" || activeTab === "jimmys") ? (
                     <div className="space-y-2">
                       <button 
                         onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
@@ -223,7 +236,9 @@ export default function AdminPage() {
                       </button>
                       <div className={`grid transition-all duration-300 ${expandedId === item.id ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
-                          <p className="text-[13px] leading-relaxed opacity-70 whitespace-pre-wrap border-t border-[#4F5D6B]/5 pt-4">{item.content}</p>
+                          <p className="text-[13px] leading-relaxed opacity-70 whitespace-pre-wrap border-t border-[#4F5D6B]/5 pt-4">
+                            {item.content}
+                          </p>
                         </div>
                       </div>
                     </div>
