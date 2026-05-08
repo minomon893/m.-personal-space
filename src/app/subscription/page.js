@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function SubscriptionPage() {
-  // Stripeの支払いリンクへ飛ばす関数
+  const router = useRouter();
+
+  // Next.jsのルール：src/app/picnic/page.tsx のURLは "/picnic" です
   const handleJoin = () => {
-    const STRIPE_LINK = "https://buy.stripe.com/test_dRm5kD45G3ji9yTfVe0Ba06";
-    window.location.href = STRIPE_LINK;
+    router.push("/picnic"); 
   };
 
   return (
@@ -56,19 +58,18 @@ export default function SubscriptionPage() {
 
       {/* JOIN BUTTON */}
       <div className="w-full max-w-xs text-center">
-        <p className="text-[10px] mb-6 opacity-60 tracking-wider">Monthly Support / &yen;500</p>
+        <p className="text-[10px] mb-6 opacity-60 tracking-wider">PREVIEW MODE / FREE</p>
         
-        {/* ボタンをクリックでStripeへリダイレクト */}
         <button 
           onClick={handleJoin}
           className="w-full py-5 bg-[#B5A773] text-white rounded-2xl text-[12px] font-bold tracking-[0.2em] shadow-lg shadow-[#B5A773]/30 hover:opacity-90 transition-all hover:-translate-y-0.5"
         >
-          メンバーシップに参加する
+          ピクニック会場へ入る
         </button>
 
         <p className="mt-6 text-[9px] opacity-40 leading-relaxed">
-          ※いつでも解約可能です。いただいた応援は、<br />
-          この場所の維持・運営に大切に活用させていただきます。
+          ※現在はプレビュー期間中のため、<br />
+          どなたでも無料で体験いただけます。
         </p>
       </div>
 
