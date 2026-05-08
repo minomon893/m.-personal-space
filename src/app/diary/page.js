@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Download, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Download, Upload, BookOpen } from "lucide-react";
 
 export default function DiaryPage() {
   const [logs, setLogs] = useState([]);
@@ -13,6 +13,9 @@ export default function DiaryPage() {
   // グラフ制御
   const [graphPeriod, setGraphPeriod] = useState(null); 
   const [viewDate, setViewDate] = useState(new Date());
+
+  // 画像ポップアップ用
+  const [showDiaryImage, setShowDiaryImage] = useState(false);
 
   // スクロール用リファレンス
   const logRefs = useRef({});
@@ -187,17 +190,27 @@ export default function DiaryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#E7ECF1] p-8 text-[#4F5F6A] font-sans">
+    <div className="min-h-screen bg-[#E7ECF1] p-8 text-[#4F5F6A] font-sans relative">
       <div className="max-w-md mx-auto">
         <Link className="text-[10px] tracking-[0.2em] opacity-60 flex items-center gap-2 mb-6 hover:opacity-100 transition-opacity" href="/">
           <ArrowLeft size={12}/> BACK TO MENU
         </Link>
 
-        <header className="mb-10">
-          <h1 className="text-2xl font-bold tracking-[0.15em] text-[#4F5F6A] uppercase">
-            Condition <span className="font-light opacity-60 italic">Diary</span>
-          </h1>
-          <div className="h-[1px] w-12 bg-[#4F5F6A] opacity-20 mt-2" />
+        <header className="mb-10 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold tracking-[0.15em] text-[#4F5F6A] uppercase">
+              Condition <span className="font-light opacity-60 italic">Diary</span>
+            </h1>
+            <div className="h-[1px] w-12 bg-[#4F5F6A] opacity-20 mt-2" />
+          </div>
+          
+          {/* 追加：Diary画像表示ボタン */}
+          <button 
+            onClick={() => setShowDiaryImage(true)}
+            className="p-3 bg-white/60 rounded-2xl border border-white shadow-sm hover:bg-white transition-colors hover:scale-105 active:scale-95"
+          >
+            <BookOpen size={20} className="text-[#B5A773]" />
+          </button>
         </header>
 
         {/* STATS BUTTONS */}
@@ -336,6 +349,31 @@ export default function DiaryPage() {
           </label>
         </div>
       </div>
+
+      {/* --- 画像ポップアップオーバーレイ --- */}
+      {showDiaryImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-8 animate-in fade-in duration-300"
+          onClick={() => setShowDiaryImage(false)}
+        >
+          <div 
+            className="relative max-w-lg w-full bg-white rounded-[3rem] p-4 shadow-2xl animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src="/images/diary.png" 
+              alt="Diary Reference" 
+              className="w-full h-auto rounded-[2.5rem] block"
+            />
+            <button 
+              onClick={() => setShowDiaryImage(false)}
+              className="absolute -top-2 -right-2 w-10 h-10 bg-[#4F5F6A] text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function HomePage() {
   const [visitorCount, setVisitorCount] = useState(0);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  // ガイドのスライド番号 (0: テキスト, 1: 画像)
+  const [currentSlide, setCurrentSlide] = useState(0);
   // 加入状態によってリンク先を変えるためのステート（初期値は紹介ページ）
   const [picnicPath, setPicnicPath] = useState("/picnic");
 
@@ -119,7 +122,10 @@ export default function HomePage() {
       {/* GUIDE BUTTON */}
       <div className="absolute top-6 right-6 z-40">
         <button
-          onClick={() => setIsGuideOpen(true)}
+          onClick={() => {
+            setIsGuideOpen(true);
+            setCurrentSlide(0); // 開くときは最初のスライド
+          }}
           className="w-10 h-10 rounded-full bg-white/30 border border-white/40 flex items-center justify-center text-[#5F6F7A] hover:bg-white/60 hover:scale-105 transition-all shadow-sm group"
         >
           <svg
@@ -139,80 +145,106 @@ export default function HomePage() {
       </div>
 
       {/* GUIDE MODAL */}
+      {/* GUIDE MODAL */}
       {isGuideOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#5F6F7A]/20 backdrop-blur-sm animate-in fade-in duration-300">
           <div
-            className="bg-[#F2F0E9] w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-[2.5rem] p-8 shadow-2xl border border-white relative flex flex-col"
+            className="bg-[#F2F0E9] w-full max-w-sm max-h-[85vh] overflow-hidden rounded-[2.5rem] shadow-2xl border border-white relative flex flex-col transition-all duration-500"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg italic text-[#B5A773] mb-2 tracking-widest text-center">Guide</h2>
-            <p className="text-[11px] text-center mb-6 opacity-70">
-              ここはあなたが、あなたの本音を大切に扱うための<br />
-              パーソナルスペースです。
-            </p>
+            {/* スライド切り替えボタン（左）：2枚目の時だけ表示 */}
+            {currentSlide === 1 && (
+              <button 
+                onClick={() => setCurrentSlide(0)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/60 rounded-full hover:bg-white transition-all shadow-sm animate-in fade-in slide-in-from-right-2"
+              >
+                <ChevronLeft size={24} className="text-[#5F6F7A]" />
+              </button>
+            )}
 
-            <div className="space-y-6 text-[12px] leading-relaxed text-[#5F6F7A]">
-              <section>
-                <p className="font-bold text-[#B5A773] mb-1">Concept</p>
-                <p className="opacity-90">
-                  「自己受容 × 行動変容 ＝ 自己実現」をテーマに、自分のペースで自分を深めるための空間です。
-                </p>
-              </section>
+            {/* スライド切り替えボタン（右）：1枚目の時だけ表示 */}
+            {currentSlide === 0 && (
+              <button 
+                onClick={() => setCurrentSlide(1)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/60 rounded-full hover:bg-white transition-all shadow-sm animate-in fade-in slide-in-from-left-2"
+              >
+                <ChevronRight size={24} className="text-[#5F6F7A]" />
+              </button>
+            )}
 
-              <section className="space-y-3">
-                <p className="font-bold text-[#B5A773] mb-1">Tools</p>
-                <div className="space-y-2">
-                  <p>
-                    ● <b>Main Menu</b>：思考を整えるワークや診断、生きづらさ解消のための読み物などが揃っています。
+            <div className="flex-1 overflow-y-auto p-8">
+              {currentSlide === 0 ? (
+                <div className="animate-in fade-in duration-500">
+                  <h2 className="text-lg italic text-[#B5A773] mb-2 tracking-widest text-center">Guide</h2>
+                  <p className="text-[11px] text-center mb-6 opacity-70">
+                    ここはあなたが、あなたの本音を大切に扱うための<br />
+                    パーソナルスペースです。
                   </p>
-                  <p>
-                    ● <b>Counseling</b>：プロの手を借りて自分を深堀したくなった際は、カウンセリングの予約も可能です。
-                  </p>
-                  <p>
-                    ● <b>Diary</b>：今日の自分を%で記録。心の波を可視化し、自分との対話を深めます。
-                  </p>
-                </div>
-              </section>
 
-              <section>
-                <p className="font-bold text-[#B5A773] mb-1">Privacy & Data</p>
-                <div className="opacity-90 text-[11px] space-y-2 leading-relaxed">
-                  <p>
-                    大切な記録はあなたのデバイス内に保存されます。ブラウザの自動削除からデータを守るため<b>「ホーム画面に追加」</b>しての使用を推奨しています。
-                  </p>
-                </div>
-              </section>
+                  <div className="space-y-6 text-[12px] leading-relaxed text-[#5F6F7A]">
+                    <section>
+                      <p className="font-bold text-[#B5A773] mb-1">Concept</p>
+                      <p className="opacity-90">
+                        「自己受容 × 行動変容 ＝ 自己実現」をテーマに、自分のペースで自分を深めるための空間です。
+                      </p>
+                    </section>
 
-              <section className="space-y-3">
-                <p className="font-bold text-[#B5A773] mb-1 tracking-wider">M. picnic space</p>
-                <p className="opacity-90 mb-2">
-                  自分の部屋をちょっと飛び出して、みんなとゆるく繋がる応援メンバーシップです。
-                </p>
-                <div className="space-y-2 pl-2 border-l-2 border-[#B5A773]/30">
-                  <p>
-                    <b>ちょこっとーく</b>：心おきなくつぶやいて、リアクションで温かく繋がる場所。
-                  </p>
-                  <p>
-                    <b>オタトーーーーク！！！</b>：好きなことを, 気兼ねなく語り合えます。
-                  </p>
-                  <p>
-                    <b>コラム</b>：管理人個人の日記に近い、ここだけの内緒の話や気づき。
-                  </p>
-                </div>
-                <Link href={picnicPath} className="block pt-2">
-                  <div className="w-full py-2.5 bg-[#B5A773] text-white rounded-xl text-[10px] font-bold tracking-[0.1em] hover:opacity-90 transition-opacity shadow-sm text-center cursor-pointer">
-                    M. picnic space に参加する
+                    <section className="space-y-3">
+                      <p className="font-bold text-[#B5A773] mb-1">Tools</p>
+                      <div className="space-y-2">
+                        <p>
+                          ● <b>Main Menu</b>：思考を整えるワークや診断、生きづらさ解消のための読み物などが揃っています。
+                        </p>
+                        <p>
+                          ● <b>Counseling</b>：プロの手を借りて自分を深堀したくなった際は、カウンセリングの予約も可能です。
+                        </p>
+                        <p>
+                          ● <b>Diary</b>：今日の自分を%で記録。心の波を可視化し、自分との対話を深めます。
+                        </p>
+                      </div>
+                    </section>
+
+                    <section>
+                      <p className="font-bold text-[#B5A773] mb-1">Privacy & Data</p>
+                      <div className="opacity-90 text-[11px] space-y-2 leading-relaxed">
+                        <p>
+                          大切な記録はあなたのデバイス内に保存されます。ブラウザの自動削除からデータを守るため<b>「ホーム画面に追加」</b>しての使用を推奨しています。
+                        </p>
+                      </div>
+                    </section>
                   </div>
-                </Link>
-              </section>
+                </div>
+              ) : (
+                <div className="animate-in fade-in duration-500 flex flex-col items-center justify-center h-full">
+                  <img 
+                    src="/images/mpersonal.png" 
+                    alt="Manual" 
+                    className="w-full h-auto rounded-2xl shadow-sm"
+                  />
+                </div>
+              )}
             </div>
 
-            <button
-              onClick={() => setIsGuideOpen(false)}
-              className="mt-8 w-full py-4 bg-[#5F6F7A] text-white rounded-2xl text-[11px] font-bold tracking-[0.3em] hover:bg-[#4a5761] transition-colors shadow-lg shadow-[#5F6F7A]/20"
-            >
-              トップに戻る
-            </button>
+            <div className="p-8 pt-0">
+              {/* インジケーター：クリックでも切り替え可能に */}
+              <div className="flex justify-center gap-2 mb-6">
+                <button 
+                  onClick={() => setCurrentSlide(0)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${currentSlide === 0 ? "bg-[#B5A773] w-6" : "bg-[#B5A773]/20 w-1.5"}`} 
+                />
+                <button 
+                  onClick={() => setCurrentSlide(1)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${currentSlide === 1 ? "bg-[#B5A773] w-6" : "bg-[#B5A773]/20 w-1.5"}`} 
+                />
+              </div>
+
+              <button
+                onClick={() => setIsGuideOpen(false)}
+                className="w-full py-4 bg-[#5F6F7A] text-white rounded-2xl text-[11px] font-bold tracking-[0.3em] hover:bg-[#4a5761] transition-colors shadow-lg shadow-[#5F6F7A]/20"
+              >
+                トップに戻る
+              </button>
+            </div>
           </div>
           <div className="absolute inset-0 -z-10" onClick={() => setIsGuideOpen(false)}></div>
         </div>
