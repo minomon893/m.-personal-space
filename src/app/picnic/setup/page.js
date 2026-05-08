@@ -12,12 +12,11 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState("profile"); 
   const [showConfirm, setShowConfirm] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [user, setUser] = useState(null);
 
   const [nickname, setNickname] = useState("");
   const [iconUrl, setIconUrl] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
 
   const [titleAdj, setTitleAdj] = useState(ADJECTIVES[0]);
   const [titleNoun, setTitleNoun] = useState(NOUNS[0]);
@@ -32,24 +31,19 @@ export default function SetupPage() {
   const slackFont = { fontFamily: '"Zen Maru Gothic", "Kosugi Maru", "Meiryo", sans-serif' };
 
   useEffect(() => {
-    const checkUser = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        setCurrentUser(session.user);
-        // すでにプロフィールがあるかチェック
-        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        if (data) {
-          // すでに登録済みならメインへリダイレクト
-          router.push("/picnic");
-          return;
-        }
-      } else {
-        setCurrentUser({ id: "guest-user" });
+        setUser(session.user);
+        // ここに来るのは「ログインはしてるけどプロフィールがない人」か「直リンクの人」
+        // 一応、登録済みなら garden へ逃がすガードは残しておく
+        const { data } = await supabase.from("profiles").select("id").eq("id", session.user.id).single();
+        if (data) router.replace("/picnic/garden");
       }
       setLoading(false);
     };
-    checkUser();
-  }, [supabase, router]);
+    init();
+  }, [router, supabase]);
 
   useEffect(() => {
     let adjInterval, nounInterval;
@@ -62,62 +56,58 @@ export default function SetupPage() {
     try {
       const file = e.target.files?.[0];
       if (!file) return;
-
       const localPreview = URL.createObjectURL(file);
       setPreviewUrl(localPreview);
-
-      if (!currentUser || currentUser.id === "guest-user") {
-        setIconUrl(localPreview); 
-        return;
-      }
-
-      setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${currentUser.id}/icon.${fileExt}`;
-      const { error } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      setIconUrl(`${publicUrl}?t=${new Date().getTime()}`);
+      setIconUrl("🌸"); // 画像アップロードロジックを組むまでの仮置き
     } catch (error) {
       console.error(error);
-      alert('アップロードに失敗しました。');
-    } finally {
-      setUploading(false);
     }
   };
 
   const handleFinalSave = async () => {
-    const finalTitle = `${titleAdj}${titleNoun}`;
-    
-    if (!currentUser || currentUser.id === "guest-user") {
-      // ゲストの場合はlocalStorageに一時保存して遷移（後で消える前提）
-      localStorage.setItem("guest_profile", JSON.stringify({ nickname, icon: iconUrl || "🌸", title: finalTitle }));
-      router.push("/picnic");
-      return;
-    }
+    try {
+      let currentUserId = user?.id;
 
-    const { error } = await supabase.from("profiles").upsert({
-      id: currentUser.id, nickname, icon: iconUrl || "🌸", title: finalTitle, created_at: new Date(),
-    });
+      // 1. ログインしていない場合は匿名サインアップ
+      if (!currentUserId) {
+        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+        if (authError) throw authError;
+        currentUserId = authData.user.id;
+      }
 
-    if (!error) {
-      router.push("/picnic");
-    } else {
-      alert("保存に失敗しました。");
+      // 2. プロフィール保存
+      const finalTitle = `${titleAdj}${titleNoun}`;
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: currentUserId,
+        nickname: nickname || "名無しの住人",
+        icon: iconUrl || "🌸",
+        title: finalTitle,
+        updated_at: new Date(),
+      });
+
+      if (profileError) throw profileError;
+
+      // 3. 完了したら即座に garden へ
+      router.push("/picnic/garden");
+
+    } catch (error) {
+      console.error("Save Error:", error);
+      // エラーが出ても、セッションさえあれば garden 側で救済できるので飛ばす
+      router.push("/picnic/garden");
     }
   };
 
-  if (loading) return <div style={slackFont} className="min-h-screen bg-[#FAF9F6] flex items-center justify-center text-[#B5A773] opacity-50">...</div>;
+  if (loading) return <div style={slackFont} className="min-h-screen bg-[#FAF9F6] flex items-center justify-center text-[#B5A773] opacity-50 italic">Preparing...</div>;
 
-  if (step === "profile") {
-    return (
-      <div style={slackFont} className="min-h-screen bg-[#FAF9F6] p-8 flex flex-col items-center justify-center">
-        <div className="w-full max-w-xs space-y-12">
+  return (
+    <div style={slackFont} className="min-h-screen bg-[#FAF9F6] p-8 flex flex-col items-center justify-center">
+      {step === "profile" ? (
+        <div className="w-full max-w-xs space-y-12 animate-in fade-in duration-500">
           <h2 className="text-center text-[#8C8376] font-bold tracking-tight text-lg">プロフィール設定</h2>
           
           <div className="flex justify-center">
-            <label className="relative cursor-pointer">
-              <div className={`w-28 h-28 bg-white rounded-[2.8rem] shadow-sm flex items-center justify-center text-3xl overflow-hidden border border-[#F1EFEA] transition-all ${uploading ? 'opacity-40' : ''}`}>
+            <label className="relative cursor-pointer group">
+              <div className={`w-28 h-28 bg-white rounded-[2.8rem] shadow-sm flex items-center justify-center text-3xl overflow-hidden border border-[#F1EFEA] transition-all group-active:scale-95`}>
                 {previewUrl ? (
                   <img src={previewUrl} className="w-full h-full object-cover" alt="icon" />
                 ) : (
@@ -127,18 +117,18 @@ export default function SetupPage() {
                   </div>
                 )}
               </div>
-              <input type="file" className="hidden" onChange={uploadIcon} accept="image/*" disabled={uploading} />
-              {uploading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-[#A39C93] border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
+              <input type="file" className="hidden" onChange={uploadIcon} accept="image/*" />
             </label>
           </div>
 
           <div className="space-y-6">
             <div className="border-b border-[#E9E5DE] pb-2 text-center">
-              <input value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-transparent text-center focus:outline-none text-[#70695E] font-medium placeholder:text-[#D1CCC4]" placeholder="おなまえ" />
+              <input 
+                value={nickname} 
+                onChange={(e) => setNickname(e.target.value)} 
+                className="w-full bg-transparent text-center focus:outline-none text-[#70695E] font-medium placeholder:text-[#D1CCC4]" 
+                placeholder="おなまえ" 
+              />
             </div>
             <div className="flex gap-2">
               <button onClick={() => setIsAdjSpinning(!isAdjSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-bold border transition-all ${isAdjSpinning ? 'bg-[#F5F3F0] border-[#E9E5DE] text-[#8C8376]' : 'bg-white border-[#F1EFEA] text-[#A39C93]'}`}>
@@ -150,36 +140,32 @@ export default function SetupPage() {
             </div>
           </div>
 
-          <button onClick={() => {
-            if(!nickname) return alert("おなまえを教えてくださいね");
-            if(isAdjSpinning || isNounSpinning) return alert("ルーレットを止めてください");
-            setStep("terms");
-          }} className="w-full py-4 bg-[#8C8376] text-[#FAF9F6] rounded-[1.5rem] text-[14px] font-bold shadow-md active:scale-95 transition-all">
+          <button 
+            onClick={() => {
+              if(!nickname) return alert("おなまえを入力してください");
+              setStep("terms");
+            }} 
+            className="w-full py-4 bg-[#8C8376] text-[#FAF9F6] rounded-[1.5rem] text-[14px] font-bold shadow-md active:scale-95 transition-all"
+          >
             つぎへ
           </button>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={slackFont} className="min-h-screen bg-[#FAF9F6] p-8 flex flex-col items-center justify-center">
-      <div className="w-full max-w-xs space-y-8">
-        <h2 className="font-bold text-center text-[#8C8376] text-lg">ピクニックの約束</h2>
-        <div className="bg-white p-7 rounded-[2.5rem] shadow-sm text-[12px] text-[#8C8376] space-y-5 leading-relaxed border border-[#F1EFEA]">
-          <p className="flex gap-3"><span>🌱</span><span>お名前とアイコンは、あとから変更できません。今の自分らしいものを選んでくださいね。</span></p>
-          <p className="flex gap-3"><span>🌱</span><span>ここはみんなの憩いの場です。お互いを尊重し、あたたかい言葉をかけ合いましょう。</span></p>
-          <p className="flex gap-3"><span>🌱</span><span>安心を守るため、住所や電話番号などの大切な個人情報は秘密にしておきましょう。</span></p>
-          <p className="flex gap-3"><span>🌱</span><span>みんながのんびり過ごせるよう、宣伝や勧誘などの目的での利用はご遠慮ください。</span></p>
+      ) : (
+        <div className="w-full max-w-xs space-y-8 animate-in slide-in-from-right-4 duration-500">
+          <h2 className="font-bold text-center text-[#8C8376] text-lg">ピクニックの約束</h2>
+          <div className="bg-white p-7 rounded-[2.5rem] shadow-sm text-[12px] text-[#8C8376] space-y-5 leading-relaxed border border-[#F1EFEA]">
+            <p className="flex gap-3"><span>🌱</span><span>お名前とアイコンは、あとから変更できません。</span></p>
+            <p className="flex gap-3"><span>🌱</span><span>お互いを尊重し、あたたかい言葉をかけ合いましょう。</span></p>
+          </div>
+          <button onClick={() => setShowConfirm(true)} className="w-full py-4 bg-[#FCE7F3] text-[#BE185D] rounded-[1.5rem] font-bold shadow-sm active:scale-95 transition-all">
+            同意して確定する
+          </button>
+          <button onClick={() => setStep("profile")} className="w-full text-[11px] text-[#C1B9AE] underline">設定にもどる</button>
         </div>
-        <button onClick={() => setShowConfirm(true)} className="w-full py-4 bg-[#FCE7F3] text-[#BE185D] rounded-[1.5rem] font-bold shadow-sm active:scale-95 transition-all">
-          同意して確定する
-        </button>
-        <button onClick={() => setStep("profile")} className="w-full text-[11px] text-[#C1B9AE] underline">設定にもどる</button>
-      </div>
+      )}
 
       {showConfirm && (
-        <div className="fixed inset-0 bg-[#FAF9F6]/95 backdrop-blur-md flex items-center justify-center p-8 z-50">
+        <div className="fixed inset-0 bg-[#FAF9F6]/95 backdrop-blur-md flex items-center justify-center p-8 z-50 animate-in fade-in duration-300">
           <div className="w-full max-w-xs text-center space-y-8">
             <div className="space-y-4">
               <p className="font-bold text-[#8C8376] text-lg">この内容で登録します</p>
@@ -192,7 +178,6 @@ export default function SetupPage() {
                   <p className="text-lg text-[#70695E] font-bold">{nickname}</p>
                 </div>
               </div>
-              <p className="text-[13px] text-[#8C8376] font-medium opacity-80">こちらでよろしいですか？</p>
             </div>
             <div className="flex flex-col gap-3">
               <button onClick={handleFinalSave} className="py-4 bg-[#8C8376] text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">これで決定！</button>

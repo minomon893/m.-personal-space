@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { createBrowserClient } from "@supabase/ssr"; // @supabase/ssr に統一
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function HomePage() {
   const [visitorCount, setVisitorCount] = useState(0);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  // 加入状態によってリンク先を変えるためのステート（初期値は紹介ページ）
+  const [picnicPath, setPicnicPath] = useState("/picnic");
 
   // クライアントコンポーネント内でSupabaseを初期化
   const supabase = createBrowserClient(
@@ -76,12 +78,28 @@ export default function HomePage() {
         if (!error && count !== null) {
           setVisitorCount(count);
         }
+
+        // --- 追加：ピクニック加入状態のチェック ---
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("id", session.user.id)
+            .single();
+          
+          if (profile) {
+            setPicnicPath("/picnic/garden");
+          }
+        }
+        // ------------------------------------
+
       } catch (err) {
         console.error("Counter Error:", err);
       }
     }
     handleVisitorCount();
-  }, [supabase]); // supabase を依存配列に追加
+  }, [supabase]);
 
   const handleClosePrompt = () => {
     const today = new Intl.DateTimeFormat("ja-JP", {
@@ -181,11 +199,10 @@ export default function HomePage() {
                     <b>コラム</b>：管理人個人の日記に近い、ここだけの内緒の話や気づき。
                   </p>
                 </div>
-                {/* href を /picnic に修正 */}
-                <Link href="/picnic" className="block pt-2">
-                  <button className="w-full py-2.5 bg-[#B5A773] text-white rounded-xl text-[10px] font-bold tracking-[0.1em] hover:opacity-90 transition-opacity shadow-sm">
+                <Link href={picnicPath} className="block pt-2">
+                  <div className="w-full py-2.5 bg-[#B5A773] text-white rounded-xl text-[10px] font-bold tracking-[0.1em] hover:opacity-90 transition-opacity shadow-sm text-center cursor-pointer">
                     M. picnic space に参加する
-                  </button>
+                  </div>
                 </Link>
               </section>
             </div>
@@ -213,40 +230,40 @@ export default function HomePage() {
       </header>
 
       {/* MAIN */}
-      <main className="w-full max-w-xs space-y-4 mb-24">
-        <Link href="/menu" className="block">
-          <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all group">
+      <main className="w-full max-w-xs space-y-4 mb-24 relative z-10">
+        <Link href="/menu" className="block group">
+          <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
               <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">Main Menu</span>
               <span className="text-[13px] opacity-80">メインメニュー / Ezine</span>
             </div>
             <span className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-          </button>
+          </div>
         </Link>
 
-        <Link href="/booking" className="block">
-          <button className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center hover:bg-[#52606A] hover:-translate-y-[1px] transition-all group">
+        <Link href="/booking" className="block group">
+          <div className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center hover:bg-[#52606A] hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
               <span className="block text-xs font-bold opacity-60 mb-1 uppercase tracking-wider">Counseling</span>
               <span className="text-[13px]">カウンセリング予約</span>
             </div>
             <span className="opacity-60 group-hover:translate-x-1 transition-all">→</span>
-          </button>
+          </div>
         </Link>
 
-        <Link href="/diary" className="block pb-2">
-          <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all group">
+        <Link href="/diary" className="block group pb-2">
+          <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
               <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">Diary</span>
               <span className="text-[13px] opacity-80">コンディション記録 / 日記</span>
             </div>
             <span className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-          </button>
+          </div>
         </Link>
 
-        {/* href を /subscription から /picnic に修正 */}
-        <Link href="/picnic" className="block pt-4">
-          <button className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all group">
+        {/* 振り分けを適用したピクニックボタン */}
+        <Link href={picnicPath} className="block pt-4 group">
+          <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <span className="block text-xs font-bold text-[#B5A773] uppercase tracking-wider">M. picnic space</span>
@@ -255,7 +272,7 @@ export default function HomePage() {
               <span className="text-[13px] opacity-80 italic">みんなとゆるく繋がる広場</span>
             </div>
             <span className="text-[#B5A773] opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-          </button>
+          </div>
           <p className="text-[9px] text-center mt-3 opacity-40 tracking-[0.1em]">
             ※こちらはメンバーシップ限定の空間です
           </p>
