@@ -145,7 +145,6 @@ export default function HomePage() {
       </div>
 
       {/* GUIDE MODAL */}
-      {/* GUIDE MODAL */}
       {isGuideOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#5F6F7A]/20 backdrop-blur-sm animate-in fade-in duration-300">
           <div
@@ -251,7 +250,7 @@ export default function HomePage() {
       )}
 
       {/* HEADER */}
-      <header className="w-full max-w-md text-center mt-12 mb-24">
+      <header className="w-full max-w-md text-center mt-12 mb-12">
         <div className="inline-block px-4 py-1.5 bg-white/40 rounded-full text-[9px] tracking-[0.25em] mb-6 border border-white/30 shadow-sm">
           TODAY&apos;S VISITOR: <span className="font-bold ml-1 text-[#B5A773]">{visitorCount}</span>
         </div>
