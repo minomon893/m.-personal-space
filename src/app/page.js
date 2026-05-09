@@ -297,10 +297,10 @@ export default function HomePage() {
           <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="block text-xs font-bold text-[#B5A773] uppercase tracking-wider">M. picnic space</span>
+                <span className="block text-xs font-bold text-[#B5A773] tracking-wider">m. picnic space</span>
                 <span className="text-[8px] bg-[#B5A773]/10 text-[#B5A773] px-1.5 py-0.5 rounded tracking-tighter font-bold">MEMBERSHIP</span>
               </div>
-              <span className="text-[13px] opacity-80 italic">みんなとゆるく繋がる広場</span>
+              <span className="text-[13px] opacity-80">会員限定SNS</span>
             </div>
             <span className="text-[#B5A773] opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
           </div>

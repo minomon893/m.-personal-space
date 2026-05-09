@@ -120,7 +120,7 @@ export default function MyPage() {
           href="/picnic/garden"
           className="w-14 h-14 flex items-center justify-center rounded-full shadow-xl transition-all border-2 bg-white border-[#FAF7F7] opacity-80 hover:opacity-100 active:scale-95"
         >
-          <span className="text-2xl">🏠</span>
+          <span className="text-2xl">🧺</span>
         </Link>
       </div>
 

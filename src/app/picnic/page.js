@@ -73,9 +73,6 @@ export default function PicnicLandingPage() {
 
       {/* フローティング参加ボタン */}
       <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3 pointer-events-none">
-        <div className="bg-white px-4 py-2 rounded-2xl shadow-xl border border-[#A8C69F]/20 pointer-events-auto animate-bounce-slow">
-          <p className="text-[10px] font-black text-[#A8C69F] tracking-tighter">月額 500円 で参加</p>
-        </div>
         <button 
           onClick={() => router.push(hasProfile ? "/picnic/garden" : "/picnic/setup")}
           className="pointer-events-auto px-10 py-5 bg-[#A8C69F] text-white rounded-full text-xs font-black tracking-[0.3em] shadow-[0_10px_30px_rgba(168,198,159,0.4)] hover:translate-y-[-4px] active:translate-y-[2px] transition-all flex items-center gap-3"
@@ -109,10 +106,11 @@ export default function PicnicLandingPage() {
             <p className="text-[13px] leading-[2.2] font-bold opacity-80">
               SNSの喧騒や広告から離れて、芝生の上に座り込むような心地よさを守りたい。<br />
               一人の時間は好きだけど、世界のどこかに誰かがいる安心感がほしい。<br />
-              そんな「心理的安全性の高い避難所」であり続けるために、この場所は有料制（月額500円）を選びました。
+              そんな「心理的安全性の高い避難所」であり続けるために、<br />
+              この場所は有料制（月額500円）を選びました。
             </p>
             <p className="text-[11px] leading-[2] opacity-60 italic">
-              誰かのピクニックを邪魔する声のない、優しい人たちだけが静かに集う空間を目指しています。
+              こじんまりと、だけどつい浮足立ってしまうような、あたたかい空間を目指しています。<br />
             </p>
           </div>
         </section>
@@ -186,28 +184,28 @@ export default function PicnicLandingPage() {
           <h2 className="text-[10px] font-black tracking-[0.5em] text-[#A8C69F] uppercase border-b border-[#E8EEE5] pb-4">Safe & Rule</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
             <div className="space-y-3">
-              <h4 className="text-[11px] font-black text-[#A8C69F]">01. 穏やかな交流</h4>
+              <h4 className="text-[11px] font-black text-[#A8C69F]">01. 一度きりのアイデンティティ</h4>
               <p className="text-[11px] leading-relaxed opacity-60">
-                攻撃的な言動や、ピクニックの静かな雰囲気を壊す行為は控えましょう。
+                名前、アイコン、そして肩書。ここで決めたあなたのプロフィールは、この場所での「分身」です。納得いくまで選べますが、決定した後は二度と変更できません。 容易に変えられないからこそ、その姿はあなただけの確かな証明になります。
               </p>
             </div>
             <div className="space-y-3">
               <h4 className="text-[11px] font-black text-[#A8C69F]">02. ブロック・通報機能</h4>
               <p className="text-[11px] leading-relaxed opacity-60">
-                不快な接触を遮断するブロック機能や、迅速に対応する通報機能を備えています。
+                攻撃的な言動は控え、穏やかな時間を守りましょう。もし居心地の悪さを感じたり、ルールに反する投稿を見かけたら、「ブロック」や「通報」機能を使って自分の庭を守ってください。 適切に境界線を引くことも、心地よい交流を続けるための大切な作法です。
               </p>
             </div>
             <div className="space-y-3">
               <h4 className="text-[11px] font-black text-[#A8C69F]">03. 秘密の保持</h4>
               <p className="text-[11px] leading-relaxed opacity-60">
-                広場の中での会話やコラムの内容を、許可なく外部へ公開しないでください。
+                広場の中で交わされる言葉やコラムは、この場所を共にする仲間だけのものです。誰もが安心して自分を表現できるよう、中での出来事や他人の投稿を、許可なく外（SNSなど）へ公開することは厳禁とします。
               </p>
             </div>
             {/* 新しく追加した項目 */}
             <div className="space-y-3">
               <h4 className="text-[11px] font-black text-[#A8C69F]">04. 消せない人生の記録</h4>
               <p className="text-[11px] leading-relaxed opacity-60">
-                一度設定したプロフィールや投稿は、後から変更・削除することはできません。この場所で人生を歩み、ふとした瞬間に自分の足跡を振り返れるように。その時々の「等身大のあなた」を大切に保存します。
+                あなたが残した投稿やコメントは、後から消すことができません。 それは、あなたが人生を歩んできた証そのものです。数年後、ふとした時に読み返して「この時はこうだったな」と愛おしく振り返れるよう、今のあなたを記録していってください。
               </p>
             </div>
           </div>

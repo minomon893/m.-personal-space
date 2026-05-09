@@ -7,7 +7,8 @@ import Link from "next/link";
 export default function OtakuPage() {
   const [posts, setPosts] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
-  const [myFollows, setMyFollows] = useState([]); // 追加
+  const [myFollows, setMyFollows] = useState([]);
+  const [blockedUserIds, setBlockedUserIds] = useState([]); // ブロック機能用
   const [content, setContent] = useState("");
   const [isSensitive, setIsSensitive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +40,12 @@ export default function OtakuPage() {
     }
   }, [supabase]);
 
+  // 初期読み込み時にブロックリストを取得
+  useEffect(() => {
+    const savedBlocks = localStorage.getItem("otaku_blocked_users");
+    if (savedBlocks) setBlockedUserIds(JSON.parse(savedBlocks));
+  }, []);
+
   const fetchData = useCallback(async () => {
     const userId = await ensureAuth();
     if (!userId) return;
@@ -64,14 +71,13 @@ export default function OtakuPage() {
 
       if (favError) throw favError;
 
-      // フォロー状況の取得を追加
       const { data: followData } = await supabase
         .from("follows")
         .select("following_id")
         .eq("follower_id", userId);
 
       setFavorites(new Set(favData.map(f => f.post_id)));
-      setMyFollows(followData?.map(f => f.following_id) || []); // 追加
+      setMyFollows(followData?.map(f => f.following_id) || []);
       setPosts((postsData || []).map(post => ({
         ...post,
         otaku_replies: post.otaku_replies?.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) || []
@@ -83,8 +89,8 @@ export default function OtakuPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // 追加：フォロー切り替え機能
   const toggleFollow = async (targetUserId) => {
+    // 自分自身はフォローできない
     if (!currentUserId || targetUserId === currentUserId) return;
     const isFollowing = myFollows.includes(targetUserId);
     try {
@@ -117,9 +123,21 @@ export default function OtakuPage() {
     }
   };
 
-  const handleReport = async (postId) => {
+  const handleReport = (postId) => {
     if (!confirm("この投稿を通報しますか？")) return;
     alert("通報を受け付けました。ご協力ありがとうございます。");
+  };
+
+  // ブロック機能の実装
+  const handleBlock = (targetUserId) => {
+    if (targetUserId === currentUserId) return;
+    if (!confirm("このユーザーをブロックしますか？\nブロックするとこのユーザーの投稿や返信が一切表示されなくなります。")) return;
+    
+    const newBlockedList = [...blockedUserIds, targetUserId];
+    setBlockedUserIds(newBlockedList);
+    localStorage.setItem("otaku_blocked_users", JSON.stringify(newBlockedList));
+    setSelectedPost(null);
+    alert("ブロックしました。");
   };
 
   const handleSubmit = async (e) => {
@@ -164,7 +182,6 @@ export default function OtakuPage() {
     }
   };
 
-  // 修正箇所：アイコン表示の判定を最適化
   const renderIcon = (profile, sizeClass = "w-14 h-14") => {
     const iconData = profile?.avatar_url || profile?.icon;
     
@@ -198,6 +215,9 @@ export default function OtakuPage() {
     );
   };
 
+  // 表示する投稿をフィルタリング（ブロックしたユーザーを除外）
+  const visiblePosts = posts.filter(post => !blockedUserIds.includes(post.user_id));
+
   return (
     <div className="min-h-screen bg-[#F0F7EE] animate-in fade-in duration-1000 overflow-x-hidden relative">
       <style jsx global>{`
@@ -225,7 +245,7 @@ export default function OtakuPage() {
 
       <div className="max-w-[96%] mx-auto min-h-screen gingham-blue shadow-[0_0_80px_rgba(0,0,0,0.05)] relative px-4 sm:px-12 flex flex-col">
         <header className="sticky top-0 z-40 px-4 py-6 flex items-center justify-between">
-          <Link href="/garden" className="flex items-center gap-3 bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-white text-[#749BC2]">
+          <Link href="/picnic/garden" className="flex items-center gap-3 bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-white text-[#749BC2]">
             <span className="text-xl">🧺</span>
             <span className="text-[10px] font-black font-pop uppercase">Top</span>
           </Link>
@@ -235,6 +255,10 @@ export default function OtakuPage() {
         <main className="max-w-5xl mx-auto pt-10 text-center relative z-10 flex-grow pb-40">
           <div className="mb-12">
             <h1 className="font-cute text-[#749BC2] text-5xl sm:text-7xl tracking-wider mb-3">オタトーーーク！！！</h1>
+            <p className="text-[10px] sm:text-xs font-bold text-[#5F6F7A] opacity-70 leading-relaxed">
+              愛を叫ぶのも、ふとした疑問も。<br className="sm:hidden" />
+              刺激が強いものは、お弁当箱の蓋を閉めてそっとシェア。
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="mb-24 max-w-2xl mx-auto text-left relative">
@@ -262,7 +286,7 @@ export default function OtakuPage() {
           </form>
 
           <div className="flex flex-wrap justify-center gap-10">
-            {posts.map((post, idx) => (
+            {visiblePosts.map((post, idx) => (
               <div key={post.id} className="relative group">
                 <button 
                   onClick={() => setSelectedPost(post)}
@@ -273,11 +297,18 @@ export default function OtakuPage() {
                     <div className="absolute inset-0 lunch-box-lid flex items-center justify-center">
                       <div className="absolute inset-y-0 w-8 lid-band left-1/2 -translate-x-1/2"></div>
                       <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-4 bg-[#6387A9] rounded-full border-2 border-white/30"></div>
-                      <span className="relative z-30 text-[8px] font-black text-white bg-black/20 px-2 py-1 rounded-md backdrop-blur-sm">TAP TO OPEN</span>
                     </div>
                   )}
                   <div className="p-5 flex flex-col items-center h-full w-full">
-                    {renderIcon(post.profiles, "w-16 h-16")}
+                    {/* カード内アイコン: 自分自身の場合はフォローアクションボタンを出さない */}
+                    <div className="relative">
+                      {renderIcon(post.profiles, "w-16 h-16")}
+                      {post.user_id !== currentUserId && (
+                        <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] border-2 border-white shadow-sm transition-all ${myFollows.includes(post.user_id) ? 'bg-[#A8C69F] text-white' : 'bg-white text-[#749BC2]'}`}>
+                          {myFollows.includes(post.user_id) ? "🏡" : "＋"}
+                        </div>
+                      )}
+                    </div>
                     <span className="text-[10px] font-black text-[#749BC2] mt-1 truncate w-full">{post.profiles?.nickname || "名無しさん"}</span>
                     <p className="text-[11px] font-bold text-[#5F6F7A] mt-2 line-clamp-3 leading-tight">{post.content}</p>
                     <div className="mt-auto pt-2 border-t border-[#F0F7EE] w-full text-[9px] font-black text-[#B5A773] opacity-60">
@@ -299,12 +330,15 @@ export default function OtakuPage() {
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => toggleFollow(selectedPost.user_id)}
-                  className="relative group hover:scale-105 transition-transform"
+                  disabled={selectedPost.user_id === currentUserId}
+                  className={`relative group ${selectedPost.user_id !== currentUserId ? 'hover:scale-105 transition-transform' : 'cursor-default'}`}
                 >
                   {renderIcon(selectedPost.profiles, "w-16 h-16")}
-                  <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm transition-all ${myFollows.includes(selectedPost.user_id) ? 'bg-[#A8C69F] text-white' : 'bg-white text-[#749BC2]'}`}>
-                    {myFollows.includes(selectedPost.user_id) ? "🏡" : "＋"}
-                  </div>
+                  {selectedPost.user_id !== currentUserId && (
+                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm transition-all ${myFollows.includes(selectedPost.user_id) ? 'bg-[#A8C69F] text-white' : 'bg-white text-[#749BC2]'}`}>
+                      {myFollows.includes(selectedPost.user_id) ? "🏡" : "＋"}
+                    </div>
+                  )}
                 </button>
                 <div className="text-left">
                     <h3 className="font-black text-xl text-[#5F6F7A]">{selectedPost.profiles?.nickname}</h3>
@@ -315,44 +349,81 @@ export default function OtakuPage() {
                 <button onClick={() => toggleFavorite(selectedPost.id)} className="text-2xl hover:scale-120 transition-transform">
                   {favorites.has(selectedPost.id) ? "🔖" : "🏷️"}
                 </button>
-                <button onClick={() => handleReport(selectedPost.id)} className="text-xs font-black text-gray-300 hover:text-red-400 px-2 py-1 border rounded-lg">通報</button>
                 <button onClick={() => setSelectedPost(null)} className="text-2xl font-bold ml-2">×</button>
               </div>
             </div>
             
             <div className="p-8 overflow-y-auto custom-scrollbar bg-[#F8FBFF]/50 flex-grow">
-              <div className="bg-white p-8 rounded-[2.5rem] mb-10 font-bold text-[#5F6F7A] whitespace-pre-wrap shadow-sm border-2 border-[#EBF5FF] text-lg">
+              <div className="bg-white p-8 rounded-[2.5rem] mb-4 font-bold text-[#5F6F7A] whitespace-pre-wrap shadow-sm border-2 border-[#EBF5FF] text-lg">
                 {selectedPost.content}
               </div>
 
+              <div className="flex justify-end gap-2 mb-10">
+                <button 
+                  onClick={() => handleReport(selectedPost.id)} 
+                  className="text-[8px] font-bold text-gray-300 hover:text-red-400"
+                >
+                  🚩通報
+                </button>
+                {selectedPost.user_id !== currentUserId && (
+                  <button 
+                    onClick={() => handleBlock(selectedPost.user_id)} 
+                    className="text-[8px] font-bold text-gray-300 hover:text-black"
+                  >
+                    🚫ブロック
+                  </button>
+                )}
+              </div>
+
               <div className="flex flex-wrap gap-4 items-start justify-center">
-                {selectedPost.otaku_replies?.map((reply, i) => {
-                  const shapes = ["rounded-[3rem]", "rounded-[1rem]", "rounded-full", "rounded-tr-[4rem] rounded-bl-[4rem]"];
-                  const shape = shapes[i % shapes.length];
-                  const colors = ["bg-[#FFF9F9] border-[#FFB4B4]", "bg-[#F9FFF9] border-[#B4FFB4]", "bg-[#F9F9FF] border-[#B4B4FF]", "bg-[#FFFFF0] border-[#F0F0B4]"];
-                  const color = colors[i % colors.length];
-                  
-                  return (
-                    <div 
-                      key={reply.id} 
-                      className={`p-5 border-2 shadow-sm ${shape} ${color} max-w-[240px] flex-shrink-0 animate-in slide-in-from-bottom-2 duration-500`}
-                      style={{ marginTop: i % 2 === 0 ? "0" : "20px" }}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="relative group cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleFollow(reply.user_id); }}>
-                          {renderIcon(reply.profiles, "w-8 h-8")}
-                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center text-[5px] border-white border shadow-sm ${myFollows.includes(reply.user_id) ? 'bg-[#A8C69F]' : 'bg-[#749BC2]'}`}>
-                            {myFollows.includes(reply.user_id) ? "🏡" : ""}
+                {selectedPost.otaku_replies
+                  ?.filter(reply => !blockedUserIds.includes(reply.user_id)) // ブロック済み返信を除外
+                  .map((reply, i) => {
+                    const shapes = ["rounded-[3rem]", "rounded-[1rem]", "rounded-full", "rounded-tr-[4rem] rounded-bl-[4rem]"];
+                    const shape = shapes[i % shapes.length];
+                    const colors = ["bg-[#FFF9F9] border-[#FFB4B4]", "bg-[#F9FFF9] border-[#B4FFB4]", "bg-[#F9F9FF] border-[#B4B4FF]", "bg-[#FFFFF0] border-[#F0F0B4]"];
+                    const color = colors[i % colors.length];
+                    
+                    return (
+                      <div 
+                        key={reply.id} 
+                        className={`p-5 border-2 shadow-sm ${shape} ${color} max-w-[240px] flex-shrink-0 animate-in slide-in-from-bottom-2 duration-500`}
+                        style={{ marginTop: i % 2 === 0 ? "0" : "20px" }}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div 
+                            className={`relative group ${reply.user_id !== currentUserId ? 'cursor-pointer' : 'cursor-default'}`} 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              if (reply.user_id !== currentUserId) toggleFollow(reply.user_id); 
+                            }}
+                          >
+                            {renderIcon(reply.profiles, "w-8 h-8")}
+                            {reply.user_id !== currentUserId && (
+                              <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center text-[5px] border-white border shadow-sm ${myFollows.includes(reply.user_id) ? 'bg-[#A8C69F]' : 'bg-[#749BC2]'}`}>
+                                {myFollows.includes(reply.user_id) ? "🏡" : "＋"}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-[10px] leading-tight">
+                            <p className="font-black text-[#5F6F7A] truncate max-w-[100px]">{reply.profiles?.nickname}</p>
+                            <p className="opacity-40">{new Date(reply.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
                           </div>
                         </div>
-                        <div className="text-[10px] leading-tight">
-                          <p className="font-black text-[#5F6F7A] truncate max-w-[100px]">{reply.profiles?.nickname}</p>
-                          <p className="opacity-40">{new Date(reply.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
-                        </div>
+                        <p className="text-sm font-bold text-[#5F6F7A] leading-relaxed">{reply.content}</p>
+                        
+                        {reply.user_id !== currentUserId && (
+                          <div className="mt-2 text-right">
+                            <button 
+                              onClick={() => handleBlock(reply.user_id)} 
+                              className="text-[8px] font-bold text-gray-300 hover:text-black"
+                            >
+                              🚫ブロック
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm font-bold text-[#5F6F7A] leading-relaxed">{reply.content}</p>
-                    </div>
-                  );
+                    );
                 })}
               </div>
             </div>

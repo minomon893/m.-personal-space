@@ -201,7 +201,7 @@ export default function GardenPage() {
             onClick={() => router.push('/')}
             className="mt-4 text-[9px] font-black tracking-[0.3em] text-[#94A684]/60 hover:text-[#7A8C69] transition-colors border-b border-[#94A684]/20 pb-1 uppercase"
           >
-            Leave the Garden
+            🏠自分の部屋に戻る
           </button>
 
           <div className="h-1 w-12 bg-[#A8C69F]/30 mx-auto rounded-full mt-6"></div>
@@ -209,10 +209,7 @@ export default function GardenPage() {
 
         {/* ユーザー＆フレンドリスト セクション */}
         <section className="mb-16">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <span className="text-xl">🧺</span>
-            <h2 className="text-[12px] font-black text-[#7A8C69] tracking-[0.4em] uppercase italic">Our Picnic Spot</h2>
-          </div>
+          
           
           <div className="flex gap-6 overflow-x-auto no-scrollbar pb-12 px-4 snap-x snap-mandatory justify-start md:justify-center items-end">
             {profile && (
@@ -299,8 +296,8 @@ export default function GardenPage() {
 
           {[
             { title: "ちょこっとーく", desc: "ゆるいつぶやき、誰かの気配。", icon: "💬", path: "/picnic/talk", theme: "gingham-yellow", iconBg: "bg-amber-50/80" },
-            { title: "オタトーーーーク！！！", desc: "好きを叫ぶ、熱量の社交場。", icon: "🔥", path: "/picnic/otaku", theme: "gingham-blue", iconBg: "bg-sky-50/80" },
-            { title: "限定コラム", desc: "ここでしか読めない、内緒の話。", icon: "📖", path: "/picnic/jimmy", theme: "gingham-red", iconBg: "bg-rose-50/80" }
+            { title: "オタトーーーク！！！", desc: "好きを叫ぶ、熱量の社交場。", icon: "🔥", path: "/picnic/otaku", theme: "gingham-blue", iconBg: "bg-sky-50/80" },
+            { title: "じみコラム", desc: "ここでしか読めない、内緒の話。", icon: "📖", path: "/picnic/jimmy", theme: "gingham-red", iconBg: "bg-rose-50/80" }
           ].map((item, idx) => (
             <Link href={item.path} key={item.path} className={`block group transform transition-all duration-500 hover:-translate-y-1 active:scale-[0.98] ${idx % 2 === 0 ? 'rotate-1' : '-rotate-1'}`}>
               <div className={`p-1.5 rounded-[2.2rem] shadow-xl shadow-green-900/5 ${item.theme}`}>
