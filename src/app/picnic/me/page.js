@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
-import { Star, ArrowUpRight, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronUp, Home } from "lucide-react"; // Homeを追加
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState("otaku"); 
@@ -90,13 +90,25 @@ export default function MyPage() {
         body { font-family: 'Zen Maru Gothic', sans-serif; }
       `}</style>
 
-      {/* お気に入りフィルターボタン */}
+      {/* Gardenに戻るボタン (左上) */}
+      <div className="fixed top-6 left-6 z-50">
+        <Link 
+          href="/picnic/garden"
+          className="w-14 h-14 flex items-center justify-center rounded-full shadow-xl transition-all border-2 bg-white border-[#FAF7F7] opacity-80 hover:opacity-100 active:scale-95"
+        >
+          <span className="text-2xl">🏠</span>
+        </Link>
+      </div>
+
+      {/* お気に入りフィルターボタン (🔖/🏷️) */}
       <div className="fixed top-6 right-6 z-50">
         <button 
           onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-          className={`p-4 rounded-full shadow-xl transition-all border-2 ${showFavoritesOnly ? 'bg-yellow-400 border-white scale-110' : 'bg-white border-[#FAF7F7] opacity-80'}`}
+          className={`w-14 h-14 flex items-center justify-center rounded-full shadow-xl transition-all border-2 bg-white ${showFavoritesOnly ? 'border-yellow-400 scale-110' : 'border-[#FAF7F7] opacity-80'}`}
         >
-          <Star size={20} fill={showFavoritesOnly ? "white" : "none"} className={showFavoritesOnly ? "text-white" : "text-yellow-500"} />
+          <span className="text-2xl">
+            {showFavoritesOnly ? "🔖" : "🏷️"}
+          </span>
         </button>
       </div>
 
@@ -108,15 +120,22 @@ export default function MyPage() {
       {/* タブ */}
       <div className="flex px-6 mb-20 max-w-md mx-auto">
         <div className="flex w-full bg-white/40 p-1.5 rounded-full border border-white/50 backdrop-blur-sm shadow-sm">
-          {["otaku", "talk"].map((id) => (
-            <button key={id} onClick={() => {setActiveTab(id); setExpandedId(null);}} className={`flex-1 py-3 rounded-full text-[11px] font-black transition-all ${activeTab === id ? `${theme.button} text-white shadow-md` : "text-[#7D7474]/40"}`}>
-              {id === "otaku" ? "オタトーーーーク！" : "ちょこっとーく"}
-            </button>
-          ))}
+          <button 
+            onClick={() => {setActiveTab("otaku"); setExpandedId(null);}} 
+            className={`flex-1 py-3 rounded-full text-[11px] font-black transition-all ${activeTab === "otaku" ? `${theme.button} text-white shadow-md` : "text-[#7D7474]/40"}`}
+          >
+            オタトーーーク！！！
+          </button>
+          <button 
+            onClick={() => {setActiveTab("talk"); setExpandedId(null);}} 
+            className={`flex-1 py-3 rounded-full text-[11px] font-black transition-all ${activeTab === "talk" ? `${theme.button} text-white shadow-md` : "text-[#7D7474]/40"}`}
+          >
+            ちょこっとーく
+          </button>
         </div>
       </div>
 
-      {/* カードリスト - space-y-16で間隔を最大化 */}
+      {/* カードリスト */}
       <div className="max-w-md mx-auto p-6 space-y-16">
         {loading ? (
           <div className="text-center py-20 opacity-40 animate-pulse text-[10px] tracking-widest">LOADING YOUR MEMORIES...</div>
@@ -125,7 +144,6 @@ export default function MyPage() {
         ) : (
           filteredItems.map((item, idx) => {
             const isExpanded = expandedId === `${item.id}-${idx}`;
-            // モーダルを開くためのURLクエリを生成
             const originalPostLink = `/picnic/${activeTab}?postId=${item.postId}`;
 
             return (
@@ -134,7 +152,6 @@ export default function MyPage() {
                 onClick={() => setExpandedId(isExpanded ? null : `${item.id}-${idx}`)}
                 className="bg-white/90 backdrop-blur-sm rounded-[3rem] p-9 shadow-sm border border-white cursor-pointer transition-all hover:shadow-xl relative overflow-hidden"
               >
-                {/* 装飾用の背景 */}
                 <div className={`absolute top-0 left-0 w-2 h-full ${theme.button} opacity-20`} />
 
                 <div className="flex justify-between items-center mb-8">
@@ -148,7 +165,6 @@ export default function MyPage() {
                 </div>
 
                 <div className="space-y-8">
-                  {/* 対象の投稿コンテキスト */}
                   {(item.type === 'my_reply' || item.type === 'my_reaction' || item.type === 'favorite') && (
                     <div className="p-6 bg-[#FAF7F7] rounded-[2rem] border border-white/50 shadow-inner">
                       <p className="text-[8px] font-black opacity-30 mb-3 tracking-widest uppercase italic">Target Content</p>
@@ -158,7 +174,6 @@ export default function MyPage() {
                     </div>
                   )}
 
-                  {/* 自分のアクション内容 */}
                   {item.type !== 'favorite' && (
                     <div className="px-2">
                       <p className={`text-[16px] leading-loose font-medium break-words ${isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"}`}>
@@ -167,7 +182,6 @@ export default function MyPage() {
                     </div>
                   )}
 
-                  {/* 展開時エリア */}
                   {isExpanded && (
                     <div className="pt-6 space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
                       {item.image_urls?.length > 0 && (
@@ -208,7 +222,7 @@ export default function MyPage() {
       {/* フッター */}
       <div className="fixed bottom-8 left-0 right-0 flex justify-center px-8 z-50">
         <Link href={`/picnic/${activeTab}`} className={`w-full max-w-sm ${theme.button} text-white text-center py-6 rounded-full shadow-2xl text-[12px] font-black tracking-[0.2em] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3`}>
-          <span>←</span> {activeTab === 'otaku' ? 'オタトーーーーク！に戻る' : 'ちょこっとーくに戻る'}
+          <span>←</span> {activeTab === 'otaku' ? 'オタトーーーク！！！に戻る' : 'ちょこっとーくに戻る'}
         </Link>
       </div>
     </div>

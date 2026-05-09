@@ -57,58 +57,80 @@ export default function JimmyPage() {
     ? posts.filter(p => likedIds.includes(p.id)) 
     : posts;
 
+  // ガタつきや欠けのない滑らかなハート
+  const HeartIcon = ({ filled }) => (
+    <svg 
+      viewBox="0 0 24 24" 
+      className={`w-5 h-5 transition-all duration-300 ${filled ? 'fill-[#EAB8B8] stroke-[#EAB8B8]' : 'fill-none stroke-[#EAB8B8]'} `}
+      style={{ strokeWidth: '2px', strokeLinecap: 'round', strokeLinejoin: 'round' }}
+    >
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.84-8.84 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+
   return (
-    <div className="min-h-screen bg-[#FAF7F7] animate-in fade-in duration-1000 overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#A8C69F] overflow-x-hidden relative">
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Mochiypop+One&family=Cherry+Bomb+One&display=swap');
         .font-pop { font-family: 'Mochiypop One', sans-serif; }
         .font-cute { font-family: 'Cherry Bomb One', cursive; }
         body { font-family: 'Zen Maru Gothic', sans-serif; color: #7D7474; }
+        
         .gingham-sheet {
           background-color: #FFFFFF;
-          background-image: linear-gradient(90deg, rgba(255, 200, 200, 0.03) 50%, transparent 50%),
-                            linear-gradient(rgba(255, 200, 200, 0.03) 50%, transparent 50%);
-          background-size: 60px 60px;
+          background-image: 
+            linear-gradient(90deg, rgba(234, 184, 184, 0.12) 50%, transparent 50%),
+            linear-gradient(rgba(234, 184, 184, 0.12) 50%, transparent 50%);
+          background-size: 40px 40px;
         }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #F2D5D5; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #EAB8B8; border-radius: 10px; }
       `}</style>
 
-      <div className="max-w-[98%] mx-auto min-h-screen gingham-sheet shadow-[0_0_100px_rgba(0,0,0,0.02)] relative px-4 sm:px-12 pb-40 flex flex-col">
+      {/* 左右に芝生が見えるメインシート */}
+      <div className="max-w-[95%] mx-auto min-h-screen gingham-sheet shadow-[0_0_60px_rgba(0,0,0,0.1)] relative px-6 sm:px-16 pb-32 flex flex-col">
         
-        <header className="sticky top-0 z-50 pt-8 pb-4 flex items-center justify-between">
-          <Link href="/picnic/garden" className="flex items-center gap-3 bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-sm border border-[#F9EEEE] hover:scale-105 transition-all text-[#A68080]">
-            <span className="text-xl">🏡</span>
-            <span className="text-[11px] font-black tracking-[0.2em] uppercase font-pop">Garden</span>
+        <header className="sticky top-0 z-50 pt-6 pb-2 flex items-center justify-between">
+          {/* 遷移先を /garden に変更 */}
+          <Link href="/garden" className="flex items-center gap-2 bg-white/95 backdrop-blur-md px-5 py-2 rounded-full shadow-sm border border-[#F9EEEE] hover:scale-105 transition-all text-[#A68080]">
+            <span className="text-lg">🧺</span>
+            <span className="text-[10px] font-black tracking-widest uppercase font-pop">Top</span>
           </Link>
 
           <button 
             onClick={() => setShowOnlyLiked(!showOnlyLiked)}
-            className={`px-6 py-3 rounded-full shadow-sm transition-all border-2 flex items-center gap-2 font-black text-[10px] tracking-widest ${showOnlyLiked ? 'bg-[#EAB8B8] border-white text-white' : 'bg-white border-[#F9EEEE] text-[#EAB8B8]'}`}
+            className={`px-5 py-2 rounded-full shadow-sm transition-all border-2 flex items-center gap-2 font-black text-[9px] tracking-widest ${showOnlyLiked ? 'bg-[#EAB8B8] border-white text-white' : 'bg-white border-[#F9EEEE] text-[#EAB8B8]'}`}
           >
-            {showOnlyLiked ? "❤️ LIKED" : "♡ FAVORITES"}
+            ♡ FAVORITES
           </button>
         </header>
 
-        <main className="max-w-4xl mx-auto pt-16 flex-grow w-full">
-          <div className="text-center mb-24">
-            <h2 className="font-cute text-[#B59090] text-5xl sm:text-7xl tracking-widest mb-6 opacity-90">
+        <main className="max-w-3xl mx-auto pt-10 flex-grow w-full">
+          <div className="text-center mb-14">
+            <h2 className="font-cute text-[#B59090] text-4xl sm:text-5xl tracking-widest mb-4 opacity-90">
               じみコラム
             </h2>
-            <p className="text-[11px] font-black text-[#B59090]/40 tracking-[0.5em] uppercase">
+            <div className="max-w-md mx-auto mb-4">
+              <p className="text-[10px] font-bold text-[#B59090]/70 leading-relaxed px-4">
+                管理人ののんびり日記帳です。動画づくりの裏話や、<br className="hidden sm:block" />
+                ふと思いついたこと、ちょっとしたお喋りなど、マイペースに綴っています。
+              </p>
+            </div>
+            <p className="text-[8px] font-black text-[#B59090]/20 tracking-[0.6em] uppercase">
               Simple moments, gentle stories.
             </p>
           </div>
 
           {isLoading ? (
-            <div className="space-y-16">
-              {[1, 2].map((n) => (
-                <div key={n} className="h-80 w-full bg-white/40 rounded-[4rem] animate-pulse border border-white" />
+            <div className="space-y-8">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-32 w-full bg-white/50 rounded-[2.5rem] animate-pulse border border-white" />
               ))}
             </div>
           ) : (
-            <div className="space-y-20">
+            <div className="space-y-8">
               {filteredPosts.length > 0 ? (
                 filteredPosts.map((post) => (
                   <button 
@@ -116,41 +138,41 @@ export default function JimmyPage() {
                     onClick={() => setSelectedPost(post)}
                     className="w-full text-left block group"
                   >
-                    <article className="bg-white/70 hover:bg-white rounded-[4rem] p-10 sm:p-16 border-2 border-white shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 relative overflow-hidden">
-                      <div className="flex items-center justify-between mb-10">
-                        <span className="text-[10px] font-black bg-[#FDF4F4] text-[#B59090] px-6 py-2 rounded-full tracking-[0.2em] font-pop border border-[#F9EEEE]">
+                    <article className="bg-white/80 hover:bg-white rounded-[2rem] p-7 sm:p-9 border border-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 relative overflow-hidden">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[9px] font-black bg-[#FDF4F4] text-[#B59090] px-4 py-1.5 rounded-full tracking-widest font-pop border border-[#F9EEEE]">
                           {post.tag || "JIMI"}
                         </span>
-                        <div className="flex items-center gap-6">
-                          <span className="text-[11px] font-bold text-[#7D7474]/30 tracking-widest">
+                        <div className="flex items-center gap-4">
+                          <span className="text-[10px] font-bold text-[#7D7474]/30 tracking-widest">
                             {new Date(post.created_at).toLocaleDateString("ja-JP").replace(/\//g, '.')}
                           </span>
                           <div 
                             onClick={(e) => toggleLike(e, post.id)}
-                            className={`text-2xl transition-transform hover:scale-125 active:scale-150 ${likedIds.includes(post.id) ? 'grayscale-0' : 'grayscale opacity-20'}`}
+                            className="transition-transform hover:scale-110 active:scale-125 cursor-pointer"
                           >
-                            ❤️
+                            <HeartIcon filled={likedIds.includes(post.id)} />
                           </div>
                         </div>
                       </div>
 
-                      <h3 className="text-3xl sm:text-4xl font-bold text-[#5D5757] mb-8 leading-tight group-hover:text-[#B59090] transition-colors tracking-tight">
+                      <h3 className="text-lg sm:text-xl font-bold text-[#5D5757] mb-3 leading-tight group-hover:text-[#B59090] transition-colors tracking-tight">
                         {post.title}
                       </h3>
-                      <p className="text-lg leading-[2] text-[#7D7474]/70 font-medium line-clamp-3">
+                      <p className="text-sm leading-relaxed text-[#7D7474]/70 font-medium line-clamp-2">
                         {post.excerpt}
                       </p>
                       
-                      <div className="mt-12 flex items-center gap-4 text-[#B59090]/40 font-black text-[10px] tracking-[0.3em] uppercase">
+                      <div className="mt-7 flex items-center gap-3 text-[#B59090]/40 font-black text-[9px] tracking-widest uppercase">
                         <div className="h-[1px] flex-1 bg-[#F9EEEE]"></div>
-                        <span>Click to read</span>
+                        <span>Read More</span>
                         <div className="h-[1px] flex-1 bg-[#F9EEEE]"></div>
                       </div>
                     </article>
                   </button>
                 ))
               ) : (
-                <div className="text-center py-40 text-[#B59090]/30 font-black tracking-widest text-sm uppercase border-4 border-dashed border-white rounded-[5rem]">
+                <div className="text-center py-24 text-[#B59090]/30 font-black tracking-widest text-[10px] uppercase border-2 border-dashed border-white rounded-[3rem]">
                   {showOnlyLiked ? "Your favorite tray is empty." : "Still Preparing the table... ☁️"}
                 </div>
               )}
@@ -159,45 +181,45 @@ export default function JimmyPage() {
         </main>
       </div>
 
-      {/* Detail Modal */}
+      {/* Modal - 本のページのようなデザイン */}
       {selectedPost && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 animate-in fade-in zoom-in-95 duration-300">
-          <div className="absolute inset-0 bg-[#4A4444]/10 backdrop-blur-lg" onClick={() => setSelectedPost(null)}></div>
-          <div className="bg-[#FFFBFA] w-full max-w-4xl rounded-[4rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[92vh] border-[12px] border-white">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-[#4A4444]/20 backdrop-blur-md" onClick={() => setSelectedPost(null)}></div>
+          <div className="bg-[#FFFBFA] w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] border-[6px] border-white">
             
-            <div className="overflow-y-auto custom-scrollbar p-8 sm:p-20">
-              <div className="max-w-2xl mx-auto">
-                <div className="flex justify-between items-center mb-12">
-                  <div className="text-[11px] font-bold text-[#B59090]/50 tracking-[0.4em] uppercase">
+            <div className="overflow-y-auto custom-scrollbar p-8 sm:p-12">
+              <div className="max-w-xl mx-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="text-[10px] font-bold text-[#B59090]/50 tracking-widest uppercase">
                     {new Date(selectedPost.created_at).toLocaleDateString("ja-JP").replace(/\//g, '.')}
                   </div>
                   <div 
                     onClick={(e) => toggleLike(e, selectedPost.id)}
-                    className={`text-3xl cursor-pointer transition-transform hover:scale-110 active:scale-150 ${likedIds.includes(selectedPost.id) ? 'grayscale-0' : 'grayscale opacity-20'}`}
+                    className="cursor-pointer transition-transform hover:scale-110 active:scale-125"
                   >
-                    ❤️
+                    <HeartIcon filled={likedIds.includes(selectedPost.id)} />
                   </div>
                 </div>
 
-                <h3 className="text-4xl sm:text-5xl font-bold text-[#5D5757] leading-[1.3] mb-12 tracking-tight">
+                <h3 className="text-2xl sm:text-3xl font-bold text-[#5D5757] leading-snug mb-6 tracking-tight">
                   {selectedPost.title}
                 </h3>
                 
-                <div className="w-20 h-1.5 bg-[#F2D5D5] rounded-full mb-16"></div>
+                <div className="w-10 h-1 bg-[#F2D5D5] rounded-full mb-8"></div>
 
-                <div className="text-lg sm:text-xl leading-[2.4] text-[#5D5757]/80 font-medium whitespace-pre-wrap mb-24">
+                <div className="text-sm sm:text-base leading-loose text-[#5D5757]/80 font-medium whitespace-pre-wrap mb-14">
                   {selectedPost.content || selectedPost.excerpt}
                 </div>
 
-                <div className="text-center pb-10">
+                <div className="text-center pb-2">
                   <button 
                     onClick={() => setSelectedPost(null)}
-                    className="group flex flex-col items-center gap-4 mx-auto"
+                    className="group flex flex-col items-center gap-3 mx-auto"
                   >
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-md border border-[#F9EEEE] group-hover:scale-110 group-hover:bg-[#FDF4F4] transition-all text-xl">
+                    <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-sm border border-[#F9EEEE] group-hover:scale-105 group-hover:bg-[#FDF4F4] transition-all text-lg">
                       ↩
                     </div>
-                    <span className="text-[10px] font-black text-[#B59090] tracking-[0.5em] uppercase opacity-60 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[9px] font-black text-[#B59090] tracking-widest uppercase opacity-60">
                       Back to List
                     </span>
                   </button>

@@ -48,7 +48,7 @@ export default function TalkPage() {
         supabase.from("favorites").select("post_id").eq("user_id", userId),
         supabase
           .from("talk_posts")
-          .select(`*, profiles:user_id (nickname, icon, title), talk_reactions (*)`)
+          .select(`*, profiles:user_id (nickname, icon, avatar_url, title), talk_reactions (*)`)
           .order("created_at", { ascending: false })
       ]);
 
@@ -90,7 +90,7 @@ export default function TalkPage() {
       const { data: newPost, error: insertError } = await supabase
         .from("talk_posts")
         .insert({ user_id: userId, content: content.trim(), image_urls: uploadedUrls })
-        .select(`*, profiles:user_id (nickname, icon, title), talk_reactions (*)`)
+        .select(`*, profiles:user_id (nickname, icon, avatar_url, title), talk_reactions (*)`)
         .single();
 
       if (insertError) throw new Error(`投稿失敗: ${insertError.message}`);
@@ -141,14 +141,34 @@ export default function TalkPage() {
     }
   };
 
+  /**
+   * アイコン表示コンポーネントの修正版
+   */
   const renderIcon = (profile, size = "w-12 h-12", text = "text-xl") => {
-    const iconData = profile?.icon;
-    const isImg = iconData && (iconData.startsWith('http') || iconData.startsWith('/') || iconData.startsWith('data:') || iconData.length > 20);
+    // 複数の可能性のあるカラム名をチェック
+    const iconData = profile?.avatar_url || profile?.icon;
+    
+    // URL形式かBase64画像データか、あるいは単なる絵文字かを判定
+    const isImg = iconData && (
+      iconData.startsWith('http') || 
+      iconData.startsWith('/') || 
+      iconData.startsWith('data:') || 
+      iconData.includes('.') // ファイル拡張子らしきものがある場合
+    );
 
     return (
       <div className={`${size} rounded-[1.2rem] overflow-hidden bg-white border-2 border-white shadow-sm flex-shrink-0 flex items-center justify-center ${text}`}>
         {isImg ? (
-          <img src={iconData} className="w-full h-full object-cover" alt="" />
+          <img 
+            src={iconData} 
+            className="w-full h-full object-cover" 
+            alt="" 
+            onError={(e) => {
+              // 読み込み失敗時のフォールバック
+              e.target.onerror = null;
+              e.target.parentElement.innerHTML = '<span>🍀</span>';
+            }}
+          />
         ) : (
           <span>{iconData || "🍀"}</span>
         )}
@@ -171,34 +191,33 @@ export default function TalkPage() {
         }
       `}</style>
 
-      {/* Main Sheet Container - 芝生が少し見えるように幅を制限 */}
+      {/* Main Sheet Container */}
       <div className="max-w-[95%] mx-auto min-h-screen gingham-sheet shadow-[0_0_100px_rgba(0,0,0,0.1)] relative px-6 sm:px-12 pb-40">
         
         {/* Header */}
         <header className="fixed top-0 left-0 right-0 z-40 px-6 py-6 flex items-center justify-between pointer-events-none">
-          <Link href="/picnic/garden" className="pointer-events-auto flex items-center gap-3 bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-white hover:scale-105 transition-all text-[#94A684]">
+          {/* TOPボタンの遷移先を /garden に変更 */}
+          <Link href="/garden" className="pointer-events-auto flex items-center gap-3 bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-white hover:scale-105 transition-all text-[#94A684]">
             <span className="text-xl">🏡</span>
-            <span className="text-[10px] font-black tracking-widest uppercase font-pop">Garden</span>
+            <span className="text-[10px] font-black tracking-widest uppercase font-pop">Top</span>
           </Link>
-          <Link href="/picnic/me" className="pointer-events-auto bg-[#A8C69F] text-white w-12 h-12 flex items-center justify-center rounded-2xl shadow-xl hover:rotate-12 transition-all text-2xl border-2 border-white">
+          <Link href="/picnic/me" className="pointer-events-auto bg-white text-[#A8C69F] w-12 h-12 flex items-center justify-center rounded-2xl shadow-xl hover:rotate-12 transition-all text-2xl border-2 border-white">
             🌼
           </Link>
         </header>
 
         <main className="max-w-4xl mx-auto pt-32 text-center">
-          {/* Title & Simple Description */}
           <div className="mb-12">
             <h1 className="font-cute text-[#94A684] text-5xl sm:text-6xl tracking-wider mb-2">
               ちょこっとーく
             </h1>
             <p className="text-sm font-medium text-[#5F6F7A]/70">
-              今の気持ちを小さなカードにして、芝生の上に置いていこう
+              ちょっとしたこと、ちょこっとおしえて。
             </p>
           </div>
 
-          {/* Post Form - お弁当箱（Lunch Box） */}
           <form onSubmit={handleSubmit} className="mb-24 max-w-lg mx-auto relative z-10 text-left">
-            <div className="bg-[#FF9494] p-3 rounded-[3.5rem] shadow-2xl"> {/* お弁当箱のふち */}
+            <div className="bg-[#FF9494] p-3 rounded-[3.5rem] shadow-2xl">
               <div className="bg-white rounded-[3rem] overflow-hidden border-4 border-[#FFB4B4]">
                 <div className="p-8">
                   <textarea
@@ -239,7 +258,6 @@ export default function TalkPage() {
             </div>
           </form>
 
-          {/* Scattered Mini Cards */}
           <div className="flex flex-wrap justify-center gap-8 relative">
             {posts.map((post, idx) => (
               <button 
@@ -248,9 +266,11 @@ export default function TalkPage() {
                 style={{ transform: `rotate(${((idx * 13) % 14) - 7}deg)` }}
                 className="bg-white p-5 rounded-[2rem] shadow-xl border border-[#F0F7EE] w-44 h-44 flex flex-col items-center text-center hover:scale-110 hover:z-10 transition-all active:scale-95 group relative"
               >
-                <div className="absolute top-2 right-4 text-xs opacity-20">📌</div>
                 {renderIcon(post.profiles, "w-14 h-14", "text-2xl")}
-                <p className="text-[11px] font-bold text-[#5F6F7A] mt-4 line-clamp-3 leading-relaxed">
+                <span className="text-[10px] font-black text-[#94A684] mt-1 truncate w-full">
+                  {post.profiles?.nickname || "誰かさん"}
+                </span>
+                <p className="text-[11px] font-bold text-[#5F6F7A] mt-2 line-clamp-2 leading-relaxed">
                   {post.content || (post.image_urls?.length > 0 ? "📷 写真を投稿したよ" : "...") }
                 </p>
                 <div className="mt-auto pt-2 flex items-center gap-2">
