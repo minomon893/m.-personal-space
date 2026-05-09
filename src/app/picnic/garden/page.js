@@ -195,7 +195,16 @@ export default function GardenPage() {
           <h1 className="text-4xl italic text-[#94A684]/70 mb-2 font-light tracking-tighter">
             m. <span className="font-bold">picnic</span> space
           </h1>
-          <div className="h-1 w-12 bg-[#A8C69F]/30 mx-auto rounded-full"></div>
+          
+          {/* 広場を抜けるボタン */}
+          <button 
+            onClick={() => router.push('/')}
+            className="mt-4 text-[9px] font-black tracking-[0.3em] text-[#94A684]/60 hover:text-[#7A8C69] transition-colors border-b border-[#94A684]/20 pb-1 uppercase"
+          >
+            Leave the Garden
+          </button>
+
+          <div className="h-1 w-12 bg-[#A8C69F]/30 mx-auto rounded-full mt-6"></div>
         </header>
 
         {/* ユーザー＆フレンドリスト セクション */}
@@ -220,7 +229,7 @@ export default function GardenPage() {
                     {profile.nickname}
                   </h2>
                   <p className="text-[10px] font-bold text-[#B5A773] tracking-widest uppercase opacity-60">
-                    Since Day {daysCount}
+                    Day {daysCount}
                   </p>
                 </div>
 
