@@ -19,7 +19,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  // お知らせ・Jimmyのアコーディオン用
   const [expandedId, setExpandedId] = useState(null);
 
   const fetchItems = async () => {
@@ -66,12 +65,11 @@ export default function AdminPage() {
     } else if (table === "feedbacks") {
       payload = { attribute: title, content: body, service_tag: noticeTag || "" };
     } else if (table === "jimmys") {
-      // Jimmy用のペイロード: contentの冒頭80文字を自動でexcerptにする
       payload = { 
         title, 
         content: body, 
         tag: noticeTag || "JIMMY",
-        excerpt: body.substring(0, 80).replace(/\n/g, ' ') + "..."
+        excerpt: body.substring(0, 80).replace(/\n/g, ' ') + (body.length > 80 ? "..." : "")
       };
     } else {
       payload = { title, body };
@@ -103,21 +101,20 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#E6E1CF] flex items-center justify-center p-6 font-sans tracking-tight">
+      <div className="min-h-screen bg-[#FAF7F7] flex items-center justify-center p-6 font-sans tracking-tight">
         <form onSubmit={handleLogin} className="w-full max-w-sm space-y-8">
           <div className="text-center space-y-2">
-            <h1 className="text-sm font-bold tracking-[0.4em] text-[#4F5D6B] uppercase opacity-80">Admin Access</h1>
-            <p className="text-[10px] text-[#4F5D6B] opacity-40 uppercase tracking-widest italic">Restricted Area</p>
+            <h1 className="text-[10px] font-black tracking-[0.4em] text-[#B59090] uppercase opacity-80">Admin Access</h1>
           </div>
           <div className="space-y-4">
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white/40 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/60 outline-none focus:ring-1 focus:ring-[#B5A773]/50 transition-all text-center text-sm tracking-[0.2em]"
+              className="w-full bg-white/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-[#F9EEEE] outline-none focus:border-[#EAB8B8] transition-all text-center text-sm tracking-[0.2em] text-[#7D7474]"
               placeholder="PASSWORD"
             />
-            <button className="w-full py-4 bg-[#4F5D6B] text-white rounded-2xl text-[11px] font-bold tracking-[0.3em] uppercase hover:bg-[#3A4238] transition-all shadow-sm">
+            <button className="w-full py-4 bg-[#EAB8B8] text-white rounded-3xl text-[11px] font-black tracking-[0.3em] uppercase hover:bg-[#B59090] transition-all shadow-sm">
               Unlock
             </button>
           </div>
@@ -127,23 +124,23 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F1E1] p-6 text-[#4F5D6B] font-sans tracking-tight relative">
+    <div className="min-h-screen bg-[#FAF7F7] p-6 text-[#7D7474] font-sans tracking-tight relative">
       {showSuccess && (
-        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#3A4238] text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
-          <CheckCircle2 size={16} className="text-[#B5A773]" />
-          <span className="text-[10px] font-bold tracking-[0.2em]">SUCCESSFULLY SAVED</span>
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#B59090] text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 size={14} />
+          <span className="text-[9px] font-black tracking-[0.2em]">SUCCESSFULLY SAVED</span>
         </div>
       )}
 
       <div className="max-w-2xl mx-auto">
         <header className="flex justify-between items-center mb-12">
-          <Link href="/" className="text-[9px] tracking-[0.3em] font-bold opacity-40 flex items-center gap-2 hover:opacity-100 transition-all uppercase">
+          <Link href="/picnic/garden" className="text-[9px] tracking-[0.3em] font-black text-[#B59090] opacity-60 flex items-center gap-2 hover:opacity-100 transition-all uppercase">
             <ArrowLeft size={12} /> Exit Admin
           </Link>
-          <div className="text-[9px] font-bold tracking-[0.3em] opacity-30 uppercase italic">m. personal space</div>
+          <div className="text-[9px] font-black tracking-[0.3em] opacity-30 uppercase italic">Picnic Admin</div>
         </header>
 
-        <div className="flex gap-2 mb-12 border-b border-[#4F5D6B]/5 pb-4 overflow-x-auto">
+        <div className="flex gap-2 mb-12 border-b border-[#F9EEEE] pb-4 overflow-x-auto custom-scrollbar">
           {[
             { id: "notices", icon: <Megaphone size={14} />, label: "Notices" },
             { id: "jimmys", icon: <Coffee size={14} />, label: "Jimmy" },
@@ -153,54 +150,54 @@ export default function AdminPage() {
             <button 
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all text-[10px] font-bold tracking-widest uppercase whitespace-nowrap ${activeTab === tab.id ? "bg-[#5F6F7A] text-white shadow-sm" : "hover:bg-white/40 opacity-50"}`}
+              className={`flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-[9px] font-black tracking-widest uppercase whitespace-nowrap border-2 ${activeTab === tab.id ? "bg-[#EAB8B8] border-white text-white shadow-sm" : "bg-white border-[#F9EEEE] opacity-60 text-[#B59090]"}`}
             >
               {tab.icon} {tab.label}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/30 backdrop-blur-sm p-8 rounded-[2.5rem] border border-white/60 shadow-sm mb-20">
+        <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm p-8 sm:p-10 rounded-[3rem] border-2 border-white shadow-sm mb-20">
           <div className="mb-10">
-            <h2 className="text-[11px] font-bold tracking-[0.3em] uppercase opacity-70 flex items-center gap-2 mb-8">
-              <PlusCircle size={16} className="text-[#B5A773]" /> Create New {activeTab === "jimmys" ? "Jimmy Column" : activeTab.slice(0, -1)}
+            <h2 className="text-[10px] font-black tracking-[0.3em] uppercase text-[#B59090] flex items-center gap-2 mb-8">
+              <PlusCircle size={16} /> New {activeTab === "jimmys" ? "Jimmy Column" : activeTab.slice(0, -1)}
             </h2>
             
             <div className="space-y-6">
               {(activeTab === "notices" || activeTab === "feedbacks" || activeTab === "jimmys") && (
                 <div>
-                  <label className="block text-[9px] font-bold tracking-[0.2em] mb-2 opacity-50 uppercase">
+                  <label className="block text-[8px] font-black tracking-[0.2em] mb-2 opacity-40 uppercase">
                     {activeTab === "feedbacks" ? "Service Path" : "Tag"}
                   </label>
                   <input
                     type="text"
                     value={noticeTag}
                     onChange={(e) => setNoticeTag(e.target.value)}
-                    className="w-full p-4 rounded-2xl bg-white/50 border border-white/60 outline-none focus:border-[#B5A773] transition-all text-sm"
+                    className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] outline-none focus:border-[#EAB8B8] transition-all text-sm text-[#7D7474]"
                     placeholder={activeTab === "jimmys" ? "JIMMY" : "Update"}
                   />
                 </div>
               )}
               
               <div>
-                <label className="block text-[9px] font-bold tracking-[0.2em] mb-2 opacity-50 uppercase">
+                <label className="block text-[8px] font-black tracking-[0.2em] mb-2 opacity-40 uppercase">
                   {activeTab === "feedbacks" ? "User Attribute" : "Title"}
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full p-4 rounded-2xl bg-white/50 border border-white/60 outline-none focus:border-[#B5A773] transition-all text-sm"
+                  className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] outline-none focus:border-[#EAB8B8] transition-all text-sm font-bold text-[#7D7474]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[9px] font-bold tracking-[0.2em] mb-2 opacity-50 uppercase">Content Body</label>
+                <label className="block text-[8px] font-black tracking-[0.2em] mb-2 opacity-40 uppercase">Content Body</label>
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  className="w-full p-4 rounded-2xl bg-white/50 border border-white/60 h-40 outline-none focus:border-[#B5A773] transition-all text-sm leading-relaxed"
+                  className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] h-48 outline-none focus:border-[#EAB8B8] transition-all text-sm leading-relaxed text-[#7D7474]"
                   required
                 />
               </div>
@@ -209,34 +206,34 @@ export default function AdminPage() {
 
           <button
             disabled={loading}
-            className="w-full py-4 bg-[#4F5D6B] text-white rounded-2xl text-[11px] font-bold tracking-[0.3em] uppercase hover:bg-[#3A4238] transition-all shadow-md disabled:opacity-50"
+            className="w-full py-4 bg-[#B59090] text-white rounded-2xl text-[10px] font-black tracking-[0.4em] uppercase hover:opacity-90 transition-all shadow-md disabled:opacity-50"
           >
             {loading ? "Processing..." : "Save to Database"}
           </button>
         </form>
 
         <section className="pb-20">
-          <h2 className="text-[11px] font-bold tracking-[0.3em] uppercase opacity-70 flex items-center gap-2 mb-8">
-            <List size={16} className="text-[#B5A773]" /> Entry List
+          <h2 className="text-[10px] font-black tracking-[0.3em] uppercase text-[#B59090] flex items-center gap-2 mb-8">
+            <List size={16} /> Entry List
           </h2>
 
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={item.id} className="bg-white/40 p-6 rounded-3xl border border-white/60 flex justify-between items-start group hover:bg-white/60 transition-all">
+              <div key={item.id} className="bg-white/60 p-6 rounded-[2.5rem] border border-white flex justify-between items-start group hover:bg-white transition-all shadow-sm">
                 <div className="flex-1 pr-4">
                   {(activeTab === "notices" || activeTab === "jimmys") ? (
                     <div className="space-y-2">
                       <button 
                         onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                        className="flex gap-2 items-center w-full text-left"
+                        className="flex gap-3 items-center w-full text-left"
                       >
-                        <span className="text-[10px] font-bold text-[#4F5D6B] uppercase tracking-widest underline decoration-[#B5A773]/40 decoration-2 underline-offset-4">{item.title}</span>
-                        {item.tag && <span className="text-[8px] px-2 py-0.5 bg-[#4F5D6B]/5 rounded-full opacity-50 font-bold">{item.tag}</span>}
+                        <span className="text-[11px] font-bold text-[#7D7474] uppercase tracking-widest">{item.title}</span>
+                        {item.tag && <span className="text-[8px] px-3 py-1 bg-[#FDF4F4] text-[#B59090] rounded-full font-black border border-[#F9EEEE]">{item.tag}</span>}
                         <ChevronDown size={14} className={`ml-auto transition-transform opacity-30 ${expandedId === item.id ? 'rotate-180' : ''}`} />
                       </button>
                       <div className={`grid transition-all duration-300 ${expandedId === item.id ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
-                          <p className="text-[13px] leading-relaxed opacity-70 whitespace-pre-wrap border-t border-[#4F5D6B]/5 pt-4">
+                          <p className="text-[12px] leading-relaxed opacity-70 whitespace-pre-wrap border-t border-[#F9EEEE] pt-4 text-[#7D7474]">
                             {item.content}
                           </p>
                         </div>
@@ -246,22 +243,22 @@ export default function AdminPage() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         {item.service_tag && (
-                          <span className="text-[8px] bg-[#B5A773]/20 text-[#B5A773] px-2 py-0.5 rounded font-bold uppercase tracking-tighter">
+                          <span className="text-[8px] bg-[#EAB8B8] text-white px-2 py-0.5 rounded font-black uppercase tracking-tighter">
                             {item.service_tag}
                           </span>
                         )}
                         <span className="text-[9px] font-bold opacity-30 uppercase tracking-[0.2em]">— {item.attribute}</span>
                       </div>
-                      <p className="text-[13px] leading-relaxed italic opacity-80 whitespace-pre-wrap font-light">"{item.content}"</p>
+                      <p className="text-[12px] leading-relaxed italic opacity-80 whitespace-pre-wrap font-medium">"{item.content}"</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-[13px] leading-relaxed opacity-80 whitespace-pre-wrap font-light">{item.body}</p>
+                      <p className="text-[12px] leading-relaxed opacity-80 whitespace-pre-wrap font-medium">{item.body}</p>
                       <span className="block text-[9px] font-bold opacity-30 uppercase tracking-[0.2em]">— {item.title}</span>
                     </div>
                   )}
                 </div>
-                <button onClick={() => handleDelete(item.id)} className="p-2 text-[#4F5D6B]/20 hover:text-red-400 transition-colors shrink-0">
+                <button onClick={() => handleDelete(item.id)} className="p-2 text-[#B59090]/20 hover:text-red-400 transition-colors shrink-0">
                   <Trash2 size={16} />
                 </button>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 
@@ -12,40 +12,35 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState("profile"); 
   const [showConfirm, setShowConfirm] = useState(false);
-  const [user, setUser] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [nickname, setNickname] = useState("");
-  const [iconUrl, setIconUrl] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewUrl, setPreviewUrl] = useState(""); // Base64データを保持
 
   const [titleAdj, setTitleAdj] = useState(ADJECTIVES[0]);
   const [titleNoun, setTitleNoun] = useState(NOUNS[0]);
   const [isAdjSpinning, setIsAdjSpinning] = useState(false);
   const [isNounSpinning, setIsNounSpinning] = useState(false);
 
-  // 環境変数のクリーンアップ処理を追加
   const supabase = useMemo(() => {
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-    const cleanUrl = rawUrl.trim().replace(/['"]+/g, "").replace(/\/$/, "");
+    const cleanUrl = rawUrl.trim().replace(/['"]+/g, "").replace(/\/+$/, "");
     const cleanKey = rawKey.trim().replace(/['"]+/g, "");
+    if (!cleanUrl || !cleanKey) return null;
     return createBrowserClient(cleanUrl, cleanKey);
   }, []);
 
   const slackFont = { fontFamily: '"Zen Maru Gothic", sans-serif' };
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        const { data } = await supabase.from("profiles").select("id").eq("id", session.user.id).single();
-        if (data) router.replace("/picnic/garden");
-      }
+    const savedProfile = localStorage.getItem("picnic_user_profile");
+    if (savedProfile) {
+      router.replace("/picnic/garden");
+    } else {
       setLoading(false);
-    };
-    init();
-  }, [router, supabase]);
+    }
+  }, [router]);
 
   useEffect(() => {
     let adjInterval, nounInterval;
@@ -54,42 +49,51 @@ export default function SetupPage() {
     return () => { clearInterval(adjInterval); clearInterval(nounInterval); };
   }, [isAdjSpinning, isNounSpinning]);
 
-  const uploadIcon = async (e) => {
-    try {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const localPreview = URL.createObjectURL(file);
-      setPreviewUrl(localPreview);
-      setIconUrl("🌸"); 
-    } catch (error) {
-      console.error(error);
-    }
+  // 画像をBase64として読み込む
+  const uploadIcon = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result); // データURL（Base64）をセット
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFinalSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
     try {
-      let currentUserId = user?.id;
-
-      if (!currentUserId) {
-        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-        if (authError) throw authError;
-        currentUserId = authData.user.id;
-      }
-
+      const currentUserId = crypto.randomUUID();
       const finalTitle = `${titleAdj}${titleNoun}`;
-      const { error: profileError } = await supabase.from("profiles").upsert({
+      const profileData = {
         id: currentUserId,
         nickname: nickname || "名無しの住人",
-        icon: previewUrl || iconUrl || "🌸",
+        icon: previewUrl || "🌸", // Base64データまたは絵文字を保存
         title: finalTitle,
-        updated_at: new Date(),
-      });
+        updated_at: new Date().toISOString(),
+      };
 
-      if (profileError) throw profileError;
-      router.push("/picnic/garden");
+      // 1. ローカル保存（Base64なのでGardenでも表示可能）
+      localStorage.setItem("picnic_user_profile", JSON.stringify(profileData));
+
+      // 2. Supabase保存
+      if (supabase) {
+        try {
+          await supabase.from("profiles").upsert(profileData);
+        } catch (dbError) {
+          console.warn("Supabase backup skipped:", dbError);
+        }
+      }
+
+      // 3. 庭へ移動
+      window.location.href = "/picnic/garden";
     } catch (error) {
-      console.error("Save Error:", error);
-      alert("保存に失敗しました。もう一度お試しください。");
+      console.error("Critical Save Error:", error);
+      alert(`保存中にエラーが発生しました。もう一度お試しください。`);
+      setIsSaving(false);
     }
   };
 
@@ -163,7 +167,7 @@ export default function SetupPage() {
             <p className="text-[10px] text-[#B5A773] font-bold tracking-widest uppercase italic">Picnic Rules</p>
           </header>
 
-          <div className="bg-white/60 p-8 rounded-[3rem] shadow-sm text-[11px] text-[#5F6F7A] space-y-7 leading-loose border border-white">
+          <div className="bg-white/60 p-8 rounded-[3rem] shadow-sm text-[11px] text-[#5F6F7A] space-y-7 leading-loose border border-white text-left">
             <div className="space-y-5">
               <div className="flex gap-3">
                 <span className="shrink-0 text-[#B5A773]">🌱</span>
@@ -179,7 +183,7 @@ export default function SetupPage() {
               </div>
               <div className="flex gap-3">
                 <span className="shrink-0 text-[#B5A773]">🌱</span>
-                <p><span className="font-black">大切なお約束：</span> ルールを守れない場合は、お別れが必要になることもあります。その際の会費の返金はできません。ごめんなさい。</p>
+                <p><span className="font-black">大切なお約束：</span> ルールを守れない場合は、お別れが必要になることもあります。</p>
               </div>
             </div>
           </div>
@@ -214,8 +218,12 @@ export default function SetupPage() {
               </p>
             </div>
             <div className="flex flex-col gap-4">
-              <button onClick={handleFinalSave} className="py-5 bg-[#94A684] text-white rounded-[2rem] font-black shadow-xl shadow-[#94A684]/20 active:scale-95 transition-transform tracking-[0.3em] text-[15px]">
-                これで決定！
+              <button 
+                onClick={handleFinalSave} 
+                disabled={isSaving}
+                className="py-5 bg-[#94A684] text-white rounded-[2rem] font-black shadow-xl shadow-[#94A684]/20 active:scale-95 transition-transform tracking-[0.3em] text-[15px]"
+              >
+                {isSaving ? "準備中..." : "これで決定！"}
               </button>
               <button onClick={() => setShowConfirm(false)} className="py-2 text-[11px] text-[#B5A773] font-black uppercase tracking-[0.4em]">
                 Back
