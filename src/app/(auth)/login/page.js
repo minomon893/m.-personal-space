@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr"; // ライブラリを最新版に変更
+import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -9,7 +9,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // コンポーネント内で最新のクライアントを生成
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -23,17 +22,16 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        // 修正ポイント: 本人確認後に戻る場所を「auth/callback」に固定
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // 修正ポイント: 本番URLを直接指定して、auth/callbackを経由させる
+        emailRedirectTo: `https://m-personal-space.vercel.app/auth/callback`,
         flowType: 'pkce',
       },
     });
 
     if (error) {
-      // エラーメッセージを分かりやすく表示
       setMessage("エラーが発生しました: " + error.message);
     } else {
-      setMessage("ログインメールを送信しました。メール内のリンクをクリックするか、コピーしてこのブラウザに貼り付けてください。");
+      setMessage("ログインメールを送信しました。メール内のリンクを「長押ししてコピー」し、このブラウザのURL欄に貼り付けて開いてください。");
     }
     setLoading(false);
   };

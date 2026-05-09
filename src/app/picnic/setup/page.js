@@ -176,16 +176,43 @@ export default function SetupPage() {
           </button>
         </div>
       ) : (
-        /* 約束画面（省略版） */
-        <div className="w-full max-w-xs text-center space-y-8">
-           <h2 className="text-[#94A684] font-black text-xl">ピクニックの約束</h2>
-           <div className="bg-white/60 p-8 rounded-[3rem] text-[11px] text-left">
-             <p>🌱 プロフィールは一度決めたら変えられません。</p>
-             <p>🌱 投稿した足跡は大切に残してください。</p>
+        /* 約束画面 */
+        <div className="w-full max-w-xs text-center space-y-8 animate-in slide-in-from-right-4 duration-500">
+           <header className="space-y-2 text-center">
+             <h2 className="text-[#94A684] font-black text-xl">ピクニックの約束</h2>
+             <p className="text-[10px] text-[#B5A773] font-bold tracking-widest uppercase italic">Safe & Rule</p>
+           </header>
+
+           <div className="bg-white/60 p-8 rounded-[3rem] text-[11px] text-[#5F6F7A] space-y-6 leading-relaxed border border-white text-left shadow-sm">
+             <div className="space-y-2">
+               <p><span className="font-black text-[#A8C69F]">🌱 01. 一度きりのアイデンティティ</span></p>
+               <p className="opacity-70">プロフィールは後から二度と変更できません。容易に変えられないからこそ、その姿はあなただけの確かな証明になります。</p>
+             </div>
+             
+             <div className="space-y-2">
+               <p><span className="font-black text-[#A8C69F]">🌱 02. ブロック・通報機能</span></p>
+               <p className="opacity-70">居心地の悪さを感じたら機能を使って自分の庭を守ってください。適切に境界線を引くことも、心地よい交流のための大切な作法です。</p>
+             </div>
+
+             <div className="space-y-2">
+               <p><span className="font-black text-[#A8C69F]">🌱 03. 秘密の保持</span></p>
+               <p className="opacity-70">中での出来事や他人の投稿を、許可なく外へ公開することは厳禁です。誰もが安心して自分を表現できる場所を共に守りましょう。</p>
+             </div>
+
+             <div className="space-y-2">
+               <p><span className="font-black text-[#A8C69F]">🌱 04. 消せない人生の記録</span></p>
+               <p className="opacity-70">投稿やコメントは消すことができません。数年後、ふとした時に「この時はこうだったな」と愛おしく振り返れるよう、今のあなたを記録してください。</p>
+             </div>
            </div>
-           <button onClick={() => setShowConfirm(true)} className="w-full py-5 bg-[#B5A773] text-white rounded-[2rem] font-black">
-             同意して確定する
-           </button>
+
+           <div className="space-y-3">
+             <button onClick={() => setShowConfirm(true)} className="w-full py-5 bg-[#B5A773] text-white rounded-[2rem] font-black shadow-lg shadow-[#B5A773]/20 active:scale-95 transition-all">
+               同意して確定する
+             </button>
+             <button onClick={() => setStep("profile")} className="w-full text-[10px] text-[#B5A773] font-black tracking-widest uppercase underline underline-offset-8 decoration-[#B5A773]/30">
+               Edit Profile
+             </button>
+           </div>
         </div>
       )}
 
@@ -193,20 +220,25 @@ export default function SetupPage() {
         <div className="fixed inset-0 bg-[#F2F0E9]/95 backdrop-blur-md flex items-center justify-center p-8 z-50">
           <div className="text-center space-y-8">
             <p className="font-black text-[#5F6F7A]">この内容で登録します</p>
-            <div className="bg-white py-10 px-8 rounded-[4rem] shadow-xl flex flex-col items-center">
-               <div className="w-24 h-24 bg-[#F2F0E9] rounded-[2.8rem] mb-4 overflow-hidden">
+            <div className="bg-white py-10 px-8 rounded-[4rem] shadow-xl flex flex-col items-center border border-white">
+               <div className="w-24 h-24 bg-[#F2F0E9] rounded-[2.8rem] mb-4 overflow-hidden border border-[#F2F0E9]">
                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <span>🌸</span>}
                </div>
-               <p className="text-[10px] text-[#B5A773] font-black">{titleAdj}{titleNoun}</p>
-               <p className="text-2xl text-[#5F6F7A] font-black">{nickname}</p>
+               <p className="text-[10px] text-[#B5A773] font-black tracking-widest">{titleAdj}{titleNoun}</p>
+               <p className="text-2xl text-[#5F6F7A] font-black tracking-tight">{nickname}</p>
             </div>
-            <button 
-              onClick={handleFinalSave} 
-              disabled={isSaving}
-              className="w-full py-5 bg-[#94A684] text-white rounded-[2rem] font-black"
-            >
-              {isSaving ? "きろく中..." : "これで決定！"}
-            </button>
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={handleFinalSave} 
+                disabled={isSaving}
+                className="w-full py-5 bg-[#94A684] text-white rounded-[2rem] font-black shadow-xl shadow-[#94A684]/20 active:scale-95 transition-all"
+              >
+                {isSaving ? "きろく中..." : "これで決定！"}
+              </button>
+              <button onClick={() => setShowConfirm(false)} className="text-[11px] text-[#B5A773] font-black uppercase tracking-widest">
+                Back
+              </button>
+            </div>
           </div>
         </div>
       )}

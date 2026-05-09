@@ -3,8 +3,11 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
+  
+  // あなたのサイトのURLを固定（末尾にスラッシュを入れない）
+  const MY_SITE_URL = "https://m-personal-space.vercel.app"
 
   if (code) {
     const cookieStore = cookies()
@@ -26,14 +29,15 @@ export async function GET(request) {
       }
     )
 
+    // コードをセッションに交換
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // 修正ポイント：ログイン成功後、プロフィール設定画面へ直接飛ばす
-      return NextResponse.redirect(`${origin}/picnic/setup`)
+      // 成功時：セットアップ画面へ強制連行
+      return NextResponse.redirect(`${MY_SITE_URL}/picnic/setup`)
     }
   }
 
-  // エラー時はログインページへ
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  // 失敗時：ログインページへ
+  return NextResponse.redirect(`${MY_SITE_URL}/login?error=auth_failed`)
 }
