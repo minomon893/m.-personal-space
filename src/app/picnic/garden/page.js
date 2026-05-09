@@ -1,118 +1,227 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-export default function GardenPage() {
-  const [profile, setProfile] = useState(null);
+const ADJECTIVES = ["ねぼすけな", "忙しない", "あいくるしい", "うたたねの", "たそがれの", "名無しの", "ただの", "まどろみの", "おめかしした", "雨上がりの", "のんびり屋の", "きらきらした", "風に吹かれた", "おセンチな", "日向ぼっこ中の", "夢見がちな", "すったもんだな", "ちょっと浮かれた", "考えすぎの", "悟りを開いた", "挙動不審な", "崖っぷちの", "二度寝が趣味の", "明日から本気出す", "謎に包まれた", "世紀末な", "低燃費な", "圧倒的な", "物憂げな", "無邪気な", "旅する", "おなかがすいた", "限界を迎えた", "都会に染まった", "山に籠もりたい", "徹夜明けの", "推しに生かされた", "情緒不安定な", "日暮れ時の", "星を数える", "木漏れ日の", "月夜の", "凍てついた", "灼熱の", "ぼんやりした", "お人好しな", "意地っ張りな", "寂しがりな", "自信満々な", "不器用な", "慌てん坊な", "聞き上手な", "毒舌な", "バズり待ちの", "通知が止まらない", "課金が止まらない", "常にミュートの", "Wi-Fiを求める", "映えを狙う", "ROM専 of the year", "封印された", "選ばれし", "異世界から来た", "伝説の", "呪われた", "転生した", "見習いの", "いにしえの", "聖なる", "洗濯物に囲まれた", "領収書に追われる", "納豆を練る", "靴下を片方なくした", "半額シールを待つ", "三日坊主の", "二度寝がデフォの", "筋肉痛の", "定時で帰りたい"];
+const NOUNS = ["クラゲ", "シマエナガ", "野良うさぎ", "カピバラ", "犬", "猫", "たんぽぽ", "アブラムシ", "深海魚", "ピザ", "タピオカ", "パクチー", "クリームソーダ", "担々麺", "塩おむすび", "牛乳", "プロテイン", "駄菓子", "シャンパン", "吟遊詩人", "通りすがり", "隠れファン", "権兵衛", "副業ライター", "幽霊部員", "永久幹事", "自称・賢者", "世話焼き", "不審者（自称）", "赤ちゃん", "箱推し", "古参", "遺骨", "夢女子", "二次元住人", "解釈の鬼", "考察厨", "塊", "砂時計"];
+
+export default function SetupPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [step, setStep] = useState("profile"); 
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [user, setUser] = useState(null);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  const [nickname, setNickname] = useState("");
+  const [iconUrl, setIconUrl] = useState("");
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  const [titleAdj, setTitleAdj] = useState(ADJECTIVES[0]);
+  const [titleNoun, setTitleNoun] = useState(NOUNS[0]);
+  const [isAdjSpinning, setIsAdjSpinning] = useState(false);
+  const [isNounSpinning, setIsNounSpinning] = useState(false);
+
+  // 【最重要】URLを徹底的にクリーンアップして初期化
+  const supabase = useMemo(() => {
+    const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+    // 末尾のスラッシュ、引用符、空白をすべて除去
+    const cleanUrl = rawUrl.trim().replace(/['"]+/g, "").replace(/\/+$/, "");
+    const cleanKey = rawKey.trim().replace(/['"]+/g, "");
+    return createBrowserClient(cleanUrl, cleanKey);
+  }, []);
+
+  const slackFont = { fontFamily: '"Zen Maru Gothic", sans-serif' };
 
   useEffect(() => {
-    const fetchGardenData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          const { data: profRes } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .single();
-          
-          if (profRes) setProfile(profRes);
-        }
-      } catch (e) {
-        console.error("Garden entry error:", e);
-      } finally {
-        // ロード画面を少し見せて情緒を出す
-        setTimeout(() => setLoading(false), 800);
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        const { data } = await supabase.from("profiles").select("id").eq("id", session.user.id).single();
+        if (data) router.replace("/picnic/garden");
       }
+      setLoading(false);
     };
+    init();
+  }, [router, supabase]);
 
-    fetchGardenData();
-  }, [supabase]);
+  useEffect(() => {
+    let adjInterval, nounInterval;
+    if (isAdjSpinning) adjInterval = setInterval(() => setTitleAdj(ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]), 80);
+    if (isNounSpinning) nounInterval = setInterval(() => setTitleNoun(NOUNS[Math.floor(Math.random() * NOUNS.length)]), 80);
+    return () => { clearInterval(adjInterval); clearInterval(nounInterval); };
+  }, [isAdjSpinning, isNounSpinning]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F9F8F3] flex items-center justify-center">
-        <div className="text-[#B5A773] animate-pulse font-bold text-[10px] tracking-[0.5em] uppercase">
-          Entering garden...
-        </div>
-      </div>
-    );
-  }
+  const uploadIcon = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl(localPreview);
+    setIconUrl("🌸"); 
+  };
+
+  const handleFinalSave = async () => {
+    try {
+      let currentUserId = user?.id;
+
+      if (!currentUserId) {
+        // ここでエラーが発生していた箇所の対策
+        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+        if (authError) throw authError;
+        currentUserId = authData.user.id;
+      }
+
+      const finalTitle = `${titleAdj}${titleNoun}`;
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: currentUserId,
+        nickname: nickname || "名無しの住人",
+        icon: previewUrl || iconUrl || "🌸",
+        title: finalTitle,
+        updated_at: new Date(),
+      });
+
+      if (profileError) throw profileError;
+      router.push("/picnic/garden");
+    } catch (error) {
+      console.error("Save Error:", error);
+      alert(`登録に失敗しました: ${error.message}`);
+    }
+  };
+
+  if (loading) return (
+    <div style={slackFont} className="min-h-screen bg-[#F2F0E9] flex items-center justify-center text-[#B5A773] opacity-50 italic text-[10px] tracking-[0.3em] uppercase animate-pulse">
+      Preparing your identity...
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#F9F8F3] font-[family-name:var(--font-sans)]">
-      <div className="max-w-md mx-auto pt-16 px-6 pb-24 animate-in fade-in zoom-in-95 duration-700">
-        
-        <header className="text-center mb-16">
-          <h1 className="text-3xl italic text-[#B5A773] mb-4">M. <span className="font-light">picnic</span></h1>
+    <div style={slackFont} className="min-h-screen bg-[#F2F0E9] p-8 flex flex-col items-center justify-center text-[#5F6F7A]">
+      {step === "profile" ? (
+        <div className="w-full max-w-xs space-y-12 animate-in fade-in duration-500">
+          <header className="space-y-2 text-center">
+            <h2 className="text-[#94A684] font-black tracking-tight text-xl">住人登録をする</h2>
+            <p className="text-[10px] text-[#B5A773] font-bold tracking-widest uppercase italic">Who are you in M. picnic?</p>
+          </header>
           
-          <div className="inline-flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-[#F1EFEA] shadow-sm">
-            <div className="w-6 h-6 rounded-full bg-[#F9F8F3] overflow-hidden flex items-center justify-center text-xs border border-[#F1EFEA]">
-              {profile?.icon?.startsWith('http') ? (
-                <img src={profile.icon} className="w-full h-full object-cover" alt="me" />
-              ) : (
-                <span className="text-[10px]">{profile?.icon || "🍃"}</span>
-              )}
-            </div>
-            <span className="text-[11px] font-bold text-[#5F6F7A] tracking-wider uppercase">
-              {profile ? `Welcome, ${profile.nickname}` : "Guest Mode"}
-            </span>
-          </div>
-        </header>
-
-        <div className="space-y-6">
-          <h2 className="text-[10px] font-black text-[#B5A773] tracking-[0.4em] uppercase ml-2 mb-4">Select Space</h2>
-          {[
-            { title: "ちょこっとーく", desc: "ゆるいつぶやき、誰かの気配。", icon: "💬", path: "/picnic/talk" },
-            { title: "オタトーーーーク！！！", desc: "好きを叫ぶ、熱量の社交場。", icon: "🔥", path: "/picnic/otaku" },
-            { title: "限定コラム", desc: "ここでしか読めない、内緒の話。", icon: "📖", path: "/picnic/jimmy" }
-          ].map((item) => (
-            <Link href={item.path} key={item.path} className="block group">
-              <div className="bg-white p-6 rounded-[2.2rem] border border-[#F1EFEA] shadow-sm group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300 flex items-center gap-6">
-                <div className="w-14 h-14 bg-[#F9F8F3] rounded-2xl flex items-center justify-center text-2xl shadow-inner">
-                  {item.icon}
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#5F6F7A] mb-1 group-hover:text-[#B5A773] transition-colors">
-                    {item.title}
-                  </h3>
-                  <p className="text-[11px] text-[#C1B9AE]">{item.desc}</p>
-                </div>
+          <div className="flex justify-center">
+            <label className="relative cursor-pointer group">
+              <div className={`w-32 h-32 bg-white rounded-[3.5rem] shadow-sm flex items-center justify-center text-3xl overflow-hidden border border-white transition-all group-active:scale-95 group-hover:shadow-md`}>
+                {previewUrl ? (
+                  <img src={previewUrl} className="w-full h-full object-cover" alt="icon" />
+                ) : (
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="opacity-20 text-4xl">＋</span>
+                    <span className="text-[9px] text-[#B5A773] font-black uppercase tracking-widest">Icon</span>
+                  </div>
+                )}
               </div>
-            </Link>
-          ))}
-        </div>
+              <input type="file" className="hidden" onChange={uploadIcon} accept="image/*" />
+            </label>
+          </div>
 
-        <footer className="mt-20 text-center flex flex-col gap-8">
-          {profile ? (
-            <div className="mx-auto max-w-[200px] py-4 px-2 border-t border-[#F1EFEA]">
-              <p className="text-[9px] text-[#C1B9AE] mb-2 leading-relaxed">
-                今のプロフィールを<br />別の端末でも使いたい時は
-              </p>
-              <button className="text-[10px] font-bold text-[#B5A773] hover:opacity-70 transition-opacity">
-                メールアドレスを紐付ける &rarr;
+          <div className="space-y-6">
+            <div className="border-b-2 border-white pb-2 text-center">
+              <input 
+                value={nickname} 
+                onChange={(e) => setNickname(e.target.value)} 
+                className="w-full bg-transparent text-center focus:outline-none text-[#5F6F7A] text-lg font-black placeholder:text-[#B5A773]/40 placeholder:font-normal" 
+                placeholder="おなまえを入力" 
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setIsAdjSpinning(!isAdjSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-black border transition-all ${isAdjSpinning ? 'bg-[#94A684] border-[#94A684] text-white animate-pulse' : 'bg-white border-white text-[#B5A773]'}`}>
+                {titleAdj}
+              </button>
+              <button onClick={() => setIsNounSpinning(!isNounSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-black border transition-all ${isNounSpinning ? 'bg-[#94A684] border-[#94A684] text-white animate-pulse' : 'bg-white border-white text-[#B5A773]'}`}>
+                {titleNoun}
               </button>
             </div>
-          ) : (
-            <Link href="/picnic/setup" className="text-[10px] font-bold text-[#B5A773] border border-[#B5A773] px-6 py-3 rounded-full">
-              プロフィールを作成する
-            </Link>
-          )}
-          
-          <Link href="/picnic" className="text-[10px] tracking-widest text-[#C1B9AE] hover:text-[#B5A773] transition-colors">
-            EXIT TO THE ENTRANCE
-          </Link>
-        </footer>
-      </div>
+            <p className="text-[9px] text-[#B5A773] text-center font-bold tracking-widest opacity-60">
+              タップして言葉を止めてください。
+            </p>
+          </div>
+
+          <button 
+            onClick={() => {
+              if(!nickname) return alert("おなまえを入力してください");
+              setStep("terms");
+            }} 
+            className="w-full py-5 bg-[#94A684] text-white rounded-[2rem] text-[14px] font-black shadow-lg shadow-[#94A684]/20 active:scale-95 transition-all tracking-[0.1em]"
+          >
+            次へ進む
+          </button>
+        </div>
+      ) : (
+        <div className="w-full max-w-xs space-y-8 animate-in slide-in-from-right-4 duration-500">
+          <header className="space-y-2 text-center">
+            <h2 className="text-[#94A684] font-black tracking-tight text-xl">ピクニックの約束</h2>
+            <p className="text-[10px] text-[#B5A773] font-bold tracking-widest uppercase italic">Picnic Rules</p>
+          </header>
+
+          <div className="bg-white/60 p-8 rounded-[3rem] shadow-sm text-[11px] text-[#5F6F7A] space-y-7 leading-loose border border-white text-left">
+            <div className="space-y-5">
+              <div className="flex gap-3">
+                <span className="shrink-0 text-[#B5A773]">🌱</span>
+                <p><span className="font-black">このままのあなたで：</span> プロフィールは後から変えられません。今のあなたの気分で決めて、そのままで過ごしてみてください。</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="shrink-0 text-[#B5A773]">🌱</span>
+                <p><span className="font-black">あしあとを残す：</span> ここでの言葉は、いつか振り返った時の大切なきろく。原則として消さずに、そのまま置いておいてくださいね。</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="shrink-0 text-[#B5A773]">🌱</span>
+                <p><span className="font-black">心地よい距離感：</span> 勧誘や宣伝、出会い目的の利用はお控えください。誰もが深呼吸できるような場所を、一緒に作りましょう。</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="shrink-0 text-[#B5A773]">🌱</span>
+                <p><span className="font-black">大切なお約束：</span> ルールを守れない場合は、お別れが必要になることもあります。</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <button onClick={() => setShowConfirm(true)} className="w-full py-5 bg-[#B5A773] text-white rounded-[2rem] font-black shadow-lg shadow-[#B5A773]/20 active:scale-95 transition-all tracking-widest">
+              同意して確定する
+            </button>
+            <button onClick={() => setStep("profile")} className="w-full text-[10px] text-[#B5A773] font-black tracking-widest uppercase underline underline-offset-8 decoration-[#B5A773]/30">
+              Edit Profile
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showConfirm && (
+        <div className="fixed inset-0 bg-[#F2F0E9]/95 backdrop-blur-md flex items-center justify-center p-8 z-50 animate-in fade-in duration-300">
+          <div className="w-full max-w-xs text-center space-y-8">
+            <div className="space-y-4">
+              <p className="font-black text-[#5F6F7A] text-lg">この内容で登録します</p>
+              <div className="bg-white py-10 rounded-[4rem] shadow-xl border border-white flex flex-col items-center gap-4">
+                <div className="w-24 h-24 bg-[#F2F0E9] rounded-[2.8rem] flex items-center justify-center overflow-hidden border border-[#F2F0E9] shadow-inner">
+                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" alt="preview" /> : <span className="text-4xl">🌸</span>}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[10px] text-[#B5A773] font-black tracking-[0.2em] uppercase">{titleAdj}{titleNoun}</p>
+                  <p className="text-2xl text-[#5F6F7A] font-black tracking-tight">{nickname}</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-[#94A684] font-black tracking-tighter">
+                ※これ以降、名前とアイコンは変更できません。
+              </p>
+            </div>
+            <div className="flex flex-col gap-4">
+              <button onClick={handleFinalSave} className="py-5 bg-[#94A684] text-white rounded-[2rem] font-black shadow-xl shadow-[#94A684]/20 active:scale-95 transition-transform tracking-[0.3em] text-[15px]">
+                これで決定！
+              </button>
+              <button onClick={() => setShowConfirm(false)} className="py-2 text-[11px] text-[#B5A773] font-black uppercase tracking-[0.4em]">
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

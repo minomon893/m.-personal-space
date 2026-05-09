@@ -8,6 +8,8 @@ import Link from "next/link";
 export default function PicnicLandingPage() {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
+  const [hasProfile, setHasProfile] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,10 +19,11 @@ export default function PicnicLandingPage() {
   useEffect(() => {
     const checkUserStatus = async () => {
       try {
-        // 1. セッションがあるか確認
+        // 1. セッションがあるか確認（ブラウザのCookie/LocalStorageに保存されている）
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          setHasSession(true);
           // 2. プロフィールが作成済みか確認
           const { data: profile } = await supabase
             .from("profiles")
@@ -29,7 +32,8 @@ export default function PicnicLandingPage() {
             .single();
 
           if (profile) {
-            // プロフィールまであれば、即座にgardenへ
+            setHasProfile(true);
+            // プロフィールまであれば、自動でgardenへ（離脱後の再訪対策）
             router.replace("/picnic/garden");
             return;
           }
@@ -37,7 +41,6 @@ export default function PicnicLandingPage() {
       } catch (e) {
         console.error("Redirect check failed:", e);
       } finally {
-        // セッションがない、またはプロフィールがない場合はチェック終了（LPを表示）
         setIsChecking(false);
       }
     };
@@ -45,7 +48,6 @@ export default function PicnicLandingPage() {
     checkUserStatus();
   }, [router, supabase]);
 
-  // チェック中は真っ白（または簡易ローディング）にして、LPが一瞬見えるのを防ぐ
   if (isChecking) {
     return (
       <div className="min-h-screen bg-[#F2F0E9] flex items-center justify-center">
@@ -99,24 +101,35 @@ export default function PicnicLandingPage() {
 
       {/* 参加ボタンエリア */}
       <div className="w-full max-w-xs text-center pb-12">
-        <button 
-          onClick={() => router.push("/picnic/setup")}
-          className="w-full py-5 bg-[#B5A773] text-white rounded-2xl text-[12px] font-bold tracking-[0.2em] shadow-lg shadow-[#B5A773]/30 hover:opacity-90 transition-opacity active:scale-95 transition-transform"
-        >
-          ピクニックに参加する
-        </button>
+        {hasProfile ? (
+          <button 
+            onClick={() => router.push("/picnic/garden")}
+            className="w-full py-5 bg-[#B5A773] text-white rounded-2xl text-[12px] font-bold tracking-[0.2em] shadow-lg shadow-[#B5A773]/30 hover:opacity-90 transition-opacity active:scale-95 transition-transform"
+          >
+            Gardenへ入る
+          </button>
+        ) : (
+          <button 
+            onClick={() => router.push("/picnic/setup")}
+            className="w-full py-5 bg-[#B5A773] text-white rounded-2xl text-[12px] font-bold tracking-[0.2em] shadow-lg shadow-[#B5A773]/30 hover:opacity-90 transition-opacity active:scale-95 transition-transform"
+          >
+            {hasSession ? "プロフィールを完成させる" : "ピクニックに参加する"}
+          </button>
+        )}
         
         <div className="mt-8 space-y-4">
           <p className="text-[9px] opacity-40 text-[#5F6F7A]">
             ※現在はプレビュー期間中のため無料です。
           </p>
           
-          <Link 
-            href="/picnic/garden" 
-            className="block text-[10px] text-[#B5A773] opacity-60 hover:opacity-100 transition-opacity underline underline-offset-4"
-          >
-            すでに参加中の方はこちら（Gardenへ）
-          </Link>
+          {(hasSession || hasProfile) && (
+            <Link 
+              href="/picnic/garden" 
+              className="block text-[10px] text-[#B5A773] opacity-60 hover:opacity-100 transition-opacity underline underline-offset-4"
+            >
+              すでに参加中の方はこちら（Gardenへ）
+            </Link>
+          )}
         </div>
       </div>
     </div>
