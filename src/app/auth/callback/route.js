@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
-  // メールリンクに含まれる「code」を取得
   const code = searchParams.get('code')
 
   if (code) {
@@ -27,15 +26,14 @@ export async function GET(request) {
       }
     )
 
-    // 「code」を使って正式にログインセッションを開始する
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // ログイン成功したらトップページへ
-      return NextResponse.redirect(origin)
+      // 修正ポイント：ログイン成功後、プロフィール設定画面へ直接飛ばす
+      return NextResponse.redirect(`${origin}/picnic/setup`)
     }
   }
 
-  // エラーが起きた場合はログインページへ戻す、またはエラーページへ
+  // エラー時はログインページへ
   return NextResponse.redirect(`${origin}/login?error=auth_failed`)
 }
