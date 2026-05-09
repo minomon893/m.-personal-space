@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,7 @@ export default function GardenPage() {
   const [decorations, setDecorations] = useState([]);
   const [statusInput, setStatusInput] = useState("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const supabase = useMemo(() => {
     const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/['"]+/g, "").replace(/\/$/, "");
@@ -21,7 +22,26 @@ export default function GardenPage() {
     return createBrowserClient(rawUrl, rawKey);
   }, []);
 
+  // 画像URL生成の共通ロジック
+  const getFullImageUrl = useCallback((path) => {
+    if (!path) return null;
+    // すでにフルURL、または絵文字、データURIの場合はそのまま返す
+    if (path.startsWith('http') || path.startsWith('data:') || path.length < 5) return path;
+    
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/$/, "");
+    // パスからバケット名が重複しないようクリーンアップ
+    const cleanPath = path.replace(/^talkimage\//, "");
+    return `${supabaseUrl}/storage/v1/object/public/talkimage/${cleanPath}`;
+  }, []);
+
+  const calcDays = useCallback((dateStr) => {
+    const createdDate = new Date(dateStr || new Date());
+    const diffDays = Math.ceil(Math.abs(new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    setDaysCount(diffDays);
+  }, []);
+
   useEffect(() => {
+    // 装飾アイテムの初期化
     const items = ["🧺", "🥪", "🎈", "🍎", "🥐", "🥤", "🌼", "🌿", "☁️"];
     setDecorations(Array.from({ length: 10 }).map((_, i) => ({
       id: i,
@@ -32,20 +52,19 @@ export default function GardenPage() {
       size: Math.random() * 15 + 20 + "px"
     })));
 
+    // 初回レンダリング時にキャッシュから即座に表示（UX向上）
     const saved = localStorage.getItem("picnic_user_profile");
     if (saved) {
-      const parsed = JSON.parse(saved);
-      setProfile(parsed);
-      setStatusInput(parsed.status_message || "");
-      calcDays(parsed.created_at);
+      try {
+        const parsed = JSON.parse(saved);
+        setProfile(parsed);
+        setStatusInput(parsed.status_message || "");
+        calcDays(parsed.created_at);
+      } catch (e) {
+        console.error("Cache parse error", e);
+      }
     }
-  }, []);
-
-  const calcDays = (dateStr) => {
-    const createdDate = new Date(dateStr || new Date());
-    const diffDays = Math.ceil(Math.abs(new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-    setDaysCount(diffDays);
-  };
+  }, [calcDays]);
 
   useEffect(() => {
     const fetchGardenData = async () => {
@@ -56,6 +75,7 @@ export default function GardenPage() {
           return;
         }
 
+        // 自分のプロフィールを最新化
         const { data: profRes } = await supabase
           .from("profiles")
           .select("*")
@@ -67,8 +87,11 @@ export default function GardenPage() {
           setStatusInput(profRes.status_message || "");
           localStorage.setItem("picnic_user_profile", JSON.stringify(profRes));
           calcDays(profRes.created_at);
+          // ステータスが空の場合のみ編集モードにする
+          if (!profRes.status_message) setIsEditing(true);
         }
 
+        // フォローしている友達のデータを取得
         const { data: followData } = await supabase
           .from("follows")
           .select(`following_id, profiles:following_id (*)`)
@@ -85,7 +108,7 @@ export default function GardenPage() {
       }
     };
     fetchGardenData();
-  }, [supabase]);
+  }, [supabase, calcDays]);
 
   const updateStatus = async (e) => {
     e.preventDefault();
@@ -96,10 +119,13 @@ export default function GardenPage() {
         .from("profiles")
         .update({ status_message: statusInput })
         .eq("id", profile.id);
+      
       if (error) throw error;
+      
       const updated = { ...profile, status_message: statusInput };
       setProfile(updated);
       localStorage.setItem("picnic_user_profile", JSON.stringify(updated));
+      setIsEditing(false);
     } catch (err) {
       console.error("Status update error:", err);
     } finally {
@@ -107,28 +133,30 @@ export default function GardenPage() {
     }
   };
 
+  // アイコン描画コンポーネント（修正版）
   const RenderIcon = ({ user, sizeClass = "w-24 h-24", textClass = "text-3xl" }) => {
     const [imgError, setImgError] = useState(false);
-    const iconData = user?.avatar_url || user?.icon;
-    const isUrl = iconData && (iconData.startsWith('http') || iconData.startsWith('/') || iconData.startsWith('data:'));
+    
+    // プロフィールのカラム名の揺れを吸収
+    const rawPath = user?.avatar_url || user?.icon || user?.avatar;
+    const imageUrl = getFullImageUrl(rawPath);
+    
+    // 画像として表示すべきか判定（URL形式であり、かつ読み込みエラーが出ていない）
+    const isEmoji = rawPath && rawPath.length < 5;
+    const shouldShowImage = imageUrl && imageUrl.startsWith('http') && !imgError && !isEmoji;
 
     return (
-      <div className={`${sizeClass} bg-white rounded-[2.5rem] overflow-hidden flex items-center justify-center border-[3px] border-white shadow-[inset_0_2px_8px_rgba(0,0,0,0.05)] flex-shrink-0 transition-transform active:scale-95`}>
-        {isUrl && !imgError ? (
+      <div className={`${sizeClass} bg-white rounded-[2.5rem] overflow-hidden flex items-center justify-center border-[3px] border-white shadow-sm flex-shrink-0 transition-transform active:scale-95`}>
+        {shouldShowImage ? (
           <img 
-            key={iconData}
-            src={iconData} 
-            crossOrigin="anonymous"
+            src={imageUrl} 
             className="w-full h-full object-cover" 
-            alt="icon" 
-            onError={() => {
-              console.log("Image load error for:", iconData);
-              setImgError(true);
-            }}
+            alt="" 
+            onError={() => setImgError(true)}
           />
         ) : (
           <span className={`${textClass} leading-none select-none`}>
-            {(!isUrl && iconData) ? iconData : "🍃"}
+            {isEmoji ? rawPath : "🍃"}
           </span>
         )}
       </div>
@@ -137,8 +165,8 @@ export default function GardenPage() {
 
   if (loading && !profile) {
     return (
-      <div className="min-h-screen bg-[#E2F0D9] flex items-center justify-center text-[#94A684]">
-        <div className="animate-pulse font-black text-[10px] tracking-[0.5em] uppercase text-center">
+      <div className="min-h-screen bg-[#E2F0D9] flex items-center justify-center">
+        <div className="animate-pulse font-black text-[10px] tracking-[0.5em] uppercase text-[#94A684]">
           Spreading the blanket...
         </div>
       </div>
@@ -157,7 +185,7 @@ export default function GardenPage() {
       `}</style>
 
       {decorations.map((deco) => (
-        <div key={deco.id} className="absolute pointer-events-none opacity-30 animate-bounce" style={{ top: deco.top, left: deco.left, transform: `rotate(${deco.rotate})`, fontSize: deco.size, animationDuration: `${Math.random() * 2 + 4}s` }}>
+        <div key={deco.id} className="absolute pointer-events-none opacity-20 animate-bounce" style={{ top: deco.top, left: deco.left, transform: `rotate(${deco.rotate})`, fontSize: deco.size, animationDuration: `${Math.random() * 2 + 4}s` }}>
           {deco.item}
         </div>
       ))}
@@ -170,82 +198,90 @@ export default function GardenPage() {
           <div className="h-1 w-12 bg-[#A8C69F]/30 mx-auto rounded-full"></div>
         </header>
 
+        {/* ユーザー＆フレンドリスト セクション */}
         <section className="mb-16">
           <div className="flex items-center justify-center gap-3 mb-8">
             <span className="text-xl">🧺</span>
             <h2 className="text-[12px] font-black text-[#7A8C69] tracking-[0.4em] uppercase italic">Our Picnic Spot</h2>
           </div>
           
-          {/* スライド用の設定: 友達がいてもいなくても中央に来るように調整 */}
-          <div className="flex gap-8 overflow-x-auto no-scrollbar pb-12 px-[10%] snap-x snap-mandatory justify-start sm:justify-center items-center">
-            {/* 自分のカード */}
+          <div className="flex gap-6 overflow-x-auto no-scrollbar pb-12 px-4 snap-x snap-mandatory justify-start md:justify-center items-end">
             {profile && (
-              <div className="snap-center w-[280px] min-h-[420px] flex-shrink-0 bg-white/95 backdrop-blur-md pt-12 pb-10 px-8 rounded-[4.5rem] shadow-[0_30px_60px_rgba(122,140,105,0.2)] border-2 border-white flex flex-col items-center text-center gap-6 relative transition-all">
+              <div className="snap-center w-[280px] min-h-[440px] flex-shrink-0 bg-white/95 backdrop-blur-md pt-12 pb-10 px-8 rounded-[4.5rem] shadow-2xl shadow-green-900/10 border-2 border-white flex flex-col items-center text-center gap-6 relative transition-all">
                 <div onClick={() => router.push('/picnic/me')} className="cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
-                  <RenderIcon user={profile} sizeClass="w-28 h-28" textClass="text-5xl" />
+                  <RenderIcon user={profile} sizeClass="w-32 h-32" textClass="text-5xl" />
                 </div>
                 
-                <div className="space-y-3 flex-shrink-0">
-                  <span className="text-[10px] font-black bg-[#A8C69F] text-white px-5 py-2 rounded-full uppercase tracking-widest shadow-sm inline-block">
+                <div className="space-y-3">
+                  <span className="text-[9px] font-black bg-[#A8C69F] text-white px-5 py-2 rounded-full uppercase tracking-widest inline-block">
                     {profile.title || "Resident"}
                   </span>
-                  <h2 onClick={() => router.push('/picnic/me')} className="text-3xl font-black text-[#5F6F7A] cursor-pointer leading-tight">
+                  <h2 onClick={() => router.push('/picnic/me')} className="text-3xl font-black text-[#5F6F7A] cursor-pointer hover:opacity-70 transition-opacity">
                     {profile.nickname}
                   </h2>
-                  <p className="text-[11px] font-bold text-[#B5A773] tracking-widest uppercase opacity-70">
-                    Day {daysCount}
+                  <p className="text-[10px] font-bold text-[#B5A773] tracking-widest uppercase opacity-60">
+                    Since Day {daysCount}
                   </p>
                 </div>
 
-                <form onSubmit={updateStatus} className="w-full mt-auto relative group flex-shrink-0">
-                  <input 
-                    type="text" 
-                    value={statusInput}
-                    onChange={(e) => setStatusInput(e.target.value)}
-                    placeholder="今日の一言..."
-                    className="w-full bg-[#F8FAF7] border-2 border-[#E2F0D9]/50 rounded-[1.5rem] px-5 py-4 text-[12px] text-[#5F6F7A] font-bold placeholder-[#94A684]/40 focus:bg-white focus:border-[#A8C69F] transition-all outline-none shadow-inner"
-                  />
-                  <button 
-                    type="submit"
-                    disabled={isUpdatingStatus}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#A8C69F] text-white rounded-full flex items-center justify-center text-sm shadow-md active:scale-90 transition-all disabled:opacity-30"
-                  >
-                    {isUpdatingStatus ? "..." : "✓"}
-                  </button>
-                </form>
+                <div className="w-full mt-auto min-h-[70px] flex items-center justify-center">
+                  {isEditing ? (
+                    <form onSubmit={updateStatus} className="w-full relative animate-in zoom-in duration-300">
+                      <input 
+                        type="text" 
+                        value={statusInput}
+                        onChange={(e) => setStatusInput(e.target.value)}
+                        placeholder="今なにしてる？"
+                        autoFocus
+                        className="w-full bg-[#F8FAF7] border-2 border-[#E2F0D9] rounded-[1.5rem] px-5 py-4 text-[12px] text-[#5F6F7A] font-bold focus:bg-white focus:border-[#A8C69F] transition-all outline-none shadow-inner"
+                      />
+                      <button 
+                        type="submit"
+                        disabled={isUpdatingStatus}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#A8C69F] text-white rounded-full flex items-center justify-center shadow-md active:scale-90 disabled:opacity-30"
+                      >
+                        {isUpdatingStatus ? "..." : "✓"}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="relative group cursor-pointer w-full px-4 text-center" onClick={() => setIsEditing(true)}>
+                      <p className="text-[13px] text-[#B5A773] font-bold italic leading-relaxed break-words">
+                        "{profile.status_message || "ひとこと書く..."}"
+                      </p>
+                      <span className="absolute -right-1 -top-1 opacity-0 group-hover:opacity-40 transition-opacity text-xs">✏️</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* 友達のカード */}
             {friends.map((friend) => (
               <div 
                 key={friend.id}
                 onClick={() => router.push(`/picnic/user/${friend.id}`)}
-                className="snap-center w-[240px] min-h-[380px] flex-shrink-0 bg-white/70 backdrop-blur-sm pt-10 pb-8 px-8 rounded-[4rem] shadow-xl shadow-green-900/5 border border-white/50 flex flex-col items-center text-center gap-6 cursor-pointer hover:bg-white transition-all opacity-90 group"
+                className="snap-center w-[240px] min-h-[380px] flex-shrink-0 bg-white/70 backdrop-blur-sm pt-10 pb-8 px-8 rounded-[4rem] shadow-xl shadow-green-900/5 border border-white/50 flex flex-col items-center text-center gap-5 cursor-pointer hover:bg-white/90 transition-all group"
               >
-                <div className="flex-shrink-0">
-                  <RenderIcon user={friend} sizeClass="w-24 h-24" textClass="text-4xl" />
-                </div>
-                <div className="space-y-2 flex-shrink-0">
-                  <span className="text-[9px] font-bold bg-[#D1D9CF] text-[#7A8C69] px-4 py-1.5 rounded-full uppercase tracking-tighter inline-block">
+                <RenderIcon user={friend} sizeClass="w-24 h-24" textClass="text-4xl" />
+                <div className="space-y-2">
+                  <span className="text-[8px] font-bold bg-[#D1D9CF] text-[#7A8C69] px-4 py-1.5 rounded-full uppercase tracking-tighter">
                     {friend.title || "Resident"}
                   </span>
                   <h3 className="text-xl font-black text-[#5F6F7A] line-clamp-1">{friend.nickname}</h3>
                   {friend.status_message && (
-                    <p className="text-[11px] text-[#B5A773] font-bold italic line-clamp-3 opacity-80 px-2 leading-relaxed">
+                    <p className="text-[11px] text-[#B5A773] font-bold italic line-clamp-2 opacity-80 leading-relaxed">
                       "{friend.status_message}"
                     </p>
                   )}
                 </div>
-                <div className="mt-auto pt-4 text-[9px] text-[#A8C69F] font-black tracking-widest uppercase group-hover:translate-x-1 transition-transform">
-                  View →
+                <div className="mt-auto pt-2 text-[9px] text-[#A8C69F] font-black tracking-widest uppercase group-hover:translate-x-1 transition-transform">
+                  Visit →
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* --- Menu Selection --- */}
+        {/* メニューセクション */}
         <div className="grid grid-cols-1 gap-6 max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-2 px-2">
             <span className="text-xl">🥪</span>
@@ -259,7 +295,7 @@ export default function GardenPage() {
           ].map((item, idx) => (
             <Link href={item.path} key={item.path} className={`block group transform transition-all duration-500 hover:-translate-y-1 active:scale-[0.98] ${idx % 2 === 0 ? 'rotate-1' : '-rotate-1'}`}>
               <div className={`p-1.5 rounded-[2.2rem] shadow-xl shadow-green-900/5 ${item.theme}`}>
-                <div className="bg-white/70 backdrop-blur-[4px] p-8 rounded-[2rem] flex items-center gap-6 border border-white/80">
+                <div className="bg-white/80 backdrop-blur-[4px] p-8 rounded-[2rem] flex items-center gap-6 border border-white/80">
                   <div className={`w-16 h-16 ${item.iconBg} rounded-[1.5rem] flex items-center justify-center text-3xl shadow-sm border border-white flex-shrink-0 group-hover:scale-110 transition-transform duration-500`}>
                     {item.icon}
                   </div>
@@ -273,11 +309,11 @@ export default function GardenPage() {
           ))}
         </div>
 
-        <footer className="mt-24 text-center">
-          <div className="flex justify-center gap-4 mb-4 opacity-30">
+        <footer className="mt-24 text-center pb-12">
+          <div className="flex justify-center gap-4 mb-4 opacity-20">
             <span>🌿</span><span>🌼</span><span>🌿</span>
           </div>
-          <p className="text-[10px] font-black text-[#94A684]/60 tracking-[0.6em] uppercase">Enjoy your quiet picnic</p>
+          <p className="text-[10px] font-black text-[#94A684]/60 tracking-[0.6em] uppercase italic">Enjoy your quiet picnic</p>
         </footer>
       </div>
     </div>

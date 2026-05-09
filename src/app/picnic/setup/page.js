@@ -15,7 +15,8 @@ export default function SetupPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [nickname, setNickname] = useState("");
-  const [previewUrl, setPreviewUrl] = useState(""); // Base64データを保持
+  const [previewUrl, setPreviewUrl] = useState(""); 
+  const [iconFile, setIconFile] = useState(null); // 追加：実際のファイルを保持
 
   const [titleAdj, setTitleAdj] = useState(ADJECTIVES[0]);
   const [titleNoun, setTitleNoun] = useState(NOUNS[0]);
@@ -49,14 +50,15 @@ export default function SetupPage() {
     return () => { clearInterval(adjInterval); clearInterval(nounInterval); };
   }, [isAdjSpinning, isNounSpinning]);
 
-  // 画像をBase64として読み込む
   const uploadIcon = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIconFile(file); // 追加：ファイルオブジェクトを保存
+
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPreviewUrl(reader.result); // データURL（Base64）をセット
+      setPreviewUrl(reader.result); 
     };
     reader.readAsDataURL(file);
   };
@@ -68,15 +70,38 @@ export default function SetupPage() {
     try {
       const currentUserId = crypto.randomUUID();
       const finalTitle = `${titleAdj}${titleNoun}`;
+      let finalIconPath = previewUrl || "🌸"; 
+
+      // --- 画像がある場合は Storage へアップロード ---
+      if (iconFile && supabase) {
+        const fileExt = iconFile.name.split('.').pop();
+        const fileName = `${currentUserId}/avatar-${Date.now()}.${fileExt}`;
+        const BUCKET_NAME = "avatars"; // 事前にSupabaseで作成したパブリックバケット名
+
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .upload(fileName, iconFile);
+
+        if (uploadError) throw uploadError;
+
+        // 公開URLを取得して保存用のパスにする
+        const { data: { publicUrl } } = supabase.storage
+          .from(BUCKET_NAME)
+          .getPublicUrl(fileName);
+        
+        finalIconPath = publicUrl;
+      }
+
       const profileData = {
         id: currentUserId,
         nickname: nickname || "名無しの住人",
-        icon: previewUrl || "🌸", // Base64データまたは絵文字を保存
+        icon: finalIconPath, 
+        avatar_url: finalIconPath, // どちらのカラム名でも対応できるように両方入れる
         title: finalTitle,
         updated_at: new Date().toISOString(),
       };
 
-      // 1. ローカル保存（Base64なのでGardenでも表示可能）
+      // 1. ローカル保存
       localStorage.setItem("picnic_user_profile", JSON.stringify(profileData));
 
       // 2. Supabase保存

@@ -7,6 +7,7 @@ import Link from "next/link";
 export default function OtakuPage() {
   const [posts, setPosts] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
+  const [myFollows, setMyFollows] = useState([]); // 追加
   const [content, setContent] = useState("");
   const [isSensitive, setIsSensitive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,10 +47,10 @@ export default function OtakuPage() {
         .from("otaku_posts")
         .select(`
           *,
-          profiles:user_id (nickname, icon, avatar_url, title),
+          profiles:user_id (id, nickname, icon, avatar_url, title),
           otaku_replies (
             id, content, user_id, created_at,
-            profiles:user_id (nickname, icon, avatar_url, title)
+            profiles:user_id (id, nickname, icon, avatar_url, title)
           )
         `)
         .order("created_at", { ascending: false });
@@ -63,7 +64,14 @@ export default function OtakuPage() {
 
       if (favError) throw favError;
 
+      // フォロー状況の取得を追加
+      const { data: followData } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", userId);
+
       setFavorites(new Set(favData.map(f => f.post_id)));
+      setMyFollows(followData?.map(f => f.following_id) || []); // 追加
       setPosts((postsData || []).map(post => ({
         ...post,
         otaku_replies: post.otaku_replies?.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) || []
@@ -74,6 +82,24 @@ export default function OtakuPage() {
   }, [supabase, ensureAuth]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // 追加：フォロー切り替え機能
+  const toggleFollow = async (targetUserId) => {
+    if (!currentUserId || targetUserId === currentUserId) return;
+    const isFollowing = myFollows.includes(targetUserId);
+    try {
+      if (isFollowing) {
+        setMyFollows(prev => prev.filter(id => id !== targetUserId));
+        await supabase.from("follows").delete().eq("follower_id", currentUserId).eq("following_id", targetUserId);
+      } else {
+        setMyFollows(prev => [...prev, targetUserId]);
+        await supabase.from("follows").insert({ follower_id: currentUserId, following_id: targetUserId });
+        alert("お庭に招待しました！🏡");
+      }
+    } catch (err) {
+      console.error("Follow error:", err);
+    }
+  };
 
   const toggleFavorite = async (postId) => {
     if (!currentUserId) return;
@@ -105,7 +131,7 @@ export default function OtakuPage() {
       const { data: newPost, error } = await supabase
         .from("otaku_posts")
         .insert({ user_id: userId, content, is_sensitive: isSensitive })
-        .select("*, profiles:user_id (nickname, icon, avatar_url, title)")
+        .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
         .single();
       if (error) throw error;
       setPosts(prev => [{ ...newPost, otaku_replies: [] }, ...prev]);
@@ -123,7 +149,7 @@ export default function OtakuPage() {
       const { data: newReply, error } = await supabase
         .from("otaku_replies")
         .insert({ post_id: postId, user_id: currentUserId, content: replyText })
-        .select("*, profiles:user_id (nickname, icon, avatar_url, title)")
+        .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
         .single();
       if (error) throw error;
 
@@ -138,18 +164,33 @@ export default function OtakuPage() {
     }
   };
 
+  // 修正箇所：アイコン表示の判定を最適化
   const renderIcon = (profile, sizeClass = "w-14 h-14") => {
-    // avatar_url または icon フィールドをチェック
     const iconData = profile?.avatar_url || profile?.icon;
-    const isImage = iconData && (iconData.startsWith('data:image') || iconData.startsWith('http') || iconData.includes('/') || iconData.length > 50);
+    
+    const isImage = iconData && (
+      iconData.startsWith('http') || 
+      iconData.startsWith('/') || 
+      iconData.startsWith('data:') || 
+      /\.(jpg|jpeg|png|webp|avif|gif)/i.test(iconData)
+    );
     
     return (
       <div className={`${sizeClass} rounded-[1.2rem] overflow-hidden bg-white border-2 border-white shadow-sm flex-shrink-0 flex items-center justify-center`}>
         {isImage ? (
-          <img src={iconData} className="w-full h-full object-cover" alt="" onError={(e) => {
-            e.target.onerror = null; 
-            e.target.parentElement.innerHTML = '<span class="text-2xl">🍀</span>';
-          }} />
+          <img 
+            src={iconData} 
+            className="w-full h-full object-cover" 
+            alt="" 
+            onError={(e) => {
+              e.target.onerror = null; 
+              e.target.style.display = 'none';
+              const span = document.createElement('span');
+              span.className = 'text-2xl';
+              span.innerText = '🍀';
+              e.target.parentElement.appendChild(span);
+            }} 
+          />
         ) : (
           <span className="text-2xl">{iconData || "🍀"}</span>
         )}
@@ -256,10 +297,18 @@ export default function OtakuPage() {
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] border-[8px] border-[#749BC2]">
             <div className="p-6 flex items-center justify-between border-b-4 border-[#F8FBFF]">
               <div className="flex items-center gap-4">
-                {renderIcon(selectedPost.profiles, "w-16 h-16")}
+                <button 
+                  onClick={() => toggleFollow(selectedPost.user_id)}
+                  className="relative group hover:scale-105 transition-transform"
+                >
+                  {renderIcon(selectedPost.profiles, "w-16 h-16")}
+                  <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm transition-all ${myFollows.includes(selectedPost.user_id) ? 'bg-[#A8C69F] text-white' : 'bg-white text-[#749BC2]'}`}>
+                    {myFollows.includes(selectedPost.user_id) ? "🏡" : "＋"}
+                  </div>
+                </button>
                 <div className="text-left">
-                   <h3 className="font-black text-xl text-[#5F6F7A]">{selectedPost.profiles?.nickname}</h3>
-                   <p className="text-[10px] font-bold text-[#749BC2] tracking-widest">{selectedPost.profiles?.title || "Resident"}</p>
+                    <h3 className="font-black text-xl text-[#5F6F7A]">{selectedPost.profiles?.nickname}</h3>
+                    <p className="text-[10px] font-bold text-[#749BC2] tracking-widest">{selectedPost.profiles?.title || "Resident"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -290,7 +339,12 @@ export default function OtakuPage() {
                       style={{ marginTop: i % 2 === 0 ? "0" : "20px" }}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        {renderIcon(reply.profiles, "w-8 h-8")}
+                        <div className="relative group cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleFollow(reply.user_id); }}>
+                          {renderIcon(reply.profiles, "w-8 h-8")}
+                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center text-[5px] border-white border shadow-sm ${myFollows.includes(reply.user_id) ? 'bg-[#A8C69F]' : 'bg-[#749BC2]'}`}>
+                            {myFollows.includes(reply.user_id) ? "🏡" : ""}
+                          </div>
+                        </div>
                         <div className="text-[10px] leading-tight">
                           <p className="font-black text-[#5F6F7A] truncate max-w-[100px]">{reply.profiles?.nickname}</p>
                           <p className="opacity-40">{new Date(reply.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>

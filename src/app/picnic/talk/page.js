@@ -7,6 +7,7 @@ import Link from "next/link";
 export default function TalkPage() {
   const [posts, setPosts] = useState([]);
   const [myFavorites, setMyFavorites] = useState([]);
+  const [myFollows, setMyFollows] = useState([]); 
   const [content, setContent] = useState("");
   const [images, setImages] = useState([]); 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,17 +44,19 @@ export default function TalkPage() {
     if (!userId) return;
 
     try {
-      const [{ data: blocks }, { data: favs }, { data: talkData }] = await Promise.all([
+      const [{ data: blocks }, { data: favs }, { data: talkData }, { data: followData }] = await Promise.all([
         supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
         supabase.from("favorites").select("post_id").eq("user_id", userId),
         supabase
           .from("talk_posts")
-          .select(`*, profiles:user_id (nickname, icon, avatar_url, title), talk_reactions (*)`)
-          .order("created_at", { ascending: false })
+          .select(`*, profiles:user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
+          .order("created_at", { ascending: false }),
+        supabase.from("follows").select("following_id").eq("follower_id", userId)
       ]);
 
       const blockedUserIds = blocks?.map(b => b.blocked_id) || [];
       setMyFavorites(favs?.map(f => f.post_id) || []);
+      setMyFollows(followData?.map(f => f.following_id) || []); 
       setPosts(talkData?.filter(p => !blockedUserIds.includes(p.user_id)) || []);
     } catch (err) {
       console.error("Fetch Error:", err);
@@ -61,6 +64,28 @@ export default function TalkPage() {
   }, [supabase, ensureAuth]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const toggleFollow = async (targetUserId) => {
+    if (!currentUserId || targetUserId === currentUserId) return;
+
+    const isFollowing = myFollows.includes(targetUserId);
+    
+    setMyFollows(prev => 
+      isFollowing ? prev.filter(id => id !== targetUserId) : [...prev, targetUserId]
+    );
+
+    try {
+      if (isFollowing) {
+        await supabase.from("follows").delete().eq("follower_id", currentUserId).eq("following_id", targetUserId);
+      } else {
+        await supabase.from("follows").insert({ follower_id: currentUserId, following_id: targetUserId });
+        alert("お庭に招待しました！🏡");
+      }
+    } catch (err) {
+      console.error("Follow error:", err);
+      fetchData(); 
+    }
+  };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -90,7 +115,7 @@ export default function TalkPage() {
       const { data: newPost, error: insertError } = await supabase
         .from("talk_posts")
         .insert({ user_id: userId, content: content.trim(), image_urls: uploadedUrls })
-        .select(`*, profiles:user_id (nickname, icon, avatar_url, title), talk_reactions (*)`)
+        .select(`*, profiles:user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
         .single();
 
       if (insertError) throw new Error(`投稿失敗: ${insertError.message}`);
@@ -141,19 +166,14 @@ export default function TalkPage() {
     }
   };
 
-  /**
-   * アイコン表示コンポーネントの修正版
-   */
+  // 修正箇所：アイコン表示の判定を最適化
   const renderIcon = (profile, size = "w-12 h-12", text = "text-xl") => {
-    // 複数の可能性のあるカラム名をチェック
     const iconData = profile?.avatar_url || profile?.icon;
-    
-    // URL形式かBase64画像データか、あるいは単なる絵文字かを判定
     const isImg = iconData && (
       iconData.startsWith('http') || 
       iconData.startsWith('/') || 
       iconData.startsWith('data:') || 
-      iconData.includes('.') // ファイル拡張子らしきものがある場合
+      /\.(jpg|jpeg|png|webp|avif|gif)/i.test(iconData)
     );
 
     return (
@@ -164,9 +184,14 @@ export default function TalkPage() {
             className="w-full h-full object-cover" 
             alt="" 
             onError={(e) => {
-              // 読み込み失敗時のフォールバック
               e.target.onerror = null;
-              e.target.parentElement.innerHTML = '<span>🍀</span>';
+              e.target.style.display = 'none';
+              if (e.target.parentElement && !e.target.parentElement.querySelector('.fallback-emoji')) {
+                const span = document.createElement('span');
+                span.className = 'fallback-emoji';
+                span.innerText = '🍀';
+                e.target.parentElement.appendChild(span);
+              }
             }}
           />
         ) : (
@@ -191,12 +216,9 @@ export default function TalkPage() {
         }
       `}</style>
 
-      {/* Main Sheet Container */}
       <div className="max-w-[95%] mx-auto min-h-screen gingham-sheet shadow-[0_0_100px_rgba(0,0,0,0.1)] relative px-6 sm:px-12 pb-40">
         
-        {/* Header */}
         <header className="fixed top-0 left-0 right-0 z-40 px-6 py-6 flex items-center justify-between pointer-events-none">
-          {/* TOPボタンの遷移先を /garden に変更 */}
           <Link href="/garden" className="pointer-events-auto flex items-center gap-3 bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-white hover:scale-105 transition-all text-[#94A684]">
             <span className="text-xl">🏡</span>
             <span className="text-[10px] font-black tracking-widest uppercase font-pop">Top</span>
@@ -284,7 +306,6 @@ export default function TalkPage() {
         </main>
       </div>
 
-      {/* Full Screen Modal */}
       {selectedPost && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8 animate-in fade-in zoom-in duration-300">
           <div className="absolute inset-0 bg-[#5F6F7A]/40 backdrop-blur-md" onClick={() => setSelectedPost(null)}></div>
@@ -292,7 +313,16 @@ export default function TalkPage() {
           <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh] border-[12px] border-[#FFF9F9]">
             <div className="p-6 flex items-center justify-between border-b-2 border-[#F0F7EE] bg-[#FFF9F9]/50">
               <div className="flex items-center gap-4">
-                {renderIcon(selectedPost.profiles, "w-12 h-12", "text-xl")}
+                <button 
+                  onClick={() => toggleFollow(selectedPost.user_id)}
+                  className="relative group hover:scale-105 transition-transform"
+                  title={myFollows.includes(selectedPost.user_id) ? "お庭から外す" : "お庭に招待する"}
+                >
+                  {renderIcon(selectedPost.profiles, "w-14 h-14", "text-2xl")}
+                  <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm transition-all ${myFollows.includes(selectedPost.user_id) ? 'bg-[#A8C69F] text-white' : 'bg-white text-[#94A684] hover:bg-[#F0F7EE]'}`}>
+                    {myFollows.includes(selectedPost.user_id) ? "🏡" : "＋"}
+                  </div>
+                </button>
                 <div className="text-left">
                   <h3 className="font-black text-[#5F6F7A] text-base">{selectedPost.profiles?.nickname || "誰かさん"}</h3>
                   <p className="text-[9px] font-black text-[#A8C69F] tracking-widest uppercase">{selectedPost.profiles?.title || "Resident"}</p>
