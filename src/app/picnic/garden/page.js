@@ -119,13 +119,7 @@ export default function GardenPage() {
       localStorage.setItem("picnic_user_profile", JSON.stringify(updated));
       setIsEditing(false);
     } catch (err) {
-      // エラーの詳細をコンソールに出力
-      console.error("Status update error details:", {
-        message: err.message,
-        details: err.details,
-        hint: err.hint,
-        code: err.code
-      });
+      console.error("Status update error details:", err);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -250,6 +244,7 @@ export default function GardenPage() {
                         onChange={(e) => setStatusInput(e.target.value)}
                         placeholder="今なにしてる？"
                         autoFocus
+                        onBlur={() => { if(statusInput === (profile.status_message || "")) setIsEditing(false) }}
                         className="w-full bg-[#F8FAF7] border-2 border-[#E2F0D9] rounded-[1.5rem] px-5 py-4 text-[12px] text-[#5F6F7A] font-bold focus:bg-white focus:border-[#A8C69F] transition-all outline-none shadow-inner"
                       />
                       <button 
@@ -261,11 +256,16 @@ export default function GardenPage() {
                       </button>
                     </form>
                   ) : (
-                    <div className="relative group cursor-pointer w-full flex items-center justify-center gap-2" onClick={() => setIsEditing(true)}>
+                    <div 
+                      className="relative group cursor-pointer w-full flex items-center justify-center gap-2 py-2" 
+                      onClick={() => setIsEditing(true)}
+                    >
                       <p className="text-[13px] text-[#B5A773] font-bold italic leading-relaxed break-words px-4">
                         "{profile.status_message || "ひとこと書く..."}"
                       </p>
-                      <span className="text-[10px] opacity-20 group-hover:opacity-60 transition-opacity">✏️</span>
+                      <span className="text-[10px] opacity-30 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        ✏️
+                      </span>
                     </div>
                   )}
                 </div>
