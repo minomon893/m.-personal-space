@@ -104,7 +104,7 @@ export default function GardenPage() {
 
   const updateStatus = async (e) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile?.id) return;
     setIsUpdatingStatus(true);
     try {
       const { error } = await supabase
@@ -119,7 +119,13 @@ export default function GardenPage() {
       localStorage.setItem("picnic_user_profile", JSON.stringify(updated));
       setIsEditing(false);
     } catch (err) {
-      console.error("Status update error:", err);
+      // エラーの詳細をコンソールに出力
+      console.error("Status update error details:", {
+        message: err.message,
+        details: err.details,
+        hint: err.hint,
+        code: err.code
+      });
     } finally {
       setIsUpdatingStatus(false);
     }
