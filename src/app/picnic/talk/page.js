@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function TalkPage() {
+function TalkContent() {
   const searchParams = useSearchParams();
   const targetPostId = searchParams.get("postId");
 
@@ -73,7 +73,8 @@ export default function TalkPage() {
         supabase.from("favorites").select("post_id").eq("user_id", userId),
         supabase
           .from("talk_posts")
-          .select(`*, profiles:user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
+          // 【重要】 profiles!user_id に修正（リレーションの明示）
+          .select(`*, profiles!user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
           .order("created_at", { ascending: false }),
         supabase.from("follows").select("following_id").eq("follower_id", userId)
       ]);
@@ -102,12 +103,8 @@ export default function TalkPage() {
 
   const toggleFollow = async (targetUserId) => {
     if (!currentUserId || targetUserId === currentUserId) return;
-
     const isFollowing = myFollows.includes(targetUserId);
-    
-    setMyFollows(prev => 
-      isFollowing ? prev.filter(id => id !== targetUserId) : [...prev, targetUserId]
-    );
+    setMyFollows(prev => isFollowing ? prev.filter(id => id !== targetUserId) : [...prev, targetUserId]);
 
     try {
       if (isFollowing) {
@@ -135,52 +132,33 @@ export default function TalkPage() {
 
     try {
       const userId = await ensureAuth();
-      if (!userId) throw new Error("ユーザー認証に失敗しました。ログイン状態を確認してください。");
+      if (!userId) throw new Error("ユーザー認証に失敗しました。");
 
       const uploadedUrls = [];
       for (const file of images) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        // 1. Storageへのアップロードを待機
         const { error: uploadError } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file);
-        if (uploadError) {
-            console.error("Storage Upload Error:", uploadError);
-            throw new Error(`画像のアップロードに失敗しました。バケット '${BUCKET_NAME}' の権限設定を確認してください。`);
-        }
+        if (uploadError) throw new Error(`画像のアップロードに失敗しました。`);
 
-        // 2. アップロード成功後に公開URLを取得
         const { data: { publicUrl } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
         uploadedUrls.push(publicUrl);
       }
 
-      // 3. DBへの保存（profilesとの結合を確実にするためselectを明示）
       const { data: newPost, error: insertError } = await supabase
         .from("talk_posts")
-        .insert({ 
-          user_id: userId, 
-          content: content.trim(), 
-          image_urls: uploadedUrls 
-        })
-        .select(`
-          *,
-          profiles:user_id (id, nickname, icon, avatar_url, title),
-          talk_reactions (*)
-        `)
+        .insert({ user_id: userId, content: content.trim(), image_urls: uploadedUrls })
+        // 【重要】 profiles!user_id に修正（リレーションの明示）
+        .select(`*, profiles!user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
         .single();
 
-      if (insertError) {
-          console.error("Database Insert Error:", insertError);
-          throw new Error(`投稿の保存に失敗しました。: ${insertError.message}`);
-      }
+      if (insertError) throw new Error(`投稿の保存に失敗しました。: ${insertError.message}`);
 
-      // UIを更新
       setPosts(prev => [newPost, ...prev]);
       setContent("");
       setImages([]);
       alert("投稿しました！");
     } catch (err) {
-      console.error("Submit Handler Error:", err);
       alert(err.message);
     } finally {
       setIsSubmitting(false);
@@ -207,9 +185,7 @@ export default function TalkPage() {
       await supabase.from("talk_reactions").delete().eq("id", existing.id);
     } else {
       const { data } = await supabase.from("talk_reactions").insert({ post_id: postId, user_id: currentUserId, type }).select().single();
-      if (data) {
-        updateUI(tempReactions.map(r => r.id === 'temp' ? data : r));
-      }
+      if (data) updateUI(tempReactions.map(r => r.id === 'temp' ? data : r));
     }
   };
 
@@ -226,25 +202,12 @@ export default function TalkPage() {
 
   const renderIcon = (profile, size = "w-12 h-12", text = "text-xl") => {
     const iconData = profile?.avatar_url || profile?.icon;
-    const isImg = iconData && (
-      iconData.startsWith('http') || 
-      iconData.startsWith('/') || 
-      iconData.startsWith('data:') || 
-      /\.(jpg|jpeg|png|webp|avif|gif)/i.test(iconData)
-    );
+    const isImg = iconData && (iconData.startsWith('http') || iconData.startsWith('/') || iconData.startsWith('data:') || /\.(jpg|jpeg|png|webp|avif|gif)/i.test(iconData));
 
     return (
       <div className={`${size} rounded-[1.2rem] overflow-hidden bg-white border-2 border-white shadow-sm flex-shrink-0 flex items-center justify-center ${text}`}>
         {isImg ? (
-          <img 
-            src={iconData} 
-            className="w-full h-full object-cover" 
-            alt="" 
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "https://www.google.com/s2/favicons?domain=supabase.com&sz=64"; 
-            }}
-          />
+          <img src={iconData} className="w-full h-full object-cover" alt="" />
         ) : (
           <span>{iconData || "🍀"}</span>
         )}
@@ -285,11 +248,7 @@ export default function TalkPage() {
                             linear-gradient(rgba(255, 230, 100, 0.2) 50%, transparent 50%);
           background-size: 50px 50px;
         }
-        .crayon-border {
-          border-style: solid;
-          border-width: 4px;
-          box-shadow: 2px 2px 0px rgba(0,0,0,0.05);
-        }
+        .crayon-border { border-style: solid; border-width: 4px; box-shadow: 2px 2px 0px rgba(0,0,0,0.05); }
         .sketchbook {
           background: #fff;
           border-left: 15px solid #4A4A4A;
@@ -309,7 +268,6 @@ export default function TalkPage() {
           z-index: 10;
         }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #94A68440; border-radius: 10px; }
       `}</style>
 
@@ -326,12 +284,8 @@ export default function TalkPage() {
 
         <main className="max-w-4xl mx-auto pt-32 text-center">
           <div className="mb-12">
-            <h1 className="font-cute text-[#94A684] text-5xl sm:text-6xl tracking-wider mb-2">
-              ちょこっとーく
-            </h1>
-            <p className="text-sm font-medium text-[#5F6F7A]/70">
-              ちょっとしたこと、ちょこっとおしえて。
-            </p>
+            <h1 className="font-cute text-[#94A684] text-5xl sm:text-6xl tracking-wider mb-2">ちょこっとーく</h1>
+            <p className="text-sm font-medium text-[#5F6F7A]/70">ちょっとしたこと、ちょこっとおしえて。</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mb-24 max-w-lg mx-auto relative z-10 text-left">
@@ -357,7 +311,6 @@ export default function TalkPage() {
                     </label>
                   )}
                 </div>
-
                 <div className="flex justify-between items-center mt-6">
                   <span className="text-[10px] font-black opacity-20">{content.length} / {MAX_CHARS}</span>
                   <button 
@@ -403,11 +356,8 @@ export default function TalkPage() {
       {selectedPost && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-[#5F6F7A]/40 backdrop-blur-md" onClick={() => setSelectedPost(null)}></div>
-          
           <div className={`relative w-full max-w-3xl aspect-square flex items-center justify-center bg-white crayon-border ${selectedPost.shapeClass} ${selectedPost.colorClass} border-8 shadow-2xl transition-all duration-700 overflow-hidden`}>
-            
             <div className="w-[75%] h-[70%] max-w-md bg-white rounded-[2rem] shadow-inner flex flex-col justify-center overflow-hidden relative border border-gray-100/50">
-              
               <div className="absolute top-0 left-0 right-0 pt-6 px-6 pb-3 flex items-center justify-between flex-shrink-0 bg-white z-10">
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -433,7 +383,6 @@ export default function TalkPage() {
                 <p className="text-sm sm:text-base leading-relaxed font-bold text-[#5F6F7A] whitespace-pre-wrap mb-6 break-all text-center">
                   {selectedPost.content}
                 </p>
-                
                 {selectedPost.image_urls?.length > 0 && (
                   <div className="grid grid-cols-1 gap-3 mb-6">
                     {selectedPost.image_urls.map((url, i) => (
@@ -471,7 +420,6 @@ export default function TalkPage() {
                     >
                       {myFavorites.includes(selectedPost.id) ? "🔖" : "🏷️"}
                     </button>
-
                     {selectedPost.user_id !== currentUserId && (
                       <div className="flex gap-2">
                         <button onClick={() => handleReport(selectedPost.id)} className="text-[8px] font-bold text-gray-300 hover:text-red-400">🚩通報</button>
@@ -481,11 +429,18 @@ export default function TalkPage() {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+export default function TalkPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">読み込み中...</div>}>
+      <TalkContent />
+    </Suspense>
   );
 }
