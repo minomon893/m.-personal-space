@@ -142,29 +142,39 @@ export default function TalkPage() {
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         
-        // Storageへのアップロード
+        // 1. Storageへのアップロードを待機
         const { error: uploadError } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file);
         if (uploadError) {
             console.error("Storage Upload Error:", uploadError);
-            throw new Error(`画像のアップロードに失敗しました。バケット '${BUCKET_NAME}' が存在するか確認してください。`);
+            throw new Error(`画像のアップロードに失敗しました。バケット '${BUCKET_NAME}' の権限設定を確認してください。`);
         }
 
+        // 2. アップロード成功後に公開URLを取得
         const { data: { publicUrl } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
         uploadedUrls.push(publicUrl);
       }
 
-      // DBへの保存
+      // 3. DBへの保存（profilesとの結合を確実にするためselectを明示）
       const { data: newPost, error: insertError } = await supabase
         .from("talk_posts")
-        .insert({ user_id: userId, content: content.trim(), image_urls: uploadedUrls })
-        .select(`*, profiles:user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
+        .insert({ 
+          user_id: userId, 
+          content: content.trim(), 
+          image_urls: uploadedUrls 
+        })
+        .select(`
+          *,
+          profiles:user_id (id, nickname, icon, avatar_url, title),
+          talk_reactions (*)
+        `)
         .single();
 
       if (insertError) {
           console.error("Database Insert Error:", insertError);
-          throw new Error(`投稿の保存に失敗しました。テーブル名やカラム名が正しいか確認してください。: ${insertError.message}`);
+          throw new Error(`投稿の保存に失敗しました。: ${insertError.message}`);
       }
 
+      // UIを更新
       setPosts(prev => [newPost, ...prev]);
       setContent("");
       setImages([]);
@@ -215,7 +225,6 @@ export default function TalkPage() {
   };
 
   const renderIcon = (profile, size = "w-12 h-12", text = "text-xl") => {
-    // avatar_url を優先して使用
     const iconData = profile?.avatar_url || profile?.icon;
     const isImg = iconData && (
       iconData.startsWith('http') || 
@@ -233,7 +242,7 @@ export default function TalkPage() {
             alt="" 
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = "https://www.google.com/s2/favicons?domain=supabase.com&sz=64"; // 仮のフォールバック
+              e.target.src = "https://www.google.com/s2/favicons?domain=supabase.com&sz=64"; 
             }}
           />
         ) : (

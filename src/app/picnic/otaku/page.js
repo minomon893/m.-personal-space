@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react"; // Suspenseを追加
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation"; // 追加
+import { useSearchParams } from "next/navigation";
 
-export default function OtakuPage() {
-  const searchParams = useSearchParams(); // 追加
-  const targetPostId = searchParams.get("postId"); // 追加
+// メインのロジックを別コンポーネントに分離
+function OtakuContent() {
+  const searchParams = useSearchParams();
+  const targetPostId = searchParams.get("postId");
 
   const [posts, setPosts] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
   const [myFollows, setMyFollows] = useState([]);
-  const [blockedUserIds, setBlockedUserIds] = useState([]); // ブロック機能用
+  const [blockedUserIds, setBlockedUserIds] = useState([]);
   const [content, setContent] = useState("");
   const [isSensitive, setIsSensitive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +45,6 @@ export default function OtakuPage() {
     }
   }, [supabase]);
 
-  // 初期読み込み時にブロックリストを取得
   useEffect(() => {
     const savedBlocks = localStorage.getItem("otaku_blocked_users");
     if (savedBlocks) setBlockedUserIds(JSON.parse(savedBlocks));
@@ -93,7 +93,6 @@ export default function OtakuPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ★ 追加：URLにpostIdがある場合、データ取得後に自動でポップアップを表示する
   useEffect(() => {
     if (targetPostId && posts.length > 0) {
       const post = posts.find(p => p.id === targetPostId);
@@ -102,7 +101,6 @@ export default function OtakuPage() {
   }, [targetPostId, posts]);
 
   const toggleFollow = async (targetUserId) => {
-    // 自分自身はフォローできない
     if (!currentUserId || targetUserId === currentUserId) return;
     const isFollowing = myFollows.includes(targetUserId);
     try {
@@ -140,7 +138,6 @@ export default function OtakuPage() {
     alert("通報を受け付けました。ご協力ありがとうございます。");
   };
 
-  // ブロック機能の実装
   const handleBlock = (targetUserId) => {
     if (targetUserId === currentUserId) return;
     if (!confirm("このユーザーをブロックしますか？\nブロックするとこのユーザーの投稿や返信が一切表示されなくなります。")) return;
@@ -196,7 +193,6 @@ export default function OtakuPage() {
 
   const renderIcon = (profile, sizeClass = "w-14 h-14") => {
     const iconData = profile?.avatar_url || profile?.icon;
-    
     const isImage = iconData && (
       iconData.startsWith('http') || 
       iconData.startsWith('/') || 
@@ -227,7 +223,6 @@ export default function OtakuPage() {
     );
   };
 
-  // 表示する投稿をフィルタリング（ブロックしたユーザーを除外）
   const visiblePosts = posts.filter(post => !blockedUserIds.includes(post.user_id));
 
   return (
@@ -312,7 +307,6 @@ export default function OtakuPage() {
                     </div>
                   )}
                   <div className="p-5 flex flex-col items-center h-full w-full">
-                    {/* カード内アイコン: 自分自身の場合はフォローアクションボタンを出さない */}
                     <div className="relative">
                       {renderIcon(post.profiles, "w-16 h-16")}
                       {post.user_id !== currentUserId && (
@@ -389,7 +383,7 @@ export default function OtakuPage() {
 
               <div className="flex flex-wrap gap-4 items-start justify-center">
                 {selectedPost.otaku_replies
-                  ?.filter(reply => !blockedUserIds.includes(reply.user_id)) // ブロック済み返信を除外
+                  ?.filter(reply => !blockedUserIds.includes(reply.user_id))
                   .map((reply, i) => {
                     const shapes = ["rounded-[3rem]", "rounded-[1rem]", "rounded-full", "rounded-tr-[4rem] rounded-bl-[4rem]"];
                     const shape = shapes[i % shapes.length];
@@ -447,6 +441,19 @@ export default function OtakuPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ここでコンポーネントをラップする
+export default function OtakuPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F0F7EE] flex items-center justify-center">
+        <div className="w-4 h-4 bg-[#749BC2] rounded-full animate-ping"></div>
+      </div>
+    }>
+      <OtakuContent />
+    </Suspense>
   );
 }
 
