@@ -32,13 +32,11 @@ export default function SetupPage() {
 
   const slackFont = { fontFamily: '"Zen Maru Gothic", sans-serif' };
 
-  // ログイン状態とプロフィールの有無を確認
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const savedProfile = localStorage.getItem("picnic_user_profile");
 
-      // すでにログイン＆プロフィール済みならガーデンへ
       if (session?.user && savedProfile) {
         router.replace("/picnic/garden");
         return;
@@ -69,7 +67,6 @@ export default function SetupPage() {
     setIsSaving(true);
 
     try {
-      // 1. ここで初めて匿名ログインを実行
       const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
       if (authError) throw authError;
 
@@ -80,7 +77,6 @@ export default function SetupPage() {
       const finalTitle = `${titleAdj}${titleNoun}`;
       let finalIconPath = previewUrl || "🌸"; 
 
-      // 2. Storageへのアップロード (アイコンがある場合)
       if (iconFile) {
         const fileExt = iconFile.name.split('.').pop();
         const fileName = `${userId}/avatar-${Date.now()}.${fileExt}`;
@@ -97,7 +93,6 @@ export default function SetupPage() {
         finalIconPath = publicUrl;
       }
 
-      // 3. データベースへ保存 (profilesテーブル)
       const profileData = {
         id: userId,
         nickname: nickname || "名無しの住人",
@@ -113,7 +108,6 @@ export default function SetupPage() {
 
       if (dbError) throw dbError;
 
-      // 4. 完了フラグを保存して遷移
       localStorage.setItem("picnic_user_profile", JSON.stringify(profileData));
       window.location.href = "/picnic/garden";
 
@@ -135,14 +129,13 @@ export default function SetupPage() {
       {step === "profile" ? (
         <div className="w-full max-w-xs space-y-12">
           <header className="text-center">
-            <h2 className="text-[#94A684] font-black text-xl">住人登録をする</h2>
+            <h2 className="text-[#94A684] font-black text-xl">プロフィール設定</h2>
             <p className="text-[10px] text-[#B5A773] font-bold uppercase italic">Who are you in M. picnic?</p>
           </header>
           
-          {/* アイコン選択 */}
           <div className="flex justify-center">
             <label className="relative cursor-pointer">
-              <div className="w-32 h-32 bg-white rounded-[3.5rem] shadow-sm flex items-center justify-center overflow-hidden border border-white">
+              <div className="w-32 h-32 bg-white rounded-[3.5rem] shadow-sm flex items-center justify-center overflow-hidden border-2 border-white">
                 {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" alt="icon" /> : <span className="opacity-20 text-4xl">＋</span>}
               </div>
               <input type="file" className="hidden" onChange={uploadIcon} accept="image/*" />
@@ -157,10 +150,10 @@ export default function SetupPage() {
               placeholder="おなまえを入力" 
             />
             <div className="flex gap-2">
-              <button onClick={() => setIsAdjSpinning(!isAdjSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-black border ${isAdjSpinning ? 'bg-[#94A684] text-white' : 'bg-white text-[#B5A773]'}`}>
+              <button onClick={() => setIsAdjSpinning(!isAdjSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-black border ${isAdjSpinning ? 'bg-[#94A684] text-white border-[#94A684]' : 'bg-white text-[#B5A773] border-white shadow-sm'}`}>
                 {titleAdj}
               </button>
-              <button onClick={() => setIsNounSpinning(!isNounSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-black border ${isNounSpinning ? 'bg-[#94A684] text-white' : 'bg-white text-[#B5A773]'}`}>
+              <button onClick={() => setIsNounSpinning(!isNounSpinning)} className={`flex-1 py-3 rounded-2xl text-[11px] font-black border ${isNounSpinning ? 'bg-[#94A684] text-white border-[#94A684]' : 'bg-white text-[#B5A773] border-white shadow-sm'}`}>
                 {titleNoun}
               </button>
             </div>
@@ -168,13 +161,12 @@ export default function SetupPage() {
 
           <button 
             onClick={() => nickname ? setStep("terms") : alert("なまえを入れてね")} 
-            className="w-full py-5 bg-[#94A684] text-white rounded-[2rem] font-black"
+            className="w-full py-5 bg-[#94A684] text-white rounded-[2rem] font-black shadow-lg shadow-[#94A684]/20"
           >
             次へ進む
           </button>
         </div>
       ) : (
-        /* 約束画面 */
         <div className="w-full max-w-xs text-center space-y-8 animate-in slide-in-from-right-4 duration-500">
             <header className="space-y-2 text-center">
               <h2 className="text-[#94A684] font-black text-xl">ピクニックの約束</h2>
@@ -216,15 +208,19 @@ export default function SetupPage() {
 
       {showConfirm && (
         <div className="fixed inset-0 bg-[#F2F0E9]/95 backdrop-blur-md flex items-center justify-center p-8 z-50">
-          <div className="text-center space-y-8">
-            <p className="font-black text-[#5F6F7A]">この内容で登録します</p>
-            <div className="bg-white py-10 px-8 rounded-[4rem] shadow-xl flex flex-col items-center border border-white">
-                <div className="w-24 h-24 bg-[#F2F0E9] rounded-[2.8rem] mb-4 overflow-hidden border border-[#F2F0E9]">
-                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <span>🌸</span>}
+          <div className="w-full max-w-xs text-center space-y-10">
+            <p className="font-black text-[#5F6F7A] text-lg">この内容で登録します</p>
+            
+            <div className="bg-white py-12 px-6 rounded-[3.5rem] shadow-xl flex flex-col items-center border-2 border-white relative">
+                <div className="w-32 h-32 bg-[#F2F0E9] rounded-[3.5rem] mb-6 overflow-hidden border-2 border-[#F2F0E9] shadow-inner flex items-center justify-center">
+                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🌸</span>}
                 </div>
-                <p className="text-[10px] text-[#B5A773] font-black tracking-widest">{titleAdj}{titleNoun}</p>
-                <p className="text-2xl text-[#5F6F7A] font-black tracking-tight">{nickname}</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-[#B5A773] font-black tracking-widest uppercase">{titleAdj}{titleNoun}</p>
+                  <p className="text-2xl text-[#5F6F7A] font-black tracking-tight">{nickname}</p>
+                </div>
             </div>
+
             <div className="flex flex-col gap-4">
               <button 
                 onClick={handleFinalSave} 
@@ -233,8 +229,8 @@ export default function SetupPage() {
               >
                 {isSaving ? "きろく中..." : "これで決定！"}
               </button>
-              <button onClick={() => setShowConfirm(false)} className="text-[11px] text-[#B5A773] font-black uppercase tracking-widest">
-                Back
+              <button onClick={() => setShowConfirm(false)} className="text-[11px] text-[#B5A773] font-black uppercase tracking-widest hover:opacity-70 transition-opacity">
+                修正する
               </button>
             </div>
           </div>
