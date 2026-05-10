@@ -22,14 +22,11 @@ export default function GardenPage() {
     return createBrowserClient(rawUrl, rawKey);
   }, []);
 
-  // 画像URL生成の共通ロジック
   const getFullImageUrl = useCallback((path) => {
     if (!path) return null;
-    // すでにフルURL、または絵文字、データURIの場合はそのまま返す
     if (path.startsWith('http') || path.startsWith('data:') || path.length < 5) return path;
     
     const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/$/, "");
-    // パスからバケット名が重複しないようクリーンアップ
     const cleanPath = path.replace(/^talkimage\//, "");
     return `${supabaseUrl}/storage/v1/object/public/talkimage/${cleanPath}`;
   }, []);
@@ -41,7 +38,6 @@ export default function GardenPage() {
   }, []);
 
   useEffect(() => {
-    // 装飾アイテムの初期化
     const items = ["🧺", "🥪", "🎈", "🍎", "🥐", "🥤", "🌼", "🌿", "☁️"];
     setDecorations(Array.from({ length: 10 }).map((_, i) => ({
       id: i,
@@ -52,7 +48,6 @@ export default function GardenPage() {
       size: Math.random() * 15 + 20 + "px"
     })));
 
-    // 初回レンダリング時にキャッシュから即座に表示（UX向上）
     const saved = localStorage.getItem("picnic_user_profile");
     if (saved) {
       try {
@@ -75,7 +70,6 @@ export default function GardenPage() {
           return;
         }
 
-        // 自分のプロフィールを最新化
         const { data: profRes } = await supabase
           .from("profiles")
           .select("*")
@@ -87,11 +81,9 @@ export default function GardenPage() {
           setStatusInput(profRes.status_message || "");
           localStorage.setItem("picnic_user_profile", JSON.stringify(profRes));
           calcDays(profRes.created_at);
-          // ステータスが空の場合のみ編集モードにする
           if (!profRes.status_message) setIsEditing(true);
         }
 
-        // フォローしている友達のデータを取得
         const { data: followData } = await supabase
           .from("follows")
           .select(`following_id, profiles:following_id (*)`)
@@ -112,7 +104,7 @@ export default function GardenPage() {
 
   const updateStatus = async (e) => {
     e.preventDefault();
-    if (!profile || !statusInput.trim()) return;
+    if (!profile) return;
     setIsUpdatingStatus(true);
     try {
       const { error } = await supabase
@@ -133,15 +125,10 @@ export default function GardenPage() {
     }
   };
 
-  // アイコン描画コンポーネント（修正版）
   const RenderIcon = ({ user, sizeClass = "w-24 h-24", textClass = "text-3xl" }) => {
     const [imgError, setImgError] = useState(false);
-    
-    // プロフィールのカラム名の揺れを吸収
     const rawPath = user?.avatar_url || user?.icon || user?.avatar;
     const imageUrl = getFullImageUrl(rawPath);
-    
-    // 画像として表示すべきか判定（URL形式であり、かつ読み込みエラーが出ていない）
     const isEmoji = rawPath && rawPath.length < 5;
     const shouldShowImage = imageUrl && imageUrl.startsWith('http') && !imgError && !isEmoji;
 
@@ -179,9 +166,31 @@ export default function GardenPage() {
         @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap');
         body { font-family: 'Zen Maru Gothic', sans-serif; color: #5F6F7A; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .gingham-yellow { background-color: #ffffff; background-image: radial-gradient(#FFFBEB 50%, transparent 50%), radial-gradient(#FFFBEB 50%, #ffffff 50%); background-size: 30px 30px; }
-        .gingham-blue { background-color: #ffffff; background-image: radial-gradient(#F0F9FF 50%, transparent 50%), radial-gradient(#F0F9FF 50%, #ffffff 50%); background-size: 30px 30px; }
-        .gingham-red { background-color: #ffffff; background-image: radial-gradient(#FFF1F2 50%, transparent 50%), radial-gradient(#FFF1F2 50%, #ffffff 50%); background-size: 30px 30px; }
+        
+        .gingham-yellow { 
+          background-color: #ffffff; 
+          background-image: 
+            linear-gradient(45deg, #FFFAE0 25%, transparent 25%, transparent 75%, #FFFAE0 75%, #FFFAE0), 
+            linear-gradient(45deg, #FFFAE0 25%, transparent 25%, transparent 75%, #FFFAE0 75%, #FFFAE0);
+          background-size: 40px 40px;
+          background-position: 0 0, 20px 20px;
+        }
+        .gingham-blue { 
+          background-color: #ffffff; 
+          background-image: 
+            linear-gradient(45deg, #E0F2FE 25%, transparent 25%, transparent 75%, #E0F2FE 75%, #E0F2FE), 
+            linear-gradient(45deg, #E0F2FE 25%, transparent 25%, transparent 75%, #E0F2FE 75%, #E0F2FE);
+          background-size: 40px 40px;
+          background-position: 0 0, 20px 20px;
+        }
+        .gingham-red { 
+          background-color: #ffffff; 
+          background-image: 
+            linear-gradient(45deg, #FFE4E6 25%, transparent 25%, transparent 75%, #FFE4E6 75%, #FFE4E6), 
+            linear-gradient(45deg, #FFE4E6 25%, transparent 25%, transparent 75%, #FFE4E6 75%, #FFE4E6);
+          background-size: 40px 40px;
+          background-position: 0 0, 20px 20px;
+        }
       `}</style>
 
       {decorations.map((deco) => (
@@ -196,7 +205,6 @@ export default function GardenPage() {
             m. <span className="font-bold">picnic</span> space
           </h1>
           
-          {/* 広場を抜けるボタン */}
           <button 
             onClick={() => router.push('/')}
             className="mt-4 text-[9px] font-black tracking-[0.3em] text-[#94A684]/60 hover:text-[#7A8C69] transition-colors border-b border-[#94A684]/20 pb-1 uppercase"
@@ -207,10 +215,7 @@ export default function GardenPage() {
           <div className="h-1 w-12 bg-[#A8C69F]/30 mx-auto rounded-full mt-6"></div>
         </header>
 
-        {/* ユーザー＆フレンドリスト セクション */}
         <section className="mb-16">
-          
-          
           <div className="flex gap-6 overflow-x-auto no-scrollbar pb-12 px-4 snap-x snap-mandatory justify-start md:justify-center items-end">
             {profile && (
               <div className="snap-center w-[280px] min-h-[440px] flex-shrink-0 bg-white/95 backdrop-blur-md pt-12 pb-10 px-8 rounded-[4.5rem] shadow-2xl shadow-green-900/10 border-2 border-white flex flex-col items-center text-center gap-6 relative transition-all">
@@ -250,11 +255,11 @@ export default function GardenPage() {
                       </button>
                     </form>
                   ) : (
-                    <div className="relative group cursor-pointer w-full px-4 text-center" onClick={() => setIsEditing(true)}>
-                      <p className="text-[13px] text-[#B5A773] font-bold italic leading-relaxed break-words">
+                    <div className="relative group cursor-pointer w-full flex items-center justify-center gap-2" onClick={() => setIsEditing(true)}>
+                      <p className="text-[13px] text-[#B5A773] font-bold italic leading-relaxed break-words px-4">
                         "{profile.status_message || "ひとこと書く..."}"
                       </p>
-                      <span className="absolute -right-1 -top-1 opacity-0 group-hover:opacity-40 transition-opacity text-xs">✏️</span>
+                      <span className="text-[10px] opacity-20 group-hover:opacity-60 transition-opacity">✏️</span>
                     </div>
                   )}
                 </div>
@@ -287,7 +292,6 @@ export default function GardenPage() {
           </div>
         </section>
 
-        {/* メニューセクション */}
         <div className="grid grid-cols-1 gap-6 max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-2 px-2">
             <span className="text-xl">🥪</span>
@@ -300,9 +304,9 @@ export default function GardenPage() {
             { title: "じみコラム", desc: "ここでしか読めない、内緒の話。", icon: "📖", path: "/picnic/jimmy", theme: "gingham-red", iconBg: "bg-rose-50/80" }
           ].map((item, idx) => (
             <Link href={item.path} key={item.path} className={`block group transform transition-all duration-500 hover:-translate-y-1 active:scale-[0.98] ${idx % 2 === 0 ? 'rotate-1' : '-rotate-1'}`}>
-              <div className={`p-1.5 rounded-[2.2rem] shadow-xl shadow-green-900/5 ${item.theme}`}>
-                <div className="bg-white/80 backdrop-blur-[4px] p-8 rounded-[2rem] flex items-center gap-6 border border-white/80">
-                  <div className={`w-16 h-16 ${item.iconBg} rounded-[1.5rem] flex items-center justify-center text-3xl shadow-sm border border-white flex-shrink-0 group-hover:scale-110 transition-transform duration-500`}>
+              <div className={`p-1 rounded-[1.2rem] shadow-xl shadow-green-900/10 ${item.theme}`}>
+                <div className="bg-white/90 backdrop-blur-[2px] p-8 rounded-[0.9rem] flex items-center gap-6 border border-white/50">
+                  <div className={`w-16 h-16 ${item.iconBg} rounded-[1.1rem] flex items-center justify-center text-3xl shadow-sm border border-white flex-shrink-0 group-hover:scale-110 transition-transform duration-500`}>
                     {item.icon}
                   </div>
                   <div>
