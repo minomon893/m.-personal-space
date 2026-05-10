@@ -82,20 +82,18 @@ export default function HomePage() {
           setVisitorCount(count);
         }
 
-        // --- 追加：ピクニック加入状態のチェック ---
+        // --- 修正箇所：ピクニック加入状態とセットアップ完了のチェック ---
         const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("id")
-            .eq("id", session.user.id)
-            .single();
-          
-          if (profile) {
-            setPicnicPath("/picnic/garden");
-          }
+        const isSetupDone = localStorage.getItem("picnic_setup_done") === "true";
+
+        // セッションがあり、かつブラウザにセットアップ済みの記録がある場合は直接Gardenへ
+        if (session?.user && isSetupDone) {
+          setPicnicPath("/picnic/garden");
+        } else {
+          // それ以外（未ログインまたは初回ブラウザ）は紹介ページへ
+          setPicnicPath("/picnic");
         }
-        // ------------------------------------
+        // --------------------------------------------------------
 
       } catch (err) {
         console.error("Counter Error:", err);

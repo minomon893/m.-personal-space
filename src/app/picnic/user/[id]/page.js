@@ -3,9 +3,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import Link from "next/link";
 
 export default function UserProfilePage() {
-  const { id } = useParams(); // URLの [id] 部分を取得
+  const { id } = useParams();
   const router = useRouter();
   const [targetProfile, setTargetProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -20,7 +21,6 @@ export default function UserProfilePage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // 1. そのユーザーのプロフィールを取得
         const { data: prof, error: profErr } = await supabase
           .from("profiles")
           .select("*")
@@ -30,10 +30,10 @@ export default function UserProfilePage() {
         if (profErr) throw profErr;
         setTargetProfile(prof);
 
-        // 2. そのユーザーの投稿（postsテーブルと想定）を取得
-        // テーブル名やカラム名はご自身の環境に合わせて調整してください
+        // talk_posts テーブルから取得
+        // もしオタク投稿が別テーブル(例: otaku_posts)なら、Promise.allで両方取得する必要があります
         const { data: postData, error: postErr } = await supabase
-          .from("posts")
+          .from("talk_posts") 
           .select("*")
           .eq("user_id", id)
           .order("created_at", { ascending: false });
@@ -55,18 +55,17 @@ export default function UserProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#F0F7EE] p-8">
-      {/* 戻るボタン */}
-      <button onClick={() => router.back()} className="mb-8 text-[#94A684] font-bold">
+      <button onClick={() => router.back()} className="mb-8 text-[#94A684] font-bold hover:underline">
         ← Back to Garden
       </button>
 
-      {/* プロフィール表示部分 */}
       <div className="max-w-2xl mx-auto bg-white rounded-[3rem] p-10 shadow-xl text-center mb-10">
         <div className="w-24 h-24 bg-gray-100 rounded-[2rem] mx-auto mb-4 overflow-hidden flex items-center justify-center border-4 border-[#E2F0D9]">
           {targetProfile.avatar_url ? (
             <img 
-              src={supabase.storage.from('avatars').getPublicUrl(targetProfile.avatar_url).data.publicUrl} 
+              src={targetProfile.avatar_url} 
               className="w-full h-full object-cover"
+              alt=""
             />
           ) : (
             <span className="text-4xl">🍃</span>
@@ -76,18 +75,34 @@ export default function UserProfilePage() {
         <p className="text-[#B5A773] mt-2 italic">"{targetProfile.status_message}"</p>
       </div>
 
-      {/* 投稿一覧部分 */}
       <div className="max-w-2xl mx-auto space-y-4">
         <h2 className="text-[#7A8C69] font-black uppercase tracking-widest text-sm px-4">Recent Posts</h2>
         {posts.length > 0 ? (
-          posts.map((post) => (
-            <div key={post.id} className="bg-white/60 backdrop-blur-sm p-6 rounded-[2rem] border border-white">
-              <p className="text-[#5F6F7A]">{post.content}</p>
-              <span className="text-[10px] text-[#94A684] block mt-2">
-                {new Date(post.created_at).toLocaleDateString()}
-              </span>
-            </div>
-          ))
+          posts.map((post) => {
+            // ★ ここでリンク先を判定 ★
+            // 投稿データの中に "is_otaku" などのフラグがある場合の例です
+            // なければ、とりあえず現在のアプリのパス構造に合わせて変更してください
+            const destination = post.is_otaku ? "/otatalk" : "/talk"; 
+
+            return (
+              <Link 
+                key={post.id} 
+                href={`${destination}?postId=${post.id}`} // 判定した宛先にIDを持って飛ぶ
+                className="block bg-white/60 backdrop-blur-sm p-6 rounded-[2rem] border border-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shadow-sm"
+              >
+                <div className="flex justify-between items-start mb-2">
+                   <p className="text-[#5F6F7A] leading-relaxed flex-1">{post.content}</p>
+                   {/* どっちの投稿かラベルをつけておくと親切です */}
+                   <span className="text-[8px] px-2 py-1 rounded-full bg-[#E2F0D9] text-[#7A8C69] ml-2">
+                     {post.is_otaku ? "オタトーーーク" : "ちょこっとーく"}
+                   </span>
+                </div>
+                <span className="text-[10px] text-[#94A684] block mt-2">
+                  {new Date(post.created_at).toLocaleDateString()}
+                </span>
+              </Link>
+            );
+          })
         ) : (
           <p className="text-center text-[#94A684] py-10 opacity-60">まだ投稿がありません 🧺</p>
         )}

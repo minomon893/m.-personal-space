@@ -3,8 +3,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation"; // 追加
 
 export default function OtakuPage() {
+  const searchParams = useSearchParams(); // 追加
+  const targetPostId = searchParams.get("postId"); // 追加
+
   const [posts, setPosts] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
   const [myFollows, setMyFollows] = useState([]);
@@ -88,6 +92,14 @@ export default function OtakuPage() {
   }, [supabase, ensureAuth]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ★ 追加：URLにpostIdがある場合、データ取得後に自動でポップアップを表示する
+  useEffect(() => {
+    if (targetPostId && posts.length > 0) {
+      const post = posts.find(p => p.id === targetPostId);
+      if (post) setSelectedPost(post);
+    }
+  }, [targetPostId, posts]);
 
   const toggleFollow = async (targetUserId) => {
     // 自分自身はフォローできない
@@ -267,7 +279,7 @@ export default function OtakuPage() {
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="ここなら、好きなだけ叫んでいいよ。"
+                  placeholder="ここなら、好きなだけ叫んでいいよ."
                   maxLength={MAX_CHARS}
                   className="w-full h-44 bg-[#F8FBFF] p-6 rounded-[2rem] text-lg focus:outline-none font-bold resize-none shadow-inner text-[#5F6F7A]"
                 />

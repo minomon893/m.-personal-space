@@ -3,8 +3,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export default function TalkPage() {
+  const searchParams = useSearchParams();
+  const targetPostId = searchParams.get("postId");
+
   const [posts, setPosts] = useState([]);
   const [myFavorites, setMyFavorites] = useState([]);
   const [myFollows, setMyFollows] = useState([]); 
@@ -47,7 +51,7 @@ export default function TalkPage() {
 
   const handleBlock = (targetId) => {
     if (targetId === currentUserId) return;
-    if (!confirm("このユーザーをブロックしますか？\n以降、このユーザーの投稿は表示されなくなります。")) return;
+    if (!confirm("このユーザーをブロックしますか？\n以降、このユーザーの投稿は表示なくなります。")) return;
     
     const newList = [...blockedUserIds, targetId];
     setBlockedUserIds(newList);
@@ -84,6 +88,18 @@ export default function TalkPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    if (targetPostId && posts.length > 0) {
+      const post = posts.find(p => p.id === targetPostId);
+      if (post) {
+        const idx = posts.findIndex(p => p.id === targetPostId);
+        const shapeClass = shapes[idx % shapes.length] || shapes[0];
+        const colorClass = crayonColors[idx % crayonColors.length] || crayonColors[0];
+        setSelectedPost({ ...post, shapeClass, colorClass });
+      }
+    }
+  }, [targetPostId, posts]);
+
   const toggleFollow = async (targetUserId) => {
     if (!currentUserId || targetUserId === currentUserId) return;
 
@@ -119,29 +135,42 @@ export default function TalkPage() {
 
     try {
       const userId = await ensureAuth();
-      if (!userId) throw new Error("ユーザー認証に失敗しました。");
+      if (!userId) throw new Error("ユーザー認証に失敗しました。ログイン状態を確認してください。");
 
       const uploadedUrls = [];
       for (const file of images) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        // Storageへのアップロード
         const { error: uploadError } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file);
-        if (uploadError) throw new Error(`アップロード失敗: ${uploadError.message}`);
+        if (uploadError) {
+            console.error("Storage Upload Error:", uploadError);
+            throw new Error(`画像のアップロードに失敗しました。バケット '${BUCKET_NAME}' が存在するか確認してください。`);
+        }
+
         const { data: { publicUrl } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
         uploadedUrls.push(publicUrl);
       }
 
+      // DBへの保存
       const { data: newPost, error: insertError } = await supabase
         .from("talk_posts")
         .insert({ user_id: userId, content: content.trim(), image_urls: uploadedUrls })
         .select(`*, profiles:user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
         .single();
 
-      if (insertError) throw new Error(`投稿失敗: ${insertError.message}`);
+      if (insertError) {
+          console.error("Database Insert Error:", insertError);
+          throw new Error(`投稿の保存に失敗しました。テーブル名やカラム名が正しいか確認してください。: ${insertError.message}`);
+      }
+
       setPosts(prev => [newPost, ...prev]);
       setContent("");
       setImages([]);
+      alert("投稿しました！");
     } catch (err) {
+      console.error("Submit Handler Error:", err);
       alert(err.message);
     } finally {
       setIsSubmitting(false);
@@ -186,6 +215,7 @@ export default function TalkPage() {
   };
 
   const renderIcon = (profile, size = "w-12 h-12", text = "text-xl") => {
+    // avatar_url を優先して使用
     const iconData = profile?.avatar_url || profile?.icon;
     const isImg = iconData && (
       iconData.startsWith('http') || 
@@ -203,13 +233,7 @@ export default function TalkPage() {
             alt="" 
             onError={(e) => {
               e.target.onerror = null;
-              e.target.style.display = 'none';
-              if (e.target.parentElement && !e.target.parentElement.querySelector('.fallback-emoji')) {
-                const span = document.createElement('span');
-                span.className = 'fallback-emoji';
-                span.innerText = '🍀';
-                e.target.parentElement.appendChild(span);
-              }
+              e.target.src = "https://www.google.com/s2/favicons?domain=supabase.com&sz=64"; // 仮のフォールバック
             }}
           />
         ) : (
@@ -328,6 +352,7 @@ export default function TalkPage() {
                 <div className="flex justify-between items-center mt-6">
                   <span className="text-[10px] font-black opacity-20">{content.length} / {MAX_CHARS}</span>
                   <button 
+                    type="submit"
                     disabled={isSubmitting || !currentUserId || (content.length === 0 && images.length === 0) || content.length > MAX_CHARS} 
                     className="px-12 py-3 bg-[#94A684] text-white rounded-full text-sm font-black tracking-widest shadow-lg active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
                   >
@@ -372,7 +397,6 @@ export default function TalkPage() {
           
           <div className={`relative w-full max-w-3xl aspect-square flex items-center justify-center bg-white crayon-border ${selectedPost.shapeClass} ${selectedPost.colorClass} border-8 shadow-2xl transition-all duration-700 overflow-hidden`}>
             
-            {/* 四角を少し小さく w-[75%] h-[70%] に調整 */}
             <div className="w-[75%] h-[70%] max-w-md bg-white rounded-[2rem] shadow-inner flex flex-col justify-center overflow-hidden relative border border-gray-100/50">
               
               <div className="absolute top-0 left-0 right-0 pt-6 px-6 pb-3 flex items-center justify-between flex-shrink-0 bg-white z-10">

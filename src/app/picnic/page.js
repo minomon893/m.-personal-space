@@ -149,7 +149,7 @@ export default function PicnicLandingPage() {
                     「ちょっと聞きにくい質問・相談」にも。
                   </p>
                   <p className="text-[11px] leading-relaxed opacity-70 mt-1">
-                    リアルの友達には話せないセンシティブな悩みも、お弁当（投稿）に蓋をしてそっと置いてみて。きっと誰かが答えてくれます。
+                    リアリアルの友達には話せないセンシティブな悩みも、お弁当（投稿）に蓋をしてそっと置いてみて。きっと誰かが答えてくれます。
                   </p>
                 </div>
               </div>
