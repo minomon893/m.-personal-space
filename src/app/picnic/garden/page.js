@@ -104,25 +104,46 @@ export default function GardenPage() {
 
   const updateStatus = async (e) => {
     e.preventDefault();
-    if (!profile?.id) return;
+    if (!profile?.id) {
+      console.error("Update aborted: No profile ID found");
+      return;
+    }
 
-    // 即座にUIを更新する（楽観的更新）
     const updated = { ...profile, status_message: statusInput };
     setProfile(updated);
     localStorage.setItem("picnic_user_profile", JSON.stringify(updated));
-    setIsEditing(false); // 通信完了を待たずに編集モードを閉じる
+    setIsEditing(false);
 
     setIsUpdatingStatus(true);
     try {
-      const { error } = await supabase
+      // 1. セッションチェック
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session found. Please re-login.");
+
+      // 2. 更新実行
+      const { data, error, status, statusText } = await supabase
         .from("profiles")
         .update({ status_message: statusInput })
-        .eq("id", profile.id);
+        .eq("id", profile.id)
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        // Supabase特有のエラーを詳細化
+        const errorDetails = `Code: ${error.code}, Message: ${error.message}, Hint: ${error.hint}`;
+        throw new Error(errorDetails);
+      }
+
+      // 3. 実行結果のデバッグ
+      console.log("Update success:", { status, statusText, data });
+
     } catch (err) {
-      console.error("Status update error details:", err);
-      // 必要に応じて失敗時に元の状態に戻す処理をここに入れる
+      // 4. 強制的に中身を文字列として表示
+      console.error("Status update error details:", String(err));
+      if (err instanceof Error) {
+        console.error("Error Stack:", err.stack);
+      }
+      // 万が一のために、オブジェクトとしてもう一度出力
+      console.dir(err);
     } finally {
       setIsUpdatingStatus(false);
     }

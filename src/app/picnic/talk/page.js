@@ -5,6 +5,17 @@ import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+// ★ IDから固定のデザイン（形・色・回転）を生成するヘルパー関数
+const getPostDesign = (id) => {
+  if (!id) return { shapeIdx: 0, colorIdx: 0, rotation: 0 };
+  const idNum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return {
+    shapeIdx: idNum % 5, 
+    colorIdx: idNum % 5, 
+    rotation: (idNum % 20) - 10 
+  };
+};
+
 function TalkContent() {
   const searchParams = useSearchParams();
   const targetPostId = searchParams.get("postId");
@@ -56,7 +67,7 @@ function TalkContent() {
 
     try {
       const [{ data: favs }, { data: talkData }, { data: followData }] = await Promise.all([
-        supabase.from("favorites").select("post_id").eq("user_id", userId),
+        supabase.from("favorites").select("post_id").eq("user_id", userId).not("post_id", "is", null),
         supabase
           .from("talk_posts")
           .select(`*, profiles!user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
@@ -74,13 +85,11 @@ function TalkContent() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ★リアルタイム購読・通知・同期ロジック
   useEffect(() => {
     if (!currentUserId) return;
 
     const channel = supabase
       .channel("talk_realtime_all")
-      // 1. 新着投稿の購読
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "talk_posts" },
@@ -99,7 +108,6 @@ function TalkContent() {
           }
         }
       )
-      // 2. リアクションの同期と通知
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "talk_reactions" },
@@ -107,30 +115,23 @@ function TalkContent() {
           const postId = payload.new?.post_id || payload.old?.post_id;
           if (!postId) return;
 
-          // リアクションデータの最新状態を取得
           const { data: updatedReactions } = await supabase
             .from("talk_reactions")
             .select("*")
             .eq("post_id", postId);
 
           setPosts(prev => prev.map(p => p.id === postId ? { ...p, talk_reactions: updatedReactions || [] } : p));
-          
-          // 通知: 自分の投稿に誰かがリアクションした場合
-          if (payload.eventType === "INSERT" && payload.new.user_id !== currentUserId) {
-            const targetPost = posts.find(p => p.id === postId);
-            if (targetPost?.user_id === currentUserId) {
-              console.log(`あなたの投稿に ${payload.new.type} が届きました！`);
-            }
-          }
         }
       )
-      // 3. お気に入り状態の同期（他デバイスでの操作反映）
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "favorites", filter: `user_id=eq.${currentUserId}` },
         () => {
-          // お気に入り一覧を再取得して同期
-          supabase.from("favorites").select("post_id").eq("user_id", currentUserId)
+          // リアルタイムでお気に入り状態を再取得
+          supabase.from("favorites")
+            .select("post_id")
+            .eq("user_id", currentUserId)
+            .not("post_id", "is", null)
             .then(({ data }) => {
               if (data) setMyFavorites(data.map(f => f.post_id));
             });
@@ -141,21 +142,20 @@ function TalkContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, currentUserId, posts]);
+  }, [supabase, currentUserId]);
 
   useEffect(() => {
     if (targetPostId && posts.length > 0) {
       const post = posts.find(p => p.id === targetPostId);
       if (post) {
-        const idx = posts.findIndex(p => p.id === targetPostId);
-        const shapeClass = shapes[idx % shapes.length] || shapes[0];
-        const colorClass = crayonColors[idx % crayonColors.length] || crayonColors[0];
-        setSelectedPost({ ...post, shapeClass, colorClass });
+        const { shapeIdx, colorIdx, rotation } = getPostDesign(post.id);
+        const shapeClass = shapes[shapeIdx];
+        const colorClass = crayonColors[colorIdx];
+        setSelectedPost({ ...post, shapeClass, colorClass, rotation });
       }
     }
   }, [targetPostId, posts]);
 
-  // selectedPostの状態を最新のpostsと同期させる
   useEffect(() => {
     if (selectedPost) {
       const latest = posts.find(p => p.id === selectedPost.id);
@@ -246,7 +246,6 @@ function TalkContent() {
     const targetPost = posts.find(p => p.id === postId);
     const existing = targetPost?.talk_reactions?.find(r => r.type === type && r.user_id === currentUserId);
 
-    // 楽観的UI更新はそのまま
     const updateUI = (newReactions) => {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, talk_reactions: newReactions } : p));
     };
@@ -401,14 +400,16 @@ function TalkContent() {
           </form>
 
           <div className="flex flex-wrap justify-center gap-10 relative">
-            {visiblePosts.map((post, idx) => {
-              const shapeClass = shapes[idx % shapes.length];
-              const colorClass = crayonColors[idx % crayonColors.length];
+            {visiblePosts.map((post) => {
+              const { shapeIdx, colorIdx, rotation } = getPostDesign(post.id);
+              const shapeClass = shapes[shapeIdx];
+              const colorClass = crayonColors[colorIdx];
+
               return (
                 <button 
                   key={post.id} 
-                  onClick={() => setSelectedPost({ ...post, shapeClass, colorClass })}
-                  style={{ transform: `rotate(${((idx * 17) % 20) - 10}deg)` }}
+                  onClick={() => setSelectedPost({ ...post, shapeClass, colorClass, rotation })}
+                  style={{ transform: `rotate(${rotation}deg)` }}
                   className={`bg-white p-6 px-4 crayon-border w-48 h-48 flex flex-col items-center text-center hover:scale-110 hover:z-20 transition-all group relative overflow-hidden ${shapeClass} ${colorClass}`}
                 >
                   {renderIcon(post.profiles, "w-12 h-12", "text-xl")}
@@ -431,8 +432,13 @@ function TalkContent() {
       {selectedPost && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-[#5F6F7A]/40 backdrop-blur-md" onClick={() => setSelectedPost(null)}></div>
-          <div className={`relative w-full max-w-3xl aspect-square flex items-center justify-center bg-white crayon-border ${selectedPost.shapeClass} ${selectedPost.colorClass} border-8 shadow-2xl transition-all duration-700 overflow-hidden`}>
-            <div className="w-[75%] h-[70%] max-w-md bg-white rounded-[2rem] shadow-inner flex flex-col justify-center overflow-hidden relative border border-gray-100/50">
+          <div className="relative w-full max-w-lg aspect-[4/5] flex items-center justify-center">
+            <div 
+              style={{ transform: `rotate(${selectedPost.rotation}deg)` }}
+              className={`absolute inset-0 bg-white crayon-border rounded-[3rem] ${selectedPost.colorClass} border-8 shadow-2xl transition-all duration-700`}
+            ></div>
+
+            <div className="relative w-[85%] h-[85%] bg-white rounded-[2rem] shadow-inner flex flex-col justify-center overflow-hidden border border-gray-100/50 z-10">
               <div className="absolute top-0 left-0 right-0 pt-6 px-6 pb-3 flex items-center justify-between flex-shrink-0 bg-white z-10">
                 <div className="flex items-center gap-3">
                   <div className="relative">

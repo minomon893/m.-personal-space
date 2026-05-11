@@ -70,6 +70,7 @@ export default function MyPage() {
     if (activeTab === "otaku") {
       const { data: myPosts } = await supabase.from("otaku_posts").select("*, profiles:user_id(*)").eq("user_id", user.id);
       const { data: myReplies } = await supabase.from("otaku_replies").select("*, profiles:user_id(*), otaku_posts(*, profiles:user_id(*))").eq("user_id", user.id);
+      // カラム名を post_id に修正
       const { data: favs } = await supabase.from("favorites").select("id, created_at, otaku_posts(*, profiles:user_id(*))").eq("user_id", user.id).not("post_id", "is", null);
 
       data = [
@@ -80,6 +81,7 @@ export default function MyPage() {
     } else {
       const { data: myTalks } = await supabase.from("talk_posts").select("*, profiles:user_id(*)").eq("user_id", user.id);
       const { data: myReactions } = await supabase.from("talk_reactions").select("*, profiles:user_id(*), talk_posts(*, profiles:user_id(*))").eq("user_id", user.id);
+      // カラム名を talk_post_id に修正
       const { data: favs } = await supabase.from("favorites").select("id, created_at, talk_posts(*, profiles:user_id(*))").eq("user_id", user.id).not("talk_post_id", "is", null);
 
       data = [

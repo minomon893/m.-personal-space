@@ -67,10 +67,12 @@ function OtakuContent() {
 
       if (postError) throw postError;
 
+      // 共通テーブル favorites から取得するように変更
       const { data: favData, error: favError } = await supabase
-        .from("otaku_favorites")
+        .from("favorites")
         .select("post_id")
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .not("post_id", "is", null);
 
       if (favError) throw favError;
 
@@ -100,53 +102,67 @@ function OtakuContent() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "otaku_posts" },
         async (payload) => {
-          const { data: newPost } = await supabase
-            .from("otaku_posts")
-            .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
-            .eq("id", payload.new.id)
-            .single();
+          setPosts((prev) => {
+            if (prev.some(p => p.id === payload.new.id)) return prev;
 
-          if (newPost) {
-            setPosts((prev) => [{ ...newPost, otaku_replies: [] }, ...prev]);
-            // 自分以外の投稿なら通知（任意実装）
-            if (newPost.user_id !== currentUserId) {
-              console.log("新着の叫びが届きました！");
-            }
-          }
+            const fetchNewPost = async () => {
+              const { data: newPost } = await supabase
+                .from("otaku_posts")
+                .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
+                .eq("id", payload.new.id)
+                .single();
+              
+              if (newPost) {
+                setPosts((current) => {
+                  if (current.some(p => p.id === newPost.id)) return current;
+                  return [{ ...newPost, otaku_replies: [] }, ...current];
+                });
+              }
+            };
+            fetchNewPost();
+            return prev;
+          });
         }
       )
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "otaku_replies" },
         async (payload) => {
-          const { data: newReply } = await supabase
-            .from("otaku_replies")
-            .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
-            .eq("id", payload.new.id)
-            .single();
+          const fetchNewReply = async () => {
+            const { data: newReply } = await supabase
+              .from("otaku_replies")
+              .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
+              .eq("id", payload.new.id)
+              .single();
 
-          if (newReply) {
-            setPosts((prev) =>
-              prev.map((post) =>
-                post.id === newReply.post_id
-                  ? { ...post, otaku_replies: [...(post.otaku_replies || []), newReply] }
-                  : post
-              )
-            );
-            // 自分の投稿への返信なら通知
-            const parentPost = posts.find(p => p.id === newReply.post_id);
-            if (parentPost?.user_id === currentUserId && newReply.user_id !== currentUserId) {
-              alert("あなたの叫びにレスポンスが届きました！💌");
+            if (newReply) {
+              setPosts((prev) =>
+                prev.map((post) =>
+                  post.id === newReply.post_id
+                    ? { 
+                        ...post, 
+                        otaku_replies: [
+                          ...(post.otaku_replies || []).filter(r => r.id !== newReply.id), 
+                          newReply
+                        ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                      }
+                    : post
+                )
+              );
+
+              const parentPost = posts.find(p => p.id === newReply.post_id);
+              if (parentPost?.user_id === currentUserId && newReply.user_id !== currentUserId) {
+                alert("あなたの叫びにレスポンスが届きました！💌");
+              }
             }
-          }
+          };
+          fetchNewReply();
         }
       )
-      // お気に入り状態の他デバイス同期
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "otaku_favorites", filter: `user_id=eq.${currentUserId}` },
+        { event: "*", schema: "public", table: "favorites", filter: `user_id=eq.${currentUserId}` },
         () => {
-          // お気に入りテーブルに変更があればセットを再同期
           fetchData(); 
         }
       )
@@ -194,14 +210,16 @@ function OtakuContent() {
     try {
       if (isFav) {
         setFavorites(prev => { const next = new Set(prev); next.delete(postId); return next; });
-        await supabase.from("otaku_favorites").delete().eq("user_id", currentUserId).eq("post_id", postId);
+        // 共通テーブル favorites に変更
+        await supabase.from("favorites").delete().eq("user_id", currentUserId).eq("post_id", postId);
       } else {
         setFavorites(prev => new Set(prev).add(postId));
-        await supabase.from("otaku_favorites").insert({ user_id: currentUserId, post_id: postId });
+        // 共通テーブル favorites に変更
+        await supabase.from("favorites").insert({ user_id: currentUserId, post_id: postId });
       }
     } catch (err) {
       console.error("Fav error:", err);
-      fetchData(); // エラー時は整合性をとるために再取得
+      fetchData(); 
     }
   };
 
@@ -227,11 +245,18 @@ function OtakuContent() {
     setIsSubmitting(true);
     try {
       const userId = await ensureAuth();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("otaku_posts")
-        .insert({ user_id: userId, content, is_sensitive: isSensitive });
+        .insert({ user_id: userId, content, is_sensitive: isSensitive })
+        .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
+        .single();
       
       if (error) throw error;
+
+      if (data) {
+        setPosts((prev) => [{ ...data, otaku_replies: [] }, ...prev]);
+      }
+      
       setContent("");
       setIsSensitive(false);
     } catch (err) {
@@ -243,11 +268,23 @@ function OtakuContent() {
 
   const handleReply = async (postId, replyText) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("otaku_replies")
-        .insert({ post_id: postId, user_id: currentUserId, content: replyText });
+        .insert({ post_id: postId, user_id: currentUserId, content: replyText })
+        .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
+        .single();
 
       if (error) throw error;
+      
+      if (data) {
+        setPosts((prev) =>
+          prev.map((post) =>
+            post.id === postId
+              ? { ...post, otaku_replies: [...(post.otaku_replies || []), data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) }
+              : post
+          )
+        );
+      }
     } catch (err) {
       alert(`返信失敗: ${err.message}`);
     }
