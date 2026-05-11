@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
-import { ArrowUpRight, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronUp, MessageCircle, PenTool } from "lucide-react";
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState("otaku"); 
@@ -36,7 +36,7 @@ export default function MyPage() {
     return createBrowserClient(url, key);
   }, []);
 
-  // アイコン描画用ヘルパー (共通ロジック)
+  // アイコン描画用ヘルパー (元のロジックを保持)
   const renderIcon = (profile, sizeClass = "w-10 h-10") => {
     const iconData = profile?.avatar_url || profile?.icon;
     const isImage = iconData && (
@@ -68,7 +68,6 @@ export default function MyPage() {
 
     let data = [];
     if (activeTab === "otaku") {
-      // プロフィール情報も含めて取得
       const { data: myPosts } = await supabase.from("otaku_posts").select("*, profiles:user_id(*)").eq("user_id", user.id);
       const { data: myReplies } = await supabase.from("otaku_replies").select("*, profiles:user_id(*), otaku_posts(*, profiles:user_id(*))").eq("user_id", user.id);
       const { data: favs } = await supabase.from("favorites").select("id, created_at, otaku_posts(*, profiles:user_id(*))").eq("user_id", user.id).not("post_id", "is", null);
@@ -94,11 +93,20 @@ export default function MyPage() {
     setLoading(false);
   }, [activeTab, supabase]);
 
-  useEffect(() => { fetchMyData(); }, [fetchMyData]);
+  useEffect(() => { 
+    fetchMyData(); 
+    // リアルタイム更新の購読
+    const channel = supabase.channel('mypage_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchMyData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'favorites' }, fetchMyData)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchMyData, supabase]);
 
-  const filteredItems = useMemo(() => {
-    return showFavoritesOnly ? items.filter(item => item.type === 'favorite') : items;
-  }, [items, showFavoritesOnly]);
+  // リストの分類
+  const postsList = useMemo(() => items.filter(i => (i.type === 'my_post' || i.type === 'my_talk')), [items]);
+  const reactionsList = useMemo(() => items.filter(i => (i.type === 'my_reply' || i.type === 'my_reaction')), [items]);
+  const favoriteItems = useMemo(() => items.filter(i => i.type === 'favorite'), [items]);
 
   const handleUnfavorite = async (e, favId) => {
     e.preventDefault(); e.stopPropagation();
@@ -107,149 +115,178 @@ export default function MyPage() {
     if (!error) fetchMyData();
   };
 
+  // カードコンポーネント（元の詳細表示ロジックを内包）
+  const ItemCard = ({ item, idx }) => {
+    const isExpanded = expandedId === `${item.id}-${idx}`;
+    const originalPostLink = `/picnic/${activeTab}?postId=${item.postId}`;
+
+    return (
+      <div 
+        onClick={() => setExpandedId(isExpanded ? null : `${item.id}-${idx}`)}
+        className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-7 shadow-sm border border-white cursor-pointer transition-all hover:shadow-lg relative overflow-hidden mb-8"
+      >
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-3">
+            {renderIcon(item.authorProfile, "w-9 h-9")}
+            <div>
+              <span className={`text-[9px] font-black px-3 py-1 rounded-full tracking-widest ${item.type === 'favorite' ? 'bg-[#FFF9C4] text-[#B5A773]' : theme.tag}`}>
+                {item.label}
+              </span>
+              <p className="text-[8px] opacity-30 font-bold mt-1 uppercase tracking-tighter">
+                {new Date(item.created_at).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          {isExpanded ? <ChevronUp size={14} className="opacity-20"/> : <ChevronDown size={14} className="opacity-20"/>}
+        </div>
+
+        <div className="space-y-6">
+          {(item.type === 'my_reply' || item.type === 'my_reaction' || item.type === 'favorite') && (
+            <div className="p-5 bg-[#FAF7F7] rounded-[1.5rem] border border-white/50 shadow-inner flex gap-3 items-start">
+              {renderIcon(item.targetProfile || item.authorProfile, "w-7 h-7")}
+              <div className="flex-1 min-w-0">
+                <p className="text-[8px] font-black opacity-20 mb-1 tracking-widest uppercase italic">Context</p>
+                <p className={`text-[12px] italic opacity-50 leading-relaxed truncate ${isExpanded ? "whitespace-normal" : ""}`}>
+                  {(item.otaku_posts || item.talk_posts)?.content || "元の投稿を表示中"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {item.type !== 'favorite' && (
+            <div className="px-1">
+              <p className={`text-[15px] leading-relaxed font-bold break-words text-[#5F6F7A] ${isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"}`}>
+                {item.type === 'my_reaction' ? `リアクションを贈りました ✨` : item.content}
+              </p>
+            </div>
+          )}
+
+          {isExpanded && (
+            <div className="pt-4 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              {item.image_urls?.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  {item.image_urls.map((url, i) => (
+                    <img key={i} src={url} className="rounded-2xl w-full h-32 object-cover border-2 border-white shadow-sm" alt="" />
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex flex-col gap-3">
+                <Link 
+                  href={originalPostLink}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`flex items-center justify-center gap-2 py-4 rounded-2xl text-[10px] font-black tracking-[0.1em] uppercase transition-all shadow-sm ${theme.button} text-white hover:brightness-110 active:scale-95`}
+                >
+                  Back to original <ArrowUpRight size={14} />
+                </Link>
+
+                {item.type === 'favorite' && (
+                  <button 
+                    onClick={(e) => handleUnfavorite(e, item.fav_id)} 
+                    className="text-[9px] font-black text-red-300 py-1 hover:text-red-500 transition-colors uppercase tracking-widest text-center"
+                  >
+                    ー Unfavorite this post
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className={`min-h-screen ${theme.bg} ${theme.text} pb-40 transition-all duration-500`}>
+    <div className={`h-screen overflow-hidden ${theme.bg} ${theme.text} transition-all duration-500 flex flex-col`}>
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap');
         body { font-family: 'Zen Maru Gothic', sans-serif; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 10px; }
       `}</style>
 
-      {/* Gardenに戻るボタン */}
-      <div className="fixed top-6 left-6 z-50">
-        <Link 
-          href="/picnic/garden"
-          className="w-14 h-14 flex items-center justify-center rounded-full shadow-xl transition-all border-2 bg-white border-[#FAF7F7] opacity-80 hover:opacity-100 active:scale-95"
-        >
-          <span className="text-2xl">🧺</span>
-        </Link>
-      </div>
-
-      {/* フィルターボタン */}
-      <div className="fixed top-6 right-6 z-50">
-        <button 
-          onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-          className={`w-14 h-14 flex items-center justify-center rounded-full shadow-xl transition-all border-2 bg-white ${showFavoritesOnly ? 'border-yellow-400 scale-110' : 'border-[#FAF7F7] opacity-80'}`}
-        >
-          <span className="text-2xl">{showFavoritesOnly ? "🔖" : "🏷️"}</span>
-        </button>
-      </div>
-
-      <header className="p-10 text-center">
-        <h1 className={`text-[10px] tracking-[0.5em] font-black uppercase mb-2 ${theme.header}`}>My Picnic Log</h1>
-        <p className="text-[12px] font-black opacity-40 italic">あしあとときろく</p>
+      {/* ヘッダーエリア (固定) */}
+      <header className="flex-shrink-0 p-8 pb-4">
+        <div className="max-w-5xl mx-auto flex justify-between items-center">
+          <Link href="/picnic/garden" className="w-14 h-14 flex items-center justify-center rounded-full shadow-xl bg-white border-2 border-[#FAF7F7] opacity-80 hover:opacity-100 transition-all">🧺</Link>
+          <div className="text-center">
+            <h1 className={`text-[10px] tracking-[0.5em] font-black uppercase mb-1 ${theme.header}`}>My Picnic Log</h1>
+            <p className="text-[12px] font-black opacity-40 italic">あしあとときろく</p>
+          </div>
+          <button 
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            className={`w-14 h-14 flex items-center justify-center rounded-full shadow-xl transition-all border-2 bg-white ${showFavoritesOnly ? 'border-yellow-400 scale-110' : 'border-[#FAF7F7] opacity-80'}`}
+          >
+            <span className="text-2xl">{showFavoritesOnly ? "🔖" : "🏷️"}</span>
+          </button>
+        </div>
       </header>
 
-      {/* タブ切り替え */}
-      <div className="flex px-6 mb-16 max-w-md mx-auto">
+      {/* タブエリア (固定) */}
+      <div className="flex-shrink-0 px-6 mb-8 max-w-md mx-auto w-full">
         <div className="flex w-full bg-white/40 p-1.5 rounded-full border border-white/50 backdrop-blur-sm shadow-sm">
-          <button 
-            onClick={() => {setActiveTab("otaku"); setExpandedId(null);}} 
-            className={`flex-1 py-3 rounded-full text-[11px] font-black transition-all ${activeTab === "otaku" ? `${theme.button} text-white shadow-md` : "text-[#7D7474]/40"}`}
-          >
+          <button onClick={() => {setActiveTab("otaku"); setExpandedId(null);}} className={`flex-1 py-3 rounded-full text-[11px] font-black transition-all ${activeTab === "otaku" ? `${theme.button} text-white shadow-md` : "text-[#7D7474]/40"}`}>
             オタトーーーク！！！
           </button>
-          <button 
-            onClick={() => {setActiveTab("talk"); setExpandedId(null);}} 
-            className={`flex-1 py-3 rounded-full text-[11px] font-black transition-all ${activeTab === "talk" ? `${theme.button} text-white shadow-md` : "text-[#7D7474]/40"}`}
-          >
+          <button onClick={() => {setActiveTab("talk"); setExpandedId(null);}} className={`flex-1 py-3 rounded-full text-[11px] font-black transition-all ${activeTab === "talk" ? `${theme.button} text-white shadow-md` : "text-[#7D7474]/40"}`}>
             ちょこっとーく
           </button>
         </div>
       </div>
 
-      {/* カードリスト */}
-      <div className="max-w-md mx-auto p-6 space-y-10">
-        {loading ? (
-          <div className="text-center py-20 opacity-40 animate-pulse text-[10px] tracking-widest uppercase">Loading your memories...</div>
-        ) : filteredItems.length === 0 ? (
-          <div className="text-center py-32 bg-white/20 rounded-[3rem] border-2 border-dashed border-white/40 text-[12px] font-black opacity-30 italic">きろくが見つかりません 🍀</div>
-        ) : (
-          filteredItems.map((item, idx) => {
-            const isExpanded = expandedId === `${item.id}-${idx}`;
-            const originalPostLink = `/picnic/${activeTab}?postId=${item.postId}`;
-
-            return (
-              <div 
-                key={`${item.id}-${idx}`} 
-                onClick={() => setExpandedId(isExpanded ? null : `${item.id}-${idx}`)}
-                className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-7 shadow-sm border border-white cursor-pointer transition-all hover:shadow-lg relative overflow-hidden"
-              >
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex items-center gap-3">
-                    {/* アイコン表示を追加 */}
-                    {renderIcon(item.authorProfile, "w-9 h-9")}
-                    <div>
-                      <span className={`text-[9px] font-black px-3 py-1 rounded-full tracking-widest ${item.type === 'favorite' ? 'bg-[#FFF9C4] text-[#B5A773]' : theme.tag}`}>
-                        {item.label}
-                      </span>
-                      <p className="text-[8px] opacity-30 font-bold mt-1 uppercase tracking-tighter">
-                        {new Date(item.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  {isExpanded ? <ChevronUp size={14} className="opacity-20"/> : <ChevronDown size={14} className="opacity-20"/>}
-                </div>
-
-                <div className="space-y-6">
-                  {/* 返信先やリアクション先の表示 */}
-                  {(item.type === 'my_reply' || item.type === 'my_reaction' || item.type === 'favorite') && (
-                    <div className="p-5 bg-[#FAF7F7] rounded-[1.5rem] border border-white/50 shadow-inner flex gap-3 items-start">
-                      {renderIcon(item.targetProfile || item.authorProfile, "w-7 h-7")}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[8px] font-black opacity-20 mb-1 tracking-widest uppercase italic">Context</p>
-                        <p className={`text-[12px] italic opacity-50 leading-relaxed truncate ${isExpanded ? "whitespace-normal" : ""}`}>
-                          {(item.otaku_posts || item.talk_posts)?.content || "元の投稿を表示中"}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {item.type !== 'favorite' && (
-                    <div className="px-1">
-                      <p className={`text-[15px] leading-relaxed font-bold break-words text-[#5F6F7A] ${isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"}`}>
-                        {item.type === 'my_reaction' ? `リアクションを贈りました ✨` : item.content}
-                      </p>
-                    </div>
-                  )}
-
-                  {isExpanded && (
-                    <div className="pt-4 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                      {item.image_urls?.length > 0 && (
-                        <div className="grid grid-cols-2 gap-3">
-                          {item.image_urls.map((url, i) => (
-                            <img key={i} src={url} className="rounded-2xl w-full h-32 object-cover border-2 border-white shadow-sm" alt="" />
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div className="flex flex-col gap-3">
-                        <Link 
-                          href={originalPostLink}
-                          onClick={(e) => e.stopPropagation()}
-                          className={`flex items-center justify-center gap-2 py-4 rounded-2xl text-[10px] font-black tracking-[0.1em] uppercase transition-all shadow-sm ${theme.button} text-white hover:brightness-110 active:scale-95`}
-                        >
-                          Back to original <ArrowUpRight size={14} />
-                        </Link>
-
-                        {item.type === 'favorite' && (
-                          <button 
-                            onClick={(e) => handleUnfavorite(e, item.fav_id)} 
-                            className="text-[9px] font-black text-red-300 py-1 hover:text-red-500 transition-colors uppercase tracking-widest text-center"
-                          >
-                            ー Unfavorite this post
-                          </button>
-                        )}
-                      </div>
-                    </div>
+      {/* メインコンテンツ (スクロールエリア) */}
+      <main className="flex-1 overflow-hidden px-6 pb-32">
+        <div className="max-w-5xl mx-auto h-full">
+          {loading ? (
+            <div className="text-center py-20 opacity-40 animate-pulse text-[10px] tracking-widest uppercase">Loading your memories...</div>
+          ) : showFavoritesOnly ? (
+            <div className="h-full flex flex-col">
+              <h2 className="text-[10px] font-black opacity-30 mb-6 tracking-widest uppercase text-center flex items-center justify-center gap-2">🔖 Favorites Only</h2>
+              <div className="flex-1 overflow-y-auto custom-scroll px-4">
+                <div className="max-w-md mx-auto">
+                  {favoriteItems.length === 0 ? (
+                    <div className="text-center py-32 bg-white/20 rounded-[3rem] border-2 border-dashed border-white/40 text-[12px] font-black opacity-30 italic">きろくが見つかりません 🍀</div>
+                  ) : (
+                    favoriteItems.map((item, idx) => <ItemCard key={`fav-${idx}`} item={item} idx={`fav-${idx}`} />)
                   )}
                 </div>
               </div>
-            );
-          })
-        )}
-      </div>
+            </div>
+          ) : (
+            <div className="h-full grid grid-cols-1 md:grid-cols-2 gap-10">
+              {/* 左カラム: 自分の投稿 */}
+              <div className="flex flex-col h-full overflow-hidden">
+                <h2 className="text-[10px] font-black opacity-30 mb-6 tracking-widest uppercase flex items-center gap-2 px-4">
+                  <PenTool size={14}/> My Footprints
+                </h2>
+                <div className="flex-1 overflow-y-auto custom-scroll px-4">
+                  {postsList.length === 0 ? (
+                    <div className="text-center py-20 bg-white/10 rounded-[2rem] text-[10px] opacity-20 italic">No posts yet.</div>
+                  ) : (
+                    postsList.map((item, idx) => <ItemCard key={`post-${idx}`} item={item} idx={`post-${idx}`} />)
+                  )}
+                </div>
+              </div>
 
-      {/* 下部固定ナビゲーション */}
+              {/* 右カラム: 返信・リアクション */}
+              <div className="flex flex-col h-full overflow-hidden">
+                <h2 className="text-[10px] font-black opacity-30 mb-6 tracking-widest uppercase flex items-center gap-2 px-4">
+                  <MessageCircle size={14}/> My Reactions
+                </h2>
+                <div className="flex-1 overflow-y-auto custom-scroll px-4">
+                  {reactionsList.length === 0 ? (
+                    <div className="text-center py-20 bg-white/10 rounded-[2rem] text-[10px] opacity-20 italic">No reactions yet.</div>
+                  ) : (
+                    reactionsList.map((item, idx) => <ItemCard key={`react-${idx}`} item={item} idx={`react-${idx}`} />)
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* フッターナビ (固定) */}
       <div className="fixed bottom-8 left-0 right-0 flex justify-center px-8 z-50">
         <Link 
           href={`/picnic/${activeTab}`} 

@@ -31,20 +31,20 @@ function TalkContent() {
   const ensureAuth = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setCurrentUserId(session.user.id);
-        return session.user.id;
+      let userId = session?.user?.id;
+      if (!userId) {
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
+        userId = data.user.id;
       }
-      const { data, error } = await supabase.auth.signInAnonymously();
-      if (error) return null;
-      setCurrentUserId(data.user.id);
-      return data.user.id;
+      setCurrentUserId(userId);
+      return userId;
     } catch (e) {
+      console.error("Auth Error:", e);
       return null;
     }
   }, [supabase]);
 
-  // 初期ロード
   useEffect(() => {
     const saved = localStorage.getItem("talk_blocked_users");
     if (saved) setBlockedUserIds(JSON.parse(saved));
@@ -74,28 +74,66 @@ function TalkContent() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ★リアルタイム機能の追加
+  // ★リアルタイム購読・通知・同期ロジック
   useEffect(() => {
+    if (!currentUserId) return;
+
     const channel = supabase
-      .channel("realtime_talk_posts")
+      .channel("talk_realtime_all")
+      // 1. 新着投稿の購読
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "talk_posts" },
         async (payload) => {
-          // 他の人の投稿が来たら、プロフィールを含めて再取得してリストに追加
-          const { data: newPostWithProfile } = await supabase
+          const { data: newPost } = await supabase
             .from("talk_posts")
             .select(`*, profiles!user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
             .eq("id", payload.new.id)
             .single();
 
-          if (newPostWithProfile) {
+          if (newPost) {
             setPosts((prev) => {
-              // 重複チェック（自分が投稿したものは handleSubmit で追加済みなので無視）
-              if (prev.some((p) => p.id === newPostWithProfile.id)) return prev;
-              return [newPostWithProfile, ...prev];
+              if (prev.some((p) => p.id === newPost.id)) return prev;
+              return [newPost, ...prev];
             });
           }
+        }
+      )
+      // 2. リアクションの同期と通知
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "talk_reactions" },
+        async (payload) => {
+          const postId = payload.new?.post_id || payload.old?.post_id;
+          if (!postId) return;
+
+          // リアクションデータの最新状態を取得
+          const { data: updatedReactions } = await supabase
+            .from("talk_reactions")
+            .select("*")
+            .eq("post_id", postId);
+
+          setPosts(prev => prev.map(p => p.id === postId ? { ...p, talk_reactions: updatedReactions || [] } : p));
+          
+          // 通知: 自分の投稿に誰かがリアクションした場合
+          if (payload.eventType === "INSERT" && payload.new.user_id !== currentUserId) {
+            const targetPost = posts.find(p => p.id === postId);
+            if (targetPost?.user_id === currentUserId) {
+              console.log(`あなたの投稿に ${payload.new.type} が届きました！`);
+            }
+          }
+        }
+      )
+      // 3. お気に入り状態の同期（他デバイスでの操作反映）
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "favorites", filter: `user_id=eq.${currentUserId}` },
+        () => {
+          // お気に入り一覧を再取得して同期
+          supabase.from("favorites").select("post_id").eq("user_id", currentUserId)
+            .then(({ data }) => {
+              if (data) setMyFavorites(data.map(f => f.post_id));
+            });
         }
       )
       .subscribe();
@@ -103,9 +141,8 @@ function TalkContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, currentUserId, posts]);
 
-  // URLパラメータからの詳細表示
   useEffect(() => {
     if (targetPostId && posts.length > 0) {
       const post = posts.find(p => p.id === targetPostId);
@@ -117,6 +154,16 @@ function TalkContent() {
       }
     }
   }, [targetPostId, posts]);
+
+  // selectedPostの状態を最新のpostsと同期させる
+  useEffect(() => {
+    if (selectedPost) {
+      const latest = posts.find(p => p.id === selectedPost.id);
+      if (latest) {
+        setSelectedPost(prev => ({ ...prev, ...latest }));
+      }
+    }
+  }, [posts]);
 
   const handleBlock = (targetId) => {
     if (targetId === currentUserId) return;
@@ -187,7 +234,6 @@ function TalkContent() {
       setPosts(prev => [newPost, ...prev]);
       setContent("");
       setImages([]);
-      alert("投稿しました！");
     } catch (err) {
       alert(err.message);
     } finally {
@@ -200,9 +246,9 @@ function TalkContent() {
     const targetPost = posts.find(p => p.id === postId);
     const existing = targetPost?.talk_reactions?.find(r => r.type === type && r.user_id === currentUserId);
 
+    // 楽観的UI更新はそのまま
     const updateUI = (newReactions) => {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, talk_reactions: newReactions } : p));
-      if (selectedPost?.id === postId) setSelectedPost(prev => ({ ...prev, talk_reactions: newReactions }));
     };
 
     const tempReactions = existing
@@ -214,8 +260,7 @@ function TalkContent() {
     if (existing) {
       await supabase.from("talk_reactions").delete().eq("id", existing.id);
     } else {
-      const { data } = await supabase.from("talk_reactions").insert({ post_id: postId, user_id: currentUserId, type }).select().single();
-      if (data) updateUI(tempReactions.map(r => r.id === 'temp' ? data : r));
+      await supabase.from("talk_reactions").insert({ post_id: postId, user_id: currentUserId, type });
     }
   };
 
@@ -469,7 +514,7 @@ function TalkContent() {
 
 export default function TalkPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center">読み込み中...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-[#94A684]">読み込み中...</div>}>
       <TalkContent />
     </Suspense>
   );

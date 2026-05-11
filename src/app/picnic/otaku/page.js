@@ -92,15 +92,14 @@ function OtakuContent() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // リアルタイム更新の購読
+  // リアルタイム更新と通知の統合購読
   useEffect(() => {
     const channel = supabase
-      .channel("otaku_realtime")
+      .channel("otaku_all_events")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "otaku_posts" },
         async (payload) => {
-          // 新規投稿時にプロフィール情報を含めて取得し直す
           const { data: newPost } = await supabase
             .from("otaku_posts")
             .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
@@ -109,6 +108,10 @@ function OtakuContent() {
 
           if (newPost) {
             setPosts((prev) => [{ ...newPost, otaku_replies: [] }, ...prev]);
+            // 自分以外の投稿なら通知（任意実装）
+            if (newPost.user_id !== currentUserId) {
+              console.log("新着の叫びが届きました！");
+            }
           }
         }
       )
@@ -116,7 +119,6 @@ function OtakuContent() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "otaku_replies" },
         async (payload) => {
-          // 新規返信時にプロフィール情報を含めて取得
           const { data: newReply } = await supabase
             .from("otaku_replies")
             .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
@@ -131,7 +133,21 @@ function OtakuContent() {
                   : post
               )
             );
+            // 自分の投稿への返信なら通知
+            const parentPost = posts.find(p => p.id === newReply.post_id);
+            if (parentPost?.user_id === currentUserId && newReply.user_id !== currentUserId) {
+              alert("あなたの叫びにレスポンスが届きました！💌");
+            }
           }
+        }
+      )
+      // お気に入り状態の他デバイス同期
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "otaku_favorites", filter: `user_id=eq.${currentUserId}` },
+        () => {
+          // お気に入りテーブルに変更があればセットを再同期
+          fetchData(); 
         }
       )
       .subscribe();
@@ -139,7 +155,7 @@ function OtakuContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, currentUserId, posts, fetchData]);
 
   useEffect(() => {
     if (targetPostId && posts.length > 0) {
@@ -148,7 +164,6 @@ function OtakuContent() {
     }
   }, [targetPostId, posts]);
 
-  // モーダル表示中にpostsが更新された場合、selectedPostも同期させる
   useEffect(() => {
     if (selectedPost) {
       const updated = posts.find(p => p.id === selectedPost.id);
@@ -178,14 +193,15 @@ function OtakuContent() {
     const isFav = favorites.has(postId);
     try {
       if (isFav) {
-        await supabase.from("otaku_favorites").delete().eq("user_id", currentUserId).eq("post_id", postId);
         setFavorites(prev => { const next = new Set(prev); next.delete(postId); return next; });
+        await supabase.from("otaku_favorites").delete().eq("user_id", currentUserId).eq("post_id", postId);
       } else {
-        await supabase.from("otaku_favorites").insert({ user_id: currentUserId, post_id: postId });
         setFavorites(prev => new Set(prev).add(postId));
+        await supabase.from("otaku_favorites").insert({ user_id: currentUserId, post_id: postId });
       }
     } catch (err) {
       console.error("Fav error:", err);
+      fetchData(); // エラー時は整合性をとるために再取得
     }
   };
 
@@ -216,7 +232,6 @@ function OtakuContent() {
         .insert({ user_id: userId, content, is_sensitive: isSensitive });
       
       if (error) throw error;
-      // Realtimeで更新されるため、ここでのSetPostsは不要（重複防止のため）
       setContent("");
       setIsSensitive(false);
     } catch (err) {
@@ -233,7 +248,6 @@ function OtakuContent() {
         .insert({ post_id: postId, user_id: currentUserId, content: replyText });
 
       if (error) throw error;
-      // Realtimeで更新されるため、ここでのSetPostsは不要
     } catch (err) {
       alert(`返信失敗: ${err.message}`);
     }
