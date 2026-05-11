@@ -117,7 +117,7 @@ export default function GardenPage() {
       const updated = { ...profile, status_message: statusInput };
       setProfile(updated);
       localStorage.setItem("picnic_user_profile", JSON.stringify(updated));
-      setIsEditing(false);
+      setIsEditing(false); // 更新完了後に編集モードを解除
     } catch (err) {
       console.error("Status update error details:", err);
     } finally {
@@ -263,7 +263,7 @@ export default function GardenPage() {
                       <p className="text-[13px] text-[#B5A773] font-bold italic leading-relaxed break-words px-4">
                         "{profile.status_message || "ひとこと書く..."}"
                       </p>
-                      <span className="text-[10px] opacity-30 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      <span className="text-[10px] opacity-20 group-hover:opacity-100 transition-opacity flex-shrink-0">
                         ✏️
                       </span>
                     </div>

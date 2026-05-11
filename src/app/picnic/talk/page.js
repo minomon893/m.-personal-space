@@ -44,25 +44,11 @@ function TalkContent() {
     }
   }, [supabase]);
 
+  // 初期ロード
   useEffect(() => {
     const saved = localStorage.getItem("talk_blocked_users");
     if (saved) setBlockedUserIds(JSON.parse(saved));
   }, []);
-
-  const handleBlock = (targetId) => {
-    if (targetId === currentUserId) return;
-    if (!confirm("このユーザーをブロックしますか？\n以降、このユーザーの投稿は表示なくなります。")) return;
-    
-    const newList = [...blockedUserIds, targetId];
-    setBlockedUserIds(newList);
-    localStorage.setItem("talk_blocked_users", JSON.stringify(newList));
-    setSelectedPost(null);
-  };
-
-  const handleReport = (postId) => {
-    if (!confirm("この投稿を通報しますか？")) return;
-    alert("通報を承りました。ご協力ありがとうございます。");
-  };
 
   const fetchData = useCallback(async () => {
     const userId = await ensureAuth();
@@ -73,7 +59,6 @@ function TalkContent() {
         supabase.from("favorites").select("post_id").eq("user_id", userId),
         supabase
           .from("talk_posts")
-          // 【重要】 profiles!user_id に修正（リレーションの明示）
           .select(`*, profiles!user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
           .order("created_at", { ascending: false }),
         supabase.from("follows").select("following_id").eq("follower_id", userId)
@@ -89,6 +74,38 @@ function TalkContent() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // ★リアルタイム機能の追加
+  useEffect(() => {
+    const channel = supabase
+      .channel("realtime_talk_posts")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "talk_posts" },
+        async (payload) => {
+          // 他の人の投稿が来たら、プロフィールを含めて再取得してリストに追加
+          const { data: newPostWithProfile } = await supabase
+            .from("talk_posts")
+            .select(`*, profiles!user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
+            .eq("id", payload.new.id)
+            .single();
+
+          if (newPostWithProfile) {
+            setPosts((prev) => {
+              // 重複チェック（自分が投稿したものは handleSubmit で追加済みなので無視）
+              if (prev.some((p) => p.id === newPostWithProfile.id)) return prev;
+              return [newPostWithProfile, ...prev];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  // URLパラメータからの詳細表示
   useEffect(() => {
     if (targetPostId && posts.length > 0) {
       const post = posts.find(p => p.id === targetPostId);
@@ -100,6 +117,20 @@ function TalkContent() {
       }
     }
   }, [targetPostId, posts]);
+
+  const handleBlock = (targetId) => {
+    if (targetId === currentUserId) return;
+    if (!confirm("このユーザーをブロックしますか？\n以降、このユーザーの投稿は表示なくなります。")) return;
+    const newList = [...blockedUserIds, targetId];
+    setBlockedUserIds(newList);
+    localStorage.setItem("talk_blocked_users", JSON.stringify(newList));
+    setSelectedPost(null);
+  };
+
+  const handleReport = (postId) => {
+    if (!confirm("この投稿を通報しますか？")) return;
+    alert("通報を承りました。ご協力ありがとうございます。");
+  };
 
   const toggleFollow = async (targetUserId) => {
     if (!currentUserId || targetUserId === currentUserId) return;
@@ -148,7 +179,6 @@ function TalkContent() {
       const { data: newPost, error: insertError } = await supabase
         .from("talk_posts")
         .insert({ user_id: userId, content: content.trim(), image_urls: uploadedUrls })
-        // 【重要】 profiles!user_id に修正（リレーションの明示）
         .select(`*, profiles!user_id (id, nickname, icon, avatar_url, title), talk_reactions (*)`)
         .single();
 

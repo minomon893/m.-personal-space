@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, Suspense } from "react"; // Suspenseを追加
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-// メインのロジックを別コンポーネントに分離
 function OtakuContent() {
   const searchParams = useSearchParams();
   const targetPostId = searchParams.get("postId");
@@ -93,12 +92,69 @@ function OtakuContent() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // リアルタイム更新の購読
+  useEffect(() => {
+    const channel = supabase
+      .channel("otaku_realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "otaku_posts" },
+        async (payload) => {
+          // 新規投稿時にプロフィール情報を含めて取得し直す
+          const { data: newPost } = await supabase
+            .from("otaku_posts")
+            .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
+            .eq("id", payload.new.id)
+            .single();
+
+          if (newPost) {
+            setPosts((prev) => [{ ...newPost, otaku_replies: [] }, ...prev]);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "otaku_replies" },
+        async (payload) => {
+          // 新規返信時にプロフィール情報を含めて取得
+          const { data: newReply } = await supabase
+            .from("otaku_replies")
+            .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
+            .eq("id", payload.new.id)
+            .single();
+
+          if (newReply) {
+            setPosts((prev) =>
+              prev.map((post) =>
+                post.id === newReply.post_id
+                  ? { ...post, otaku_replies: [...(post.otaku_replies || []), newReply] }
+                  : post
+              )
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
   useEffect(() => {
     if (targetPostId && posts.length > 0) {
       const post = posts.find(p => p.id === targetPostId);
       if (post) setSelectedPost(post);
     }
   }, [targetPostId, posts]);
+
+  // モーダル表示中にpostsが更新された場合、selectedPostも同期させる
+  useEffect(() => {
+    if (selectedPost) {
+      const updated = posts.find(p => p.id === selectedPost.id);
+      if (updated) setSelectedPost(updated);
+    }
+  }, [posts]);
 
   const toggleFollow = async (targetUserId) => {
     if (!currentUserId || targetUserId === currentUserId) return;
@@ -155,13 +211,12 @@ function OtakuContent() {
     setIsSubmitting(true);
     try {
       const userId = await ensureAuth();
-      const { data: newPost, error } = await supabase
+      const { error } = await supabase
         .from("otaku_posts")
-        .insert({ user_id: userId, content, is_sensitive: isSensitive })
-        .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
-        .single();
+        .insert({ user_id: userId, content, is_sensitive: isSensitive });
+      
       if (error) throw error;
-      setPosts(prev => [{ ...newPost, otaku_replies: [] }, ...prev]);
+      // Realtimeで更新されるため、ここでのSetPostsは不要（重複防止のため）
       setContent("");
       setIsSensitive(false);
     } catch (err) {
@@ -173,19 +228,12 @@ function OtakuContent() {
 
   const handleReply = async (postId, replyText) => {
     try {
-      const { data: newReply, error } = await supabase
+      const { error } = await supabase
         .from("otaku_replies")
-        .insert({ post_id: postId, user_id: currentUserId, content: replyText })
-        .select("*, profiles:user_id (id, nickname, icon, avatar_url, title)")
-        .single();
-      if (error) throw error;
+        .insert({ post_id: postId, user_id: currentUserId, content: replyText });
 
-      const updatedPosts = posts.map(post => post.id === postId ? {
-        ...post, otaku_replies: [...(post.otaku_replies || []), newReply]
-      } : post);
-      
-      setPosts(updatedPosts);
-      if (selectedPost?.id === postId) setSelectedPost(updatedPosts.find(p => p.id === postId));
+      if (error) throw error;
+      // Realtimeで更新されるため、ここでのSetPostsは不要
     } catch (err) {
       alert(`返信失敗: ${err.message}`);
     }
@@ -444,7 +492,6 @@ function OtakuContent() {
   );
 }
 
-// ここでコンポーネントをラップする
 export default function OtakuPage() {
   return (
     <Suspense fallback={

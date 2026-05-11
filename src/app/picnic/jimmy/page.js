@@ -162,7 +162,7 @@ export default function JimmyPage() {
                     <div>
                       <div className="flex items-center justify-between mb-8 border-b border-[#FFE4E9] pb-4">
                         <h2 className="font-cute text-[#B59090] text-2xl">
-                          {showOnlyLiked ? "お気に入り" : "目次"}
+                          {showOnlyLiked ? "おきにいり" : "もくじ"}
                         </h2>
                         <button 
                           onClick={() => setShowOnlyLiked(!showOnlyLiked)}
