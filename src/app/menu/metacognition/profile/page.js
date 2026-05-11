@@ -5,7 +5,8 @@ import Link from "next/link";
 import { 
   ArrowLeft, User, Star, History, Bookmark, PenLine, 
   Award, Info, X, Rocket, Trash2, Pencil, Check, 
-  Settings, Target, PlayCircle, TrendingUp, FlaskConical 
+  Settings, Target, PlayCircle, TrendingUp, FlaskConical,
+  ChevronDown, ChevronUp
 } from "lucide-react";
 import { supabase } from "../../../../lib/supabase";
 
@@ -14,7 +15,6 @@ export default function ProfilePage() {
   const [myLogs, setMyLogs] = useState([]);
   const [myMemberId, setMyMemberId] = useState("");
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
-  // 過去の最大投稿数を保持するステート
   const [maxReportCount, setMaxReportCount] = useState(0);
 
   // 編集用ステート
@@ -29,7 +29,6 @@ export default function ProfilePage() {
     { threshold: 0, title: "Junior Researcher", sub: "新人研究員", icon: <Award size={36} className="text-[#9FB3C8]" /> },
   ];
   
-  // 現在のランク判定を maxReportCount に基づいて行う
   const currentRank = RANKS.find(r => maxReportCount >= r.threshold) || RANKS[RANKS.length - 1];
 
   const fetchProfileData = async () => {
@@ -42,7 +41,6 @@ export default function ProfilePage() {
         currentLogs = all.filter(log => log.no === id);
         setMyLogs(currentLogs);
 
-        // 最大投稿数の更新と保存（一度増えたら減らさない）
         const savedStats = JSON.parse(localStorage.getItem("metacog_achievements") || "{}");
         const prevMax = savedStats.maxCount || 0;
         const newMax = Math.max(prevMax, currentLogs.length);
@@ -59,7 +57,6 @@ export default function ProfilePage() {
     const id = localStorage.getItem("my_member_id");
     setMyMemberId(id || "");
     
-    // 初回ロード時に保存されている最大数を復元
     const savedStats = JSON.parse(localStorage.getItem("metacog_achievements") || "{}");
     if (savedStats.maxCount) {
       setMaxReportCount(savedStats.maxCount);
@@ -81,7 +78,8 @@ export default function ProfilePage() {
     if (!error) fetchProfileData();
   };
 
-  const startEdit = (log) => {
+  const startEdit = (e, log) => {
+    e.stopPropagation(); // 親のタップ（展開）を防ぐ
     setEditingId(log.id);
     setEditForm({ 
       material: log.material || "", 
@@ -93,17 +91,27 @@ export default function ProfilePage() {
   };
 
   const handleUpdate = async (id) => {
+    // ステート更新用の関数
+    const updateLocalState = (prev) => 
+      prev.map(log => log.id === id ? { ...log, ...editForm } : log);
+    
+    // 画面上の表示を即座に更新（自分の投稿・お気に入りの両方）
+    setMyLogs(updateLocalState);
+    setFavLogs(updateLocalState);
+    setEditingId(null);
+
+    // データベースを更新
     const { error } = await supabase.from('reports').update(editForm).eq('id', id);
-    if (!error) {
-      setEditingId(null);
-      fetchProfileData();
+    
+    if (error) {
+      alert("更新に失敗しました。");
+      fetchProfileData(); // 失敗した場合は最新データを再取得して元に戻す
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] text-[#334E68] p-6 pb-24 font-sans">
       <div className="max-w-md mx-auto">
-        {/* Navigation */}
         <div className="flex justify-between items-center mb-10 text-[11px] font-bold opacity-50 uppercase">
           <Link href="/menu/metacognition" className="flex items-center gap-2 hover:opacity-100 transition-all"><ArrowLeft size={12}/> Back</Link>
           <div className="flex gap-2">
@@ -112,7 +120,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Rank Section */}
         <div className="text-center mb-10 relative">
           <button onClick={() => setIsRankModalOpen(true)} className="absolute right-1/2 translate-x-12 top-0 p-2 text-[#627D98] opacity-30 hover:opacity-100"><Info size={16} /></button>
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4 border border-[#BCCCDC] shadow-sm relative">
@@ -122,7 +129,6 @@ export default function ProfilePage() {
           <p className="text-[10px] font-bold opacity-40 uppercase mt-1">{currentRank.sub}</p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3 mb-12">
           <StatBox label="User ID" value={myMemberId || "---"} sub="あなたの番号" />
           <StatBox label="Reports" value={myLogs.length} sub="現在の報告数" />
@@ -130,7 +136,6 @@ export default function ProfilePage() {
         </div>
 
         <div className="space-y-12">
-          {/* My Submissions */}
           <section>
             <h2 className="text-[11px] font-bold flex items-center gap-2 text-[#486581] uppercase tracking-wider mb-6 border-b border-[#BCCCDC] pb-2"><PenLine size={14}/> My Submissions</h2>
             <div className="space-y-4">
@@ -142,26 +147,24 @@ export default function ProfilePage() {
                   isEditing={editingId === log.id}
                   editForm={editForm}
                   setEditForm={setEditForm}
-                  onEdit={() => startEdit(log)}
-                  onDelete={() => handleDelete(log.id)}
+                  onEdit={(e) => startEdit(e, log)}
+                  onDelete={(e) => {e.stopPropagation(); handleDelete(log.id)}}
                   onSave={() => handleUpdate(log.id)}
                   onCancel={() => setEditingId(null)}
                 />
               )) : (
                 <div className="text-center py-10 space-y-2">
                   <p className="text-[11px] opacity-30 italic text-[#486581]">まだ報告がありません。</p>
-                  <p className="text-[10px] font-bold text-[#627D98] opacity-60 uppercase tracking-tighter">最初の報告を投稿すると、<br/>あなた専用の研究員番号が発行されます。</p>
                 </div>
               )}
             </div>
           </section>
 
-          {/* Stocked Reports */}
           <section>
             <h2 className="text-[11px] font-bold flex items-center gap-2 text-[#486581] uppercase tracking-wider mb-6 border-b border-[#BCCCDC] pb-2"><Bookmark size={14}/> Stocked Reports</h2>
             <div className="space-y-4">
               {favLogs.length > 0 ? favLogs.map(log => (
-                <ProfileCard key={log.id} log={log} type="stock" onUnfav={() => handleUnfavorite(log.id)} />
+                <ProfileCard key={log.id} log={log} type="stock" onUnfav={(e) => {e.stopPropagation(); handleUnfavorite(log.id)}} />
               )) : (
                 <p className="text-[11px] opacity-30 text-center py-10">保存されたレポートはありません</p>
               )}
@@ -169,7 +172,6 @@ export default function ProfilePage() {
           </section>
         </div>
 
-        {/* Rank Modal */}
         {isRankModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#243B53]/20 backdrop-blur-sm" onClick={() => setIsRankModalOpen(false)}>
             <div className="bg-white w-full max-w-xs rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -202,14 +204,22 @@ function StatBox({ label, value, sub }) {
 }
 
 function ProfileCard({ log, type, onUnfav, isEditing, editForm, setEditForm, onEdit, onDelete, onSave, onCancel }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggle = () => {
+    if (!isEditing) setIsExpanded(!isExpanded);
+  };
+
   return (
-    <div className={`bg-white border border-[#BCCCDC] rounded-2xl p-5 shadow-sm relative transition-all ${isEditing ? "ring-2 ring-[#627D98]" : ""}`}>
-      {/* Action Buttons */}
-      <div className="absolute top-5 right-5 flex gap-2">
+    <div 
+      onClick={handleToggle}
+      className={`bg-white border border-[#BCCCDC] rounded-2xl p-5 shadow-sm relative transition-all cursor-pointer hover:border-[#9FB3C8] ${isEditing ? "ring-2 ring-[#627D98]" : ""}`}
+    >
+      <div className="absolute top-5 right-5 flex gap-2 z-10">
         {type === 'stock' ? (
           <button onClick={onUnfav} className="active:scale-125 transition-transform"><Star size={18} className="fill-[#B4941F] text-[#B4941F]" /></button>
         ) : isEditing ? (
-          <div className="flex gap-2">
+          <div className="flex gap-2" onClick={e => e.stopPropagation()}>
             <button onClick={onSave} className="text-[#486581] hover:scale-110"><Check size={18} /></button>
             <button onClick={onCancel} className="text-[#BCCCDC] hover:scale-110"><X size={18} /></button>
           </div>
@@ -221,10 +231,17 @@ function ProfileCard({ log, type, onUnfav, isEditing, editForm, setEditForm, onE
         )}
       </div>
       
-      <span className="text-[8px] font-mono bg-[#F0F4F8] text-[#627D98] px-2 py-0.5 rounded font-bold uppercase italic mb-4 inline-block">Researcher NO.{log.no}</span>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-[8px] font-mono bg-[#F0F4F8] text-[#627D98] px-2 py-0.5 rounded font-bold uppercase italic inline-block">Researcher NO.{log.no}</span>
+        {!isEditing && (
+          <div className="opacity-20">
+            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </div>
+        )}
+      </div>
       
       {isEditing ? (
-        <div className="space-y-3">
+        <div className="space-y-3" onClick={e => e.stopPropagation()}>
           <EditField label="Material" value={editForm.material} onChange={(v)=>setEditForm({...editForm, material:v})} />
           <EditField label="Scene" value={editForm.scene} onChange={(v)=>setEditForm({...editForm, scene:v})} />
           <EditField label="Action" value={editForm.action} onChange={(v)=>setEditForm({...editForm, action:v})} isTextarea />
@@ -235,9 +252,14 @@ function ProfileCard({ log, type, onUnfav, isEditing, editForm, setEditForm, onE
         <div className="space-y-3">
           <LogLine icon={<Settings size={10}/>} label="Material" content={log.material} />
           <LogLine icon={<Target size={10}/>} label="Scene" content={log.scene} />
-          <LogLine icon={<PlayCircle size={10}/>} label="Action" content={log.action} />
-          <LogLine icon={<TrendingUp size={10}/>} label="Result" content={log.result} />
-          {log.note && <LogLine icon={<FlaskConical size={10}/>} label="Bug Reporting" content={log.note} />}
+          
+          {isExpanded && (
+            <div className="space-y-3 pt-3 border-t border-[#F0F4F8] animate-in fade-in slide-in-from-top-1 duration-200">
+              <LogLine icon={<PlayCircle size={10}/>} label="Action" content={log.action} />
+              <LogLine icon={<TrendingUp size={10}/>} label="Result" content={log.result} />
+              {log.note && <LogLine icon={<FlaskConical size={10}/>} label="Bug Reporting" content={log.note} />}
+            </div>
+          )}
         </div>
       )}
     </div>

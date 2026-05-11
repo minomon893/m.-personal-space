@@ -99,10 +99,22 @@ export default function MetacognitionPortal() {
   };
 
   const handleUpdate = async (id) => {
+    // 1. データベースを更新
     const { error } = await supabase.from('reports').update(editForm).eq('id', id);
+    
     if (!error) {
+      // 2. 編集モードを閉じる
       setEditingId(null);
-      fetchInitial();
+      
+      // 3. ローカルのステートを直接書き換えて、再読み込みなしで即時反映
+      setLogs(prevLogs => 
+        prevLogs.map(log => 
+          log.id === id ? { ...log, ...editForm } : log
+        )
+      );
+    } else {
+      alert("更新に失敗しました。");
+      fetchInitial(); // 失敗した場合はDBから最新を取り直す
     }
   };
 

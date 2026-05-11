@@ -105,6 +105,13 @@ export default function GardenPage() {
   const updateStatus = async (e) => {
     e.preventDefault();
     if (!profile?.id) return;
+
+    // 即座にUIを更新する（楽観的更新）
+    const updated = { ...profile, status_message: statusInput };
+    setProfile(updated);
+    localStorage.setItem("picnic_user_profile", JSON.stringify(updated));
+    setIsEditing(false); // 通信完了を待たずに編集モードを閉じる
+
     setIsUpdatingStatus(true);
     try {
       const { error } = await supabase
@@ -113,13 +120,9 @@ export default function GardenPage() {
         .eq("id", profile.id);
       
       if (error) throw error;
-      
-      const updated = { ...profile, status_message: statusInput };
-      setProfile(updated);
-      localStorage.setItem("picnic_user_profile", JSON.stringify(updated));
-      setIsEditing(false); // 更新完了後に編集モードを解除
     } catch (err) {
       console.error("Status update error details:", err);
+      // 必要に応じて失敗時に元の状態に戻す処理をここに入れる
     } finally {
       setIsUpdatingStatus(false);
     }

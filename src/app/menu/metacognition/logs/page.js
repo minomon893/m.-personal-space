@@ -69,11 +69,23 @@ export default function AllLogsPage() {
 
   // 編集保存
   const handleUpdate = async (id) => {
+    // 1. まずステートを先行して更新（楽観的UI更新）
+    // これにより、保存ボタンを押した瞬間に画面が書き換わります
+    const updatedLogs = displayLogs.map((log) => 
+      log.id === id ? { ...log, ...editForm } : log
+    );
+    setDisplayLogs(updatedLogs);
+    setEditingId(null);
+
+    // 2. 背後でSupabaseを更新
     const { error } = await supabase.from('reports').update(editForm).eq('id', id);
-    if (!error) {
-      setEditingId(null);
-      fetchData(); // データを再取得して反映
+    
+    if (error) {
+      alert("更新に失敗しました。");
+      // 失敗した場合はデータを再取得して元に戻す
+      fetchData();
     }
+    // 成功した場合は fetchData() を呼ばなくても既に state が新しいので即時反映されます
   };
 
   return (

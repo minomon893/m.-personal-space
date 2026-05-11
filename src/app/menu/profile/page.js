@@ -10,7 +10,8 @@ export default function HighContrastProfilePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const printRef = useRef(null);
 
-  const [data, setData] = useState({
+  // 初期データ構造
+  const initialData = {
     date: { y: "2026", m: "05", d: "06" },
     basic: { name: "", sexuality: "", mbti: "", birthday: "", anniversary: "", charms: "", title: "", future: "" },
     fillIn: { morningNight: "", sleep: "", smartphone: "", exercise: "", likes: "", dislikes: "", mine: "", depression: "", moodUp: "", benefit: "", oneWord: "", motto: "" },
@@ -39,21 +40,29 @@ export default function HighContrastProfilePage() {
       order: ""
     },
     freeSpace: ""
-  });
+  };
 
+  const [data, setData] = useState(initialData);
+
+  // 初回読み込み
   useEffect(() => {
     const savedData = localStorage.getItem("my_profile_data");
     if (savedData) {
       try {
-        setData(JSON.parse(savedData));
+        const parsed = JSON.parse(savedData);
+        // 初期構造とマージして、キー不足によるエラーを防ぐ
+        setData(prev => ({ ...prev, ...parsed }));
       } catch (e) {
         console.error("Failed to load profile data", e);
       }
     }
   }, []);
 
+  // データ変更時に保存
   useEffect(() => {
-    localStorage.setItem("my_profile_data", JSON.stringify(data));
+    if (data !== initialData) {
+      localStorage.setItem("my_profile_data", JSON.stringify(data));
+    }
   }, [data]);
 
   const handleDownloadFull = async () => {
@@ -116,9 +125,12 @@ export default function HighContrastProfilePage() {
           </Link>
           
           <div className="flex gap-2">
-            <button onClick={handleDownloadFull} disabled={isGenerating} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white border-2 border-[#222222] text-[#222222] px-4 py-2.5 rounded-full shadow-lg disabled:opacity-50">
-              <Download size={14} /> {isGenerating ? '...' : 'SAVE IMAGE'}
-            </button>
+            {/* Viewモードの時だけ表示 */}
+            {!isEditing && (
+              <button onClick={handleDownloadFull} disabled={isGenerating} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white border-2 border-[#222222] text-[#222222] px-4 py-2.5 rounded-full shadow-lg disabled:opacity-50">
+                <Download size={14} /> {isGenerating ? '...' : 'SAVE IMAGE'}
+              </button>
+            )}
             
             <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#222222] text-[#FFFFFF] px-6 py-2.5 rounded-full shadow-xl">
               {isEditing ? (
@@ -277,7 +289,7 @@ export default function HighContrastProfilePage() {
               </Section>
             </div>
 
-            {/* 06: Values - UPDATED WITH NEW QUESTIONS */}
+            {/* 06: Values */}
             <Section title="06" en="VALUES" jp="二者択一">
               <div className="grid grid-cols-1 gap-6 pt-2">
                 <Choice label="感情表現は" left="大きめ" right="控えめ" active={data.choice.emotion} onSelect={v => handleChange('choice.emotion', v)} isEditing={isEditing} />
@@ -306,7 +318,7 @@ export default function HighContrastProfilePage() {
 
           <footer className="mt-16 md:mt-32 pt-8 border-t border-[#2222220D] flex flex-col md:flex-row justify-between items-center gap-4 text-[#22222266]">
             <span className="text-[9px] font-black tracking-[0.4em] uppercase text-center">PRIVATE MAPPING JOURNAL</span>
-            <span className="text-[9px] font-mono font-bold">© 2026 ARCHIVE</span>
+            <span className="text-[9px] font-mono font-bold">© {data.date.y} ARCHIVE</span>
           </footer>
         </div>
       </div>
@@ -360,10 +372,14 @@ function RadarChart({ data }) {
   const size = 300;
   const center = size / 2;
   const radius = 85;
+
+  // 数値を丸めるヘルパー関数
+  const fix = (num) => Number(num.toFixed(4));
+
   const points = data.map((item, i) => {
     const angle = (Math.PI * 2 / data.length) * i - Math.PI / 2;
-    const x = center + radius * (item.val / 6) * Math.cos(angle);
-    const y = center + radius * (item.val / 6) * Math.sin(angle);
+    const x = fix(center + radius * (item.val / 6) * Math.cos(angle));
+    const y = fix(center + radius * (item.val / 6) * Math.sin(angle));
     return `${x},${y}`;
   }).join(" ");
 
@@ -372,14 +388,16 @@ function RadarChart({ data }) {
       {[1, 2, 3, 4, 5, 6].map(step => (
         <polygon key={step} points={data.map((_, i) => {
           const angle = (Math.PI * 2 / data.length) * i - Math.PI / 2;
-          return `${center + radius * (step/6) * Math.cos(angle)},${center + radius * (step/6) * Math.sin(angle)}`;
+          const px = fix(center + radius * (step/6) * Math.cos(angle));
+          const py = fix(center + radius * (step/6) * Math.sin(angle));
+          return `${px},${py}`;
         }).join(" ")} fill="none" stroke="#222222" strokeWidth={1} strokeOpacity={0.1} />
       ))}
       <polygon points={points} fill="#222222" fillOpacity={0.15} stroke="#222222" strokeWidth={3} strokeLinejoin="round" />
       {data.map((item, i) => {
         const angle = (Math.PI * 2 / data.length) * i - Math.PI / 2;
-        const x = center + (radius + 35) * Math.cos(angle);
-        const y = center + (radius + 35) * Math.sin(angle);
+        const x = fix(center + (radius + 35) * Math.cos(angle));
+        const y = fix(center + (radius + 35) * Math.sin(angle));
         return (
           <text key={i} x={x} y={y} textAnchor="middle" className="text-[10px] font-black fill-[#222222]" dominantBaseline="middle">
             {item.label}
