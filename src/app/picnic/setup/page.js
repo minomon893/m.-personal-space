@@ -67,16 +67,18 @@ export default function SetupPage() {
     setIsSaving(true);
 
     try {
+      // 1. Authで匿名ユーザーを作成
       const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
       if (authError) throw authError;
 
       const user = authData.user;
       if (!user) throw new Error("ユーザー作成に失敗しました。");
 
-      const userId = user.id;
+      const userId = user.id; // ここでAuthから発行された正確なIDを取得
       const finalTitle = `${titleAdj}${titleNoun}`;
       let finalIconPath = previewUrl || "🌸"; 
 
+      // 2. アイコンのアップロード処理
       if (iconFile) {
         const fileExt = iconFile.name.split('.').pop();
         const fileName = `${userId}/avatar-${Date.now()}.${fileExt}`;
@@ -93,8 +95,9 @@ export default function SetupPage() {
         finalIconPath = publicUrl;
       }
 
+      // 3. Profilesテーブルへデータを保存（AuthのIDをそのまま使用）
       const profileData = {
-        id: userId,
+        id: userId, // 👈 ここで取得した正確なIDを流し込む
         nickname: nickname || "名無しの住人",
         icon: finalIconPath, 
         avatar_url: finalIconPath,
@@ -104,10 +107,11 @@ export default function SetupPage() {
 
       const { error: dbError } = await supabase
         .from("profiles")
-        .upsert(profileData);
+        .upsert(profileData, { onConflict: 'id' }); // IDが重複しても上書きして確実に作成
 
       if (dbError) throw dbError;
 
+      // 4. ローカルストレージに保存して遷移
       localStorage.setItem("picnic_user_profile", JSON.stringify(profileData));
       window.location.href = "/picnic/garden";
 
