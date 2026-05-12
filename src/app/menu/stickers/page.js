@@ -59,8 +59,8 @@ export default function LineStickersPage() {
               className="block bg-white/40 border border-white/30 rounded-[2rem] overflow-hidden hover:bg-white/60 transition-all shadow-sm group"
             >
 
-              {/* IMAGE */}
-              <div className="aspect-video bg-white/30 flex items-center justify-center p-6 relative">
+              {/* IMAGE - 背景を bg-white に変更 */}
+              <div className="aspect-video bg-white flex items-center justify-center p-6 relative">
                 
                 {sticker.isNew && (
                   <span className="absolute top-4 right-4 bg-[#A89D78] text-white text-[8px] px-2 py-0.5 rounded font-bold tracking-widest">

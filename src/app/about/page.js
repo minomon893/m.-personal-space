@@ -55,7 +55,7 @@ export default function AboutPage() {
               <Tag text="Narrative Therapy" />
               <Tag text="Metaphor" />
               <Tag text="Psychoanalysis" />
-              <Tag text="Action Change" />
+              <Tag text="Utilitarianism" />
             </div>
           </div>
         </section>
