@@ -53,9 +53,11 @@ export default function AboutPage() {
               <Tag text="ABA" />
               <Tag text="ACT" />
               <Tag text="Narrative Therapy" />
-              <Tag text="Metaphor" />
               <Tag text="Psychoanalysis" />
-              <Tag text="Utilitarianism" />
+              <Tag text="ADHD"/> 
+              <Tag text="ASD"/> 
+              <Tag text="Anxiety"/>
+              <Tag text="Depression"/>
             </div>
           </div>
         </section>
