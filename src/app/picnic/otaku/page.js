@@ -11,6 +11,7 @@ function OtakuContent() {
 
   const [posts, setPosts] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false); // お気に入りフィルター用
   const [myFollows, setMyFollows] = useState([]);
   const [blockedUserIds, setBlockedUserIds] = useState([]);
   const [content, setContent] = useState("");
@@ -67,7 +68,6 @@ function OtakuContent() {
 
       if (postError) throw postError;
 
-      // 共通テーブル favorites から取得するように変更
       const { data: favData, error: favError } = await supabase
         .from("favorites")
         .select("post_id")
@@ -94,7 +94,6 @@ function OtakuContent() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // リアルタイム更新と通知の統合購読
   useEffect(() => {
     const channel = supabase
       .channel("otaku_all_events")
@@ -210,11 +209,9 @@ function OtakuContent() {
     try {
       if (isFav) {
         setFavorites(prev => { const next = new Set(prev); next.delete(postId); return next; });
-        // 共通テーブル favorites に変更
         await supabase.from("favorites").delete().eq("user_id", currentUserId).eq("post_id", postId);
       } else {
         setFavorites(prev => new Set(prev).add(postId));
-        // 共通テーブル favorites に変更
         await supabase.from("favorites").insert({ user_id: currentUserId, post_id: postId });
       }
     } catch (err) {
@@ -322,7 +319,13 @@ function OtakuContent() {
     );
   };
 
-  const visiblePosts = posts.filter(post => !blockedUserIds.includes(post.user_id));
+  // ブロック済みを除外した全表示用
+  const baseVisiblePosts = posts.filter(post => !blockedUserIds.includes(post.user_id));
+  
+  // お気に入りフィルター適用の最終リスト
+  const visiblePosts = showFavoritesOnly 
+    ? baseVisiblePosts.filter(post => favorites.has(post.id)) 
+    : baseVisiblePosts;
 
   return (
     <div className="min-h-screen bg-[#F0F7EE] animate-in fade-in duration-1000 overflow-x-hidden relative">
@@ -341,7 +344,7 @@ function OtakuContent() {
           background-color: #749BC2; 
           background-image: radial-gradient(#6387A9 10%, transparent 10%);
           background-size: 20px 20px;
-          z-index: 20; 
+          z-index: 10; 
         }
         .lid-band {
           background-color: #333;
@@ -355,7 +358,17 @@ function OtakuContent() {
             <span className="text-xl">🧺</span>
             <span className="text-[10px] font-black font-pop uppercase">Top</span>
           </Link>
-          <Link href="/picnic/me" className="bg-white text-[#749BC2] w-12 h-12 flex items-center justify-center rounded-2xl shadow-xl text-2xl border-2 border-white">🌼</Link>
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={`w-12 h-12 flex items-center justify-center rounded-2xl shadow-xl border-2 transition-all ${showFavoritesOnly ? 'bg-yellow-100 border-yellow-400 scale-110' : 'bg-white border-white'}`}
+            >
+              <span className="text-2xl">{showFavoritesOnly ? "🔖" : "🏷️"}</span>
+            </button>
+            
+            <Link href="/picnic/me" className="bg-white text-[#749BC2] w-12 h-12 flex items-center justify-center rounded-2xl shadow-xl text-2xl border-2 border-white">🌼</Link>
+          </div>
         </header>
 
         <main className="max-w-5xl mx-auto pt-10 text-center relative z-10 flex-grow pb-40">
@@ -391,38 +404,60 @@ function OtakuContent() {
             </div>
           </form>
 
+          {showFavoritesOnly && (
+            <div className="mb-8 animate-in fade-in slide-in-from-top-2">
+              <span className="bg-yellow-100 text-yellow-700 px-6 py-2 rounded-full text-xs font-black tracking-widest border border-yellow-200 shadow-sm">
+                🔖 お気に入り中のみ表示しています
+              </span>
+            </div>
+          )}
+
           <div className="flex flex-wrap justify-center gap-10">
-            {visiblePosts.map((post, idx) => (
-              <div key={post.id} className="relative group">
-                <button 
-                  onClick={() => setSelectedPost(post)}
-                  style={{ transform: `rotate(${((idx * 17) % 20) - 10}deg)` }}
-                  className="bg-white rounded-[2rem] shadow-xl border-4 border-white w-48 h-60 flex flex-col items-center text-center hover:scale-105 transition-all active:scale-95 relative overflow-hidden"
-                >
-                  {post.is_sensitive && (
-                    <div className="absolute inset-0 lunch-box-lid flex items-center justify-center">
-                      <div className="absolute inset-y-0 w-8 lid-band left-1/2 -translate-x-1/2"></div>
-                      <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-4 bg-[#6387A9] rounded-full border-2 border-white/30"></div>
-                    </div>
-                  )}
-                  <div className="p-5 flex flex-col items-center h-full w-full">
-                    <div className="relative">
-                      {renderIcon(post.profiles, "w-16 h-16")}
-                      {post.user_id !== currentUserId && (
-                        <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] border-2 border-white shadow-sm transition-all ${myFollows.includes(post.user_id) ? 'bg-[#A8C69F] text-white' : 'bg-white text-[#749BC2]'}`}>
-                          {myFollows.includes(post.user_id) ? "🏡" : "＋"}
-                        </div>
+            {visiblePosts.length === 0 ? (
+              <div className="py-20 opacity-30 italic font-bold">表示できる投稿がありません 🍀</div>
+            ) : (
+              visiblePosts.map((post, idx) => (
+                <div key={post.id} className="relative group">
+                  <button 
+                    onClick={() => setSelectedPost(post)}
+                    style={{ transform: `rotate(${((idx * 17) % 20) - 10}deg)` }}
+                    className="bg-white rounded-[2rem] shadow-xl border-4 border-white w-48 h-60 flex flex-col items-center text-center hover:scale-105 transition-all active:scale-95 relative overflow-hidden"
+                  >
+                    {post.is_sensitive && (
+                      <div className="absolute inset-0 lunch-box-lid flex items-center justify-center">
+                        <div className="absolute inset-y-0 w-8 lid-band left-1/2 -translate-x-1/2"></div>
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-4 bg-[#6387A9] rounded-full border-2 border-white/30"></div>
+                      </div>
+                    )}
+                    {/* ここから蓋の上にも表示される情報レイヤー */}
+                    <div className="p-5 flex flex-col items-center h-full w-full relative z-20">
+                      <div className="relative">
+                        {renderIcon(post.profiles, "w-16 h-16")}
+                        {post.user_id !== currentUserId && (
+                          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] border-2 border-white shadow-sm transition-all ${myFollows.includes(post.user_id) ? 'bg-[#A8C69F] text-white' : 'bg-white text-[#749BC2]'}`}>
+                            {myFollows.includes(post.user_id) ? "🏡" : "＋"}
+                          </div>
+                        )}
+                        {favorites.has(post.id) && (
+                          <div className="absolute -top-1 -left-1 text-sm bg-white rounded-full p-0.5 shadow-sm">🔖</div>
+                        )}
+                      </div>
+                      <span className={`text-[10px] font-black mt-1 truncate w-full ${post.is_sensitive ? 'text-white' : 'text-[#749BC2]'}`}>
+                        {post.profiles?.nickname || "名無しさん"}
+                      </span>
+                      
+                      {!post.is_sensitive && (
+                        <p className="text-[11px] font-bold text-[#5F6F7A] mt-2 line-clamp-3 leading-tight">{post.content}</p>
                       )}
+                      
+                      <div className={`mt-auto pt-2 w-full text-[9px] font-black opacity-80 ${post.is_sensitive ? 'text-white/80' : 'text-[#B5A773] border-t border-[#F0F7EE]'}`}>
+                        {new Date(post.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </div>
                     </div>
-                    <span className="text-[10px] font-black text-[#749BC2] mt-1 truncate w-full">{post.profiles?.nickname || "名無しさん"}</span>
-                    <p className="text-[11px] font-bold text-[#5F6F7A] mt-2 line-clamp-3 leading-tight">{post.content}</p>
-                    <div className="mt-auto pt-2 border-t border-[#F0F7EE] w-full text-[9px] font-black text-[#B5A773] opacity-60">
-                      {new Date(post.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </div>
-                  </div>
-                </button>
-              </div>
-            ))}
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </main>
       </div>

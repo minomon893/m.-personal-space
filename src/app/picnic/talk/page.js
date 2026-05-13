@@ -8,7 +8,8 @@ import { useSearchParams } from "next/navigation";
 // ★ IDから固定のデザイン（形・色・回転）を生成するヘルパー関数
 const getPostDesign = (id) => {
   if (!id) return { shapeIdx: 0, colorIdx: 0, rotation: 0 };
-  const idNum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const idStr = String(id);
+  const idNum = idStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return {
     shapeIdx: idNum % 5, 
     colorIdx: idNum % 5, 
@@ -21,7 +22,7 @@ function TalkContent() {
   const targetPostId = searchParams.get("postId");
 
   const [posts, setPosts] = useState([]);
-  const [myFavorites, setMyFavorites] = useState([]);
+  const [myFavorites, setMyFavorites] = useState([]); // 文字列の配列として管理
   const [myFollows, setMyFollows] = useState([]); 
   const [blockedUserIds, setBlockedUserIds] = useState([]);
   const [content, setContent] = useState("");
@@ -29,6 +30,7 @@ function TalkContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [filterMode, setFilterMode] = useState("all"); // "all" or "fav"
 
   const BUCKET_NAME = "talkimage";
   const MAX_CHARS = 500;
@@ -56,11 +58,6 @@ function TalkContent() {
     }
   }, [supabase]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("talk_blocked_users");
-    if (saved) setBlockedUserIds(JSON.parse(saved));
-  }, []);
-
   const fetchData = useCallback(async () => {
     const userId = await ensureAuth();
     if (!userId) return;
@@ -75,7 +72,7 @@ function TalkContent() {
         supabase.from("follows").select("following_id").eq("follower_id", userId)
       ]);
 
-      setMyFavorites(favs?.map(f => f.post_id) || []);
+      setMyFavorites(favs?.map(f => String(f.post_id)) || []);
       setMyFollows(followData?.map(f => f.following_id) || []); 
       setPosts(talkData || []);
     } catch (err) {
@@ -83,7 +80,11 @@ function TalkContent() {
     }
   }, [supabase, ensureAuth]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const saved = localStorage.getItem("talk_blocked_users");
+    if (saved) setBlockedUserIds(JSON.parse(saved));
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -127,13 +128,12 @@ function TalkContent() {
         "postgres_changes",
         { event: "*", schema: "public", table: "favorites", filter: `user_id=eq.${currentUserId}` },
         () => {
-          // リアルタイムでお気に入り状態を再取得
           supabase.from("favorites")
             .select("post_id")
             .eq("user_id", currentUserId)
             .not("post_id", "is", null)
             .then(({ data }) => {
-              if (data) setMyFavorites(data.map(f => f.post_id));
+              if (data) setMyFavorites(data.map(f => String(f.post_id)));
             });
         }
       )
@@ -146,7 +146,7 @@ function TalkContent() {
 
   useEffect(() => {
     if (targetPostId && posts.length > 0) {
-      const post = posts.find(p => p.id === targetPostId);
+      const post = posts.find(p => String(p.id) === String(targetPostId));
       if (post) {
         const { shapeIdx, colorIdx, rotation } = getPostDesign(post.id);
         const shapeClass = shapes[shapeIdx];
@@ -158,7 +158,7 @@ function TalkContent() {
 
   useEffect(() => {
     if (selectedPost) {
-      const latest = posts.find(p => p.id === selectedPost.id);
+      const latest = posts.find(p => String(p.id) === String(selectedPost.id));
       if (latest) {
         setSelectedPost(prev => ({ ...prev, ...latest }));
       }
@@ -243,34 +243,55 @@ function TalkContent() {
 
   const handleReaction = async (postId, type) => {
     if (!currentUserId) return;
-    const targetPost = posts.find(p => p.id === postId);
+    const pidStr = String(postId);
+    const targetPost = posts.find(p => String(p.id) === pidStr);
     const existing = targetPost?.talk_reactions?.find(r => r.type === type && r.user_id === currentUserId);
-
-    const updateUI = (newReactions) => {
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, talk_reactions: newReactions } : p));
-    };
 
     const tempReactions = existing
       ? targetPost.talk_reactions.filter(r => r.id !== existing.id)
       : [...(targetPost.talk_reactions || []), { id: 'temp', type, user_id: currentUserId }];
     
-    updateUI(tempReactions);
+    setPosts(prev => prev.map(p => String(p.id) === pidStr ? { ...p, talk_reactions: tempReactions } : p));
 
-    if (existing) {
-      await supabase.from("talk_reactions").delete().eq("id", existing.id);
-    } else {
-      await supabase.from("talk_reactions").insert({ post_id: postId, user_id: currentUserId, type });
+    try {
+      if (existing) {
+        await supabase.from("talk_reactions").delete().eq("id", existing.id);
+      } else {
+        await supabase.from("talk_reactions").insert({ post_id: postId, user_id: currentUserId, type });
+        if (!myFavorites.includes(pidStr)) {
+          await supabase.from("favorites").upsert({ user_id: currentUserId, post_id: postId }, { onConflict: 'user_id,post_id' });
+          setMyFavorites(prev => [...prev, pidStr]);
+        }
+      }
+    } catch (err) {
+      console.error("Reaction error:", err);
+      fetchData();
     }
   };
 
   const toggleFavorite = async (postId) => {
     if (!currentUserId) return;
-    const isAdding = !myFavorites.includes(postId);
-    setMyFavorites(prev => isAdding ? [...prev, postId] : prev.filter(id => id !== postId));
-    if (isAdding) {
-      await supabase.from("favorites").insert({ user_id: currentUserId, post_id: postId });
-    } else {
-      await supabase.from("favorites").delete().eq("user_id", currentUserId).eq("post_id", postId);
+    const pidStr = String(postId);
+    const isAdding = !myFavorites.includes(pidStr);
+    
+    setMyFavorites(prev => isAdding ? [...prev, pidStr] : prev.filter(id => id !== pidStr));
+    
+    try {
+      if (isAdding) {
+        const { error } = await supabase
+          .from("favorites")
+          .upsert({ user_id: currentUserId, post_id: postId }, { onConflict: 'user_id,post_id' });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("favorites")
+          .delete()
+          .match({ user_id: currentUserId, post_id: postId });
+        if (error) throw error;
+      }
+    } catch (err) {
+      console.error("Favorite toggle error:", err.message);
+      fetchData();
     }
   };
 
@@ -290,8 +311,13 @@ function TalkContent() {
   };
 
   const visiblePosts = useMemo(() => {
-    return posts.filter(p => !blockedUserIds.includes(p.user_id));
-  }, [posts, blockedUserIds]);
+    return posts.filter(p => {
+      const isBlocked = blockedUserIds.includes(p.user_id);
+      if (isBlocked) return false;
+      if (filterMode === "fav") return myFavorites.includes(String(p.id));
+      return true;
+    });
+  }, [posts, blockedUserIds, filterMode, myFavorites]);
 
   const shapes = [
     "rounded-[20%_50%_30%_60%]",
@@ -351,18 +377,33 @@ function TalkContent() {
             <span className="text-xl">🧺</span>
             <span className="text-[10px] font-black tracking-widest uppercase font-pop">Top</span>
           </Link>
-          <Link href="/picnic/me" className="pointer-events-auto bg-white text-[#A8C69F] w-12 h-12 flex items-center justify-center rounded-2xl shadow-xl hover:rotate-12 transition-all text-2xl border-2 border-white">
-            🌼
-          </Link>
+          
+          <div className="flex items-center gap-2 pointer-events-auto">
+             {/* --- フィルターボタン --- */}
+             <button 
+                onClick={() => setFilterMode(prev => prev === "all" ? "fav" : "all")}
+                className={`w-12 h-12 flex items-center justify-center rounded-2xl shadow-xl transition-all text-xl border-2 border-white ${filterMode === "fav" ? "bg-yellow-100 scale-110" : "bg-white"}`}
+             >
+               {filterMode === "fav" ? "🔖" : "🏷️"}
+             </button>
+
+            <Link href="/picnic/me" className="bg-white text-[#A8C69F] w-12 h-12 flex items-center justify-center rounded-2xl shadow-xl hover:rotate-12 transition-all text-2xl border-2 border-white">
+              🌼
+            </Link>
+          </div>
         </header>
 
         <main className="max-w-4xl mx-auto pt-32 text-center">
           <div className="mb-12">
-            <h1 className="font-cute text-[#94A684] text-5xl sm:text-6xl tracking-wider mb-2">ちょこっとーく</h1>
-            <p className="text-sm font-medium text-[#5F6F7A]/70">ちょっとしたこと、ちょこっとおしえて。</p>
+            <h1 className="font-cute text-[#94A684] text-5xl sm:text-6xl tracking-wider mb-2">
+              {filterMode === "fav" ? "おきにいり" : "ちょこっとーく"}
+            </h1>
+            <p className="text-sm font-medium text-[#5F6F7A]/70">
+              {filterMode === "fav" ? "だいじにとっておいた叫び。" : "ちょっとしたこと、ちょこっとおしえて。"}
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mb-24 max-w-lg mx-auto relative z-10 text-left">
+          <form onSubmit={handleSubmit} className="mb-16 max-w-lg mx-auto relative z-10 text-left">
             <div className="sketchbook p-1 bg-gray-100">
               <div className="bg-white p-8 rounded-r-[1rem]">
                 <textarea
@@ -399,6 +440,21 @@ function TalkContent() {
             </div>
           </form>
 
+          {/* ★ お気に入りフィルター用ラベルを追加 */}
+          {filterMode === "fav" && (
+            <div className="mb-10 animate-in fade-in slide-in-from-top-2">
+              <span className="bg-yellow-100 text-yellow-700 px-6 py-2 rounded-full text-xs font-black tracking-widest border border-yellow-200 shadow-sm">
+                🔖 お気に入り中のみ表示しています
+              </span>
+            </div>
+          )}
+
+          {visiblePosts.length === 0 && (
+            <div className="py-20 text-[#94A684] font-bold opacity-40">
+               {filterMode === "fav" ? "お気に入りの叫びはまだありません" : "叫びを待っています..."}
+            </div>
+          )}
+
           <div className="flex flex-wrap justify-center gap-10 relative">
             {visiblePosts.map((post) => {
               const { shapeIdx, colorIdx, rotation } = getPostDesign(post.id);
@@ -422,6 +478,9 @@ function TalkContent() {
                   <div className="mt-auto text-[8px] font-black opacity-30">
                     {new Date(post.created_at).toLocaleDateString()}
                   </div>
+                  {myFavorites.includes(String(post.id)) && (
+                    <div className="absolute top-1 right-1 text-[10px]">🔖</div>
+                  )}
                 </button>
               );
             })}
@@ -434,7 +493,6 @@ function TalkContent() {
           <div className="absolute inset-0 bg-[#5F6F7A]/40 backdrop-blur-md" onClick={() => setSelectedPost(null)}></div>
           <div className="relative w-full max-w-lg aspect-[4/5] flex items-center justify-center">
             <div 
-              style={{ transform: `rotate(${selectedPost.rotation}deg)` }}
               className={`absolute inset-0 bg-white crayon-border rounded-[3rem] ${selectedPost.colorClass} border-8 shadow-2xl transition-all duration-700`}
             ></div>
 
@@ -497,9 +555,9 @@ function TalkContent() {
                   <div className="flex items-center justify-between">
                     <button 
                       onClick={() => toggleFavorite(selectedPost.id)}
-                      className={`h-9 px-3 rounded-xl flex items-center justify-center text-lg border-2 transition-all ${myFavorites.includes(selectedPost.id) ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-[#F0F7EE]'}`}
+                      className={`h-9 px-3 rounded-xl flex items-center justify-center text-lg border-2 transition-all ${myFavorites.includes(String(selectedPost.id)) ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-[#F0F7EE]'}`}
                     >
-                      {myFavorites.includes(selectedPost.id) ? "🔖" : "🏷️"}
+                      {myFavorites.includes(String(selectedPost.id)) ? "🔖" : "🏷️"}
                     </button>
                     {selectedPost.user_id !== currentUserId && (
                       <div className="flex gap-2">

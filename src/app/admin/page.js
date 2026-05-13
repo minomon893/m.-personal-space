@@ -174,7 +174,7 @@ export default function AdminPage() {
                     value={noticeTag}
                     onChange={(e) => setNoticeTag(e.target.value)}
                     className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] outline-none focus:border-[#EAB8B8] transition-all text-sm text-[#7D7474]"
-                    placeholder={activeTab === "feedbacks" ? "text/realtime/guide" : activeTab === "jimmys" ? "JIMMY" : "Update"}
+                    placeholder={activeTab === "feedbacks" ? "text / realtime / guide" : activeTab === "jimmys" ? "JIMMY" : "Update"}
                   />
                 </div>
               )}
