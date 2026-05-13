@@ -12,6 +12,7 @@ export default function JimmyPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(0); 
   const [showOnlyLiked, setShowOnlyLiked] = useState(false);
+  const [viewedIds, setViewedIds] = useState([]);
 
   const supabase = useMemo(() => {
     const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/['"]+/g, "").replace(/\/$/, "");
@@ -20,8 +21,11 @@ export default function JimmyPage() {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem("jimi_liked_posts");
-    if (saved) setLikedIds(JSON.parse(saved));
+    const savedLikes = localStorage.getItem("jimi_liked_posts");
+    if (savedLikes) setLikedIds(JSON.parse(savedLikes));
+    
+    const savedViewed = localStorage.getItem("jimi_viewed_posts");
+    if (savedViewed) setViewedIds(JSON.parse(savedViewed));
   }, []);
 
   const fetchJimmys = useCallback(async () => {
@@ -42,6 +46,36 @@ export default function JimmyPage() {
 
   useEffect(() => { fetchJimmys(); }, [fetchJimmys]);
 
+  const totalPagesPC = Math.ceil(posts.length / 2);
+  const totalPagesMobile = posts.length;
+
+  const hasNewPost = useMemo(() => {
+    if (posts.length === 0) return false;
+    const latestPost = posts[posts.length - 1];
+    return !viewedIds.includes(latestPost.id);
+  }, [posts, viewedIds]);
+
+  useEffect(() => {
+    if (!isOpen || posts.length === 0) return;
+    
+    const markAsViewed = (post) => {
+      if (post && !viewedIds.includes(post.id)) {
+        const newViewed = [...viewedIds, post.id];
+        setViewedIds(newViewed);
+        localStorage.setItem("jimi_viewed_posts", JSON.stringify(newViewed));
+      }
+    };
+
+    if (window.innerWidth < 640) {
+      if (currentPage > 0) markAsViewed(posts[currentPage - 1]);
+    } else {
+      if (currentPage > 0) {
+        markAsViewed(posts[(currentPage - 1) * 2]);
+        markAsViewed(posts[(currentPage - 1) * 2 + 1]);
+      }
+    }
+  }, [currentPage, isOpen, posts, viewedIds]);
+
   const toggleLike = (e, id) => {
     e.preventDefault();
     e.stopPropagation();
@@ -56,33 +90,43 @@ export default function JimmyPage() {
     ? posts.filter(p => likedIds.includes(p.id)) 
     : posts;
 
-  // PCは見開きなので2ページで1単位、スマホは1ページ1単位
-  const totalPagesPC = Math.ceil(posts.length / 2);
-  const totalPagesMobile = posts.length;
+  const Bookmark = ({ isAtLatest, isClosed }) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    const isLatestOnRight = posts.length % 2 === 0;
 
-  const Bookmark = ({ isExposed, isClosed }) => (
-    <div 
-      onClick={() => { setIsOpen(true); setCurrentPage(window.innerWidth < 640 ? totalPagesMobile : totalPagesPC); }}
-      className={`absolute cursor-pointer transition-all duration-300 ease-out ${
-        isClosed 
-        ? "top-[-30px] left-[65%] h-[80px] z-[5]" 
-        : isExposed 
-        ? "top-[-40px] right-12 h-[320px] z-[30] shadow-xl" 
-        : "top-[-50px] right-12 h-[80px] z-[5]" 
-      } w-12 bg-[#EAB8B8] border-b-4 border-[#D4A5A5]/20`}
-    >
-      <div className="w-full h-1 bg-white/20 mt-1" />
-      {isExposed && (
-        <div className="mt-8 flex flex-col items-center w-full">
-          <div className="w-[1px] h-36 bg-white/40" />
-          <div className="mt-6 [writing-mode:vertical-rl] text-[11px] font-black text-white tracking-[0.6em] font-pop uppercase opacity-90">
-            Latest
-          </div>
-          <div className="absolute bottom-4 w-1.5 h-1.5 bg-white/30 rounded-full" />
-        </div>
-      )}
-    </div>
-  );
+    let positionClass = "";
+    if (isClosed) {
+      // 本が閉じている時：表紙(z-10)の裏側(z-0)に配置して、上部20pxだけはみ出させる
+      positionClass = "top-[-20px] left-[65%] h-[60px] z-0 opacity-100";
+    } else if (isAtLatest) {
+      // 最新ページ表示中：紙の上に乗る
+      positionClass = `top-[-10px] h-[220px] z-50 shadow-md opacity-100 ${
+        isMobile 
+          ? "right-4 translate-x-0" 
+          : isLatestOnRight 
+            ? "left-1/2 translate-x-0" 
+            : "left-1/2 -translate-x-full"
+      }`;
+    } else {
+      // 前のページを読んでいる時：最新ページ（後ろ）に挟まっているので裏側へ
+      positionClass = `top-[-15px] h-[220px] z-0 opacity-100 ${
+        isMobile ? "right-4" : isLatestOnRight ? "left-1/2" : "left-1/2 -translate-x-full"
+      }`;
+    }
+
+    return (
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(true);
+          setCurrentPage(isMobile ? totalPagesMobile : totalPagesPC);
+        }}
+        className={`absolute cursor-pointer transition-all duration-700 ease-in-out w-8 bg-[#EAB8B8] border-b-[12px] border-b-transparent after:content-[''] after:absolute after:bottom-[-12px] after:left-0 after:border-l-[16px] after:border-l-[#EAB8B8] after:border-r-[16px] after:border-r-[#EAB8B8] after:border-b-[12px] after:border-b-transparent ${hasNewPost ? 'animate-bookmark-glow' : ''} ${positionClass}`}
+      >
+        <div className="w-full h-full border-x border-white/10" />
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#F0F7EE] relative overflow-x-hidden">
@@ -105,6 +149,14 @@ export default function JimmyPage() {
           box-shadow: 0 20px 50px rgba(0,0,0,0.15);
         }
         .page-left { border-right: 1px solid rgba(0,0,0,0.05); }
+
+        @keyframes bookmark-glow {
+          0%, 100% { filter: drop-shadow(0 0 2px rgba(234, 184, 184, 0.5)); }
+          50% { filter: drop-shadow(0 0 12px rgba(234, 184, 184, 0.9)); transform: translateY(4px); }
+        }
+        .animate-bookmark-glow {
+          animation: bookmark-glow 3s ease-in-out infinite;
+        }
       `}</style>
 
       <div className="max-w-[96%] mx-auto min-h-screen gingham-pink shadow-[0_0_80px_rgba(0,0,0,0.05)] relative flex flex-col items-center justify-center py-10 sm:py-20">
@@ -119,12 +171,11 @@ export default function JimmyPage() {
         <div className="relative w-full max-w-5xl aspect-[0.7/1] sm:aspect-[1.6/1] px-2 sm:px-4">
           
           <Bookmark 
-            isExposed={isOpen && currentPage === (typeof window !== 'undefined' && window.innerWidth < 640 ? totalPagesMobile : totalPagesPC)} 
+            isAtLatest={isOpen && currentPage === (typeof window !== 'undefined' && window.innerWidth < 640 ? totalPagesMobile : totalPagesPC)} 
             isClosed={!isOpen}
           />
 
           {!isOpen ? (
-            /* 表紙 */
             <div 
               onClick={() => setIsOpen(true)}
               className="absolute inset-0 m-auto w-[90%] sm:w-[80%] max-w-md aspect-[0.7/1] bg-[#FFFBFB] rounded-r-3xl rounded-l-md border-y-4 sm:border-y-8 border-r-4 sm:border-r-8 border-white book-shadow cursor-pointer hover:rotate-[-1deg] transition-transform flex flex-col items-center justify-center text-center p-8 z-10"
@@ -135,13 +186,11 @@ export default function JimmyPage() {
               <div className="mt-12 text-[10px] text-[#B59090]/40 font-black tracking-[0.4em] uppercase">Click to open</div>
             </div>
           ) : (
-            /* 本の中身 */
             <div className="w-full h-full bg-[#FFFBFA] rounded-xl flex overflow-hidden book-shadow border-[4px] sm:border-[6px] border-white relative z-10">
               
-              {/* PC用見開き表示 */}
-              <div className="hidden sm:flex w-full h-full">
+              <div className="hidden sm:flex w-full h-full relative z-10">
                 {/* 左ページ */}
-                <div className="flex-1 p-14 overflow-y-auto page-left bg-white/60 relative">
+                <div className="flex-1 p-14 overflow-y-auto page-left bg-white/60 relative z-10">
                   {currentPage === 0 ? (
                     <div className="h-full flex flex-col justify-center">
                        <div className="space-y-6">
@@ -152,12 +201,12 @@ export default function JimmyPage() {
                       </div>
                     </div>
                   ) : (
-                    <ColumnContent post={posts[(currentPage - 1) * 2]} likedIds={likedIds} toggleLike={toggleLike} />
+                    <ColumnContent post={posts[(currentPage - 1) * 2]} likedIds={likedIds} toggleLike={toggleLike} viewedIds={viewedIds} />
                   )}
                 </div>
 
                 {/* 右ページ */}
-                <div className="flex-1 p-14 overflow-y-auto bg-white/40 relative">
+                <div className="flex-1 p-14 overflow-y-auto bg-white/40 relative z-10">
                   {currentPage === 0 ? (
                     <div>
                       <div className="flex items-center justify-between mb-8 border-b border-[#FFE4E9] pb-4">
@@ -180,6 +229,7 @@ export default function JimmyPage() {
                         {displayedPostsInIndex.length > 0 ? (
                           displayedPostsInIndex.map((post) => {
                             const originalIdx = posts.findIndex(p => p.id === post.id);
+                            const isNew = !viewedIds.includes(post.id);
                             return (
                               <button 
                                 key={post.id}
@@ -188,6 +238,7 @@ export default function JimmyPage() {
                               >
                                 <span className="opacity-20 font-pop">{String(originalIdx + 1).padStart(2, '0')}</span>
                                 <span className="line-clamp-1 border-b border-transparent group-hover:border-[#EAB8B8]">{post.title}</span>
+                                {isNew && <span className="text-[8px] bg-[#EAB8B8] text-white px-1.5 py-0.5 rounded-sm font-pop scale-90">NEW</span>}
                                 {likedIds.includes(post.id) && <Heart size={10} fill="#EAB8B8" className="text-[#EAB8B8] ml-auto" />}
                               </button>
                             );
@@ -200,13 +251,13 @@ export default function JimmyPage() {
                       </div>
                     </div>
                   ) : (
-                    <ColumnContent post={posts[(currentPage - 1) * 2 + 1]} likedIds={likedIds} toggleLike={toggleLike} />
+                    <ColumnContent post={posts[(currentPage - 1) * 2 + 1]} likedIds={likedIds} toggleLike={toggleLike} viewedIds={viewedIds} />
                   )}
                 </div>
               </div>
 
-              {/* スマホ用1ページ表示 */}
-              <div className="sm:hidden w-full h-full overflow-y-auto p-6 bg-white/50">
+              {/* スマホ用 */}
+              <div className="sm:hidden w-full h-full overflow-y-auto p-6 bg-white/50 relative z-10">
                 {currentPage === 0 ? (
                   <div>
                     <div className="flex items-center justify-between mb-6 border-b border-[#FFE4E9] pb-4">
@@ -226,6 +277,7 @@ export default function JimmyPage() {
                     <div className="space-y-4">
                       {displayedPostsInIndex.map((post) => {
                         const originalIdx = posts.findIndex(p => p.id === post.id);
+                        const isNew = !viewedIds.includes(post.id);
                         return (
                           <button 
                             key={post.id}
@@ -234,6 +286,7 @@ export default function JimmyPage() {
                           >
                             <span className="opacity-20 font-pop">{String(originalIdx + 1).padStart(2, '0')}</span>
                             <span className="line-clamp-1">{post.title}</span>
+                            {isNew && <span className="text-[8px] bg-[#EAB8B8] text-white px-1.5 py-0.5 rounded-sm font-pop scale-90">NEW</span>}
                             {likedIds.includes(post.id) && <Heart size={10} fill="#EAB8B8" className="text-[#EAB8B8] ml-auto" />}
                           </button>
                         );
@@ -241,12 +294,12 @@ export default function JimmyPage() {
                     </div>
                   </div>
                 ) : (
-                  <ColumnContent post={posts[currentPage - 1]} likedIds={likedIds} toggleLike={toggleLike} />
+                  <ColumnContent post={posts[currentPage - 1]} likedIds={likedIds} toggleLike={toggleLike} viewedIds={viewedIds} />
                 )}
               </div>
 
               {/* ナビゲーション */}
-              <div className="absolute bottom-6 left-0 right-0 flex justify-between px-6 sm:px-10 pointer-events-none">
+              <div className="absolute bottom-6 left-0 right-0 flex justify-between px-6 sm:px-10 pointer-events-none z-50">
                 <button 
                   onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))} 
                   className={`pointer-events-auto w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-[#B59090] active:scale-95 transition-transform ${currentPage === 0 ? 'opacity-0' : 'opacity-100'}`}
@@ -268,7 +321,7 @@ export default function JimmyPage() {
               
               <button 
                 onClick={() => { setIsOpen(false); setCurrentPage(0); setShowOnlyLiked(false); }} 
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto text-[9px] font-black text-[#B59090]/40 tracking-widest uppercase hover:text-[#B59090] transition-colors"
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto text-[9px] font-black text-[#B59090]/40 tracking-widest uppercase hover:text-[#B59090] transition-colors z-50"
               >
                 Close Book
               </button>
@@ -284,12 +337,14 @@ export default function JimmyPage() {
   );
 }
 
-function ColumnContent({ post, likedIds, toggleLike }) {
+function ColumnContent({ post, likedIds, toggleLike, viewedIds = [] }) {
   if (!post) return (
     <div className="h-full flex items-center justify-center opacity-10">
       <BookOpen size={40} className="text-[#B59090]" />
     </div>
   );
+
+  const isNew = !viewedIds.includes(post.id);
   
   return (
     <article className="animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -304,7 +359,10 @@ function ColumnContent({ post, likedIds, toggleLike }) {
           <Heart size={18} fill={likedIds.includes(post.id) ? "currentColor" : "none"} />
         </button>
       </div>
-      <h3 className="text-base sm:text-lg font-bold text-[#5D5757] leading-snug mb-4">{post.title}</h3>
+      <div className="flex items-center gap-3 mb-4">
+        <h3 className="text-base sm:text-lg font-bold text-[#5D5757] leading-snug">{post.title}</h3>
+        {isNew && <span className="text-[8px] bg-[#EAB8B8] text-white px-2 py-0.5 rounded-sm font-pop shrink-0">NEW</span>}
+      </div>
       <div className="text-[10px] text-[#7D7474]/30 mb-6 tracking-widest font-bold">
         {new Date(post.created_at).toLocaleDateString("ja-JP").replace(/\//g, '.')}
       </div>
