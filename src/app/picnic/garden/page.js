@@ -15,6 +15,7 @@ export default function GardenPage() {
   const [statusInput, setStatusInput] = useState("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false); // ガイドモーダル用
 
   const supabase = useMemo(() => {
     const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/['"]+/g, "").replace(/\/$/, "");
@@ -116,11 +117,9 @@ export default function GardenPage() {
 
     setIsUpdatingStatus(true);
     try {
-      // 1. セッションチェック
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session found. Please re-login.");
 
-      // 2. 更新実行
       const { data, error, status, statusText } = await supabase
         .from("profiles")
         .update({ status_message: statusInput })
@@ -128,21 +127,16 @@ export default function GardenPage() {
         .select();
       
       if (error) {
-        // Supabase特有のエラーを詳細化
         const errorDetails = `Code: ${error.code}, Message: ${error.message}, Hint: ${error.hint}`;
         throw new Error(errorDetails);
       }
-
-      // 3. 実行結果のデバッグ
       console.log("Update success:", { status, statusText, data });
 
     } catch (err) {
-      // 4. 強制的に中身を文字列として表示
       console.error("Status update error details:", String(err));
       if (err instanceof Error) {
         console.error("Error Stack:", err.stack);
       }
-      // 万が一のために、オブジェクトとしてもう一度出力
       console.dir(err);
     } finally {
       setIsUpdatingStatus(false);
@@ -216,6 +210,72 @@ export default function GardenPage() {
           background-position: 0 0, 20px 20px;
         }
       `}</style>
+
+      {/* 右上の本マークボタン */}
+      <button 
+        onClick={() => setIsGuideOpen(true)}
+        className="fixed top-6 right-6 z-40 w-12 h-12 bg-white/80 backdrop-blur-md rounded-full shadow-lg shadow-green-900/5 flex items-center justify-center text-xl hover:scale-110 active:scale-95 transition-all border border-white"
+      >
+        📖
+      </button>
+
+      {/* ガイドモーダル */}
+      {isGuideOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-[#5F6F7A]/20 backdrop-blur-sm" onClick={() => setIsGuideOpen(false)}></div>
+          <div className="relative bg-[#F8FAF7] w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-[3rem] shadow-2xl p-8 md:p-12 no-scrollbar animate-in zoom-in-95 duration-300 border-4 border-white">
+            <button 
+              onClick={() => setIsGuideOpen(false)}
+              className="absolute top-6 right-6 text-2xl opacity-40 hover:opacity-100 transition-opacity"
+            >
+              ✕
+            </button>
+            
+            <div className="text-center mb-10">
+              <span className="text-4xl block mb-4">🧺</span>
+              <h2 className="text-xl font-black text-[#A8C69F] tracking-[0.2em] uppercase">m. picnic space</h2>
+              <div className="h-1 w-8 bg-[#A8C69F]/30 mx-auto rounded-full mt-4"></div>
+            </div>
+
+            <div className="space-y-10">
+              <section>
+                <h3 className="text-[10px] font-black tracking-[0.4em] text-[#A8C69F] uppercase mb-4">Concept</h3>
+                <p className="text-[12px] leading-loose font-bold opacity-80">
+                  SNSの喧騒から離れた「心理的安全性の高い避難所」です。月額500円の有料制にすることで、広告のない、穏やかな繋がりと静かな時間を守っています。
+                </p>
+              </section>
+
+              <section>
+                <h3 className="text-[10px] font-black tracking-[0.4em] text-[#A8C69F] uppercase mb-4">Inside the Space</h3>
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    <span className="flex-shrink-0">💬</span>
+                    <p className="text-[11px] opacity-70 leading-relaxed"><strong>ちょこっとーく:</strong> 写真と500文字で綴る、ゆるい日常。4つのリアクションでおだやかに共鳴。</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <span className="flex-shrink-0">🔥</span>
+                    <p className="text-[11px] opacity-70 leading-relaxed"><strong>オタトーーーク！！！:</strong> 趣味や好きを全力で叫ぶ場所。1000文字の熱量や、センシティブな悩み相談も。</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <span className="flex-shrink-0">📖</span>
+                    <p className="text-[11px] opacity-70 leading-relaxed"><strong>じみコラム:</strong> 管理人や住人が綴る、ここだけの内緒の話。少し真面目な気づきや創作の裏側。</p>
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-[10px] font-black tracking-[0.4em] text-[#A8C69F] uppercase mb-4">Safe Rules</h3>
+                <ul className="space-y-3">
+                  <li className="text-[11px] opacity-60 leading-relaxed">・プロフィール（名前・アイコン）は変更できません。</li>
+                  <li className="text-[11px] opacity-60 leading-relaxed">・投稿やコメントは「人生の記録」として削除できません。</li>
+                  <li className="text-[11px] opacity-60 leading-relaxed">・広場内の言葉やコラムを許可なく外へ公開するのは厳禁です。</li>
+                </ul>
+              </section>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {decorations.map((deco) => (
         <div key={deco.id} className="absolute pointer-events-none opacity-20 animate-bounce" style={{ top: deco.top, left: deco.left, transform: `rotate(${deco.rotate})`, fontSize: deco.size, animationDuration: `${Math.random() * 2 + 4}s` }}>

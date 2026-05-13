@@ -7,12 +7,36 @@ import Link from "next/link";
 import { ArrowLeft, Scroll, Sparkles, Bird } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-// もともとの格言リストをバックアップとして保持
+// CSVデータをバックアップとして統合
 const originalPoems = [
-  { text: "人は、歳を重ねるにつれ変われなくなるというけれど、人の行動はいつだって変えられる。", author: "Applied Behavior Analysis" },
-  { text: "It is not the strongest of the species that survives, nor the most intelligent. It is the one that is most adaptable to change.", author: "Charles Darwin" },
-  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
-  { text: "Stay Hungry, Stay Foolish.", author: "Whole Earth Catalog" }
+  { text: "その水に馴染めている魚は、その水について考えない。その水に馴染めない魚だけが、その水について考え続けるのだ。", author: "武田砂鉄「べつに怒ってない」" },
+  { text: "今の自分を愛すということは過去の自分を労うこと。", author: "Jimmy" },
+  { text: "和して同ぜず", author: "論語" },
+  { text: "他人の幸せは自分の不幸じゃない", author: "KUPPIE’S music" },
+  { text: "歩くって少し止まるとかきますし、立ち止まる日もあなたの一歩。", author: "Unknown" },
+  { text: "生き方そのものを夢にする生き方もある。", author: "魔法少女まどか☆マギカ" },
+  { text: "98%の信頼", author: "渡辺和子「置かれた場所で咲きなさい」" },
+  { text: "筋の通った遅さ", author: "岡潔" },
+  { text: "「考えすぎ」は自分の輪郭を失わずに生きていこうとしてきた証。", author: "Jimmy" },
+  { text: "Eat Well, Live Well.\n\n(よく食べ、よく生きる。)", author: "味の素株式会社" },
+  { text: "Love is like a fart, if you push it, it's probably shit.\n\n(愛は屁のようなもの。無理に押し出そうとすれば、それはきっと糞である。)", author: "Unknown" },
+  { text: "自分にしてもらいたいように、人に対してもせよ", author: "黄金律" },
+  { text: "Good enough mother\n\n（ほどよい母親）", author: "DONALD WINNICOTT" },
+  { text: "ゆるいルール、ゆるーる。", author: "Jimmy" },
+  { text: "あー、、、このまま一生ヒマでいたいな、、、\n私ヒマが好き、、、", author: "さくらももこ" },
+  { text: "尊敬は評価、respectは尊重。", author: "Jimmy" },
+  { text: "solitude\n\n意味：ひとり（でいること）、孤独、独居\n\n「孤独」と訳されるが、寂しさを強調する loneliness と異なり、「自分の意志でひとりでいること」や、「自分と向き合う穏やかな時間」といった、ポジティブまたは中立的な意味で使われることが多い。", author: "word" },
+  { text: "Never take a person's dignity: it is worth everything to them, and nothing to you.\n\n(他人の尊厳を奪ってはいけない。それは彼らにとってのすべてであり、あなたにとっては無価値なものなのだから。)", author: "Frank Barron" },
+  { text: "気づいた分だけ、世界は愛おしくなる。", author: "グッデイCM" },
+  { text: "doable\n\n意味：実行可能な、できる、やり遂げられる\n\ndo（やる）＋ able（できる）という成り立ちで、「（現実的に考えて）それは可能だ」というニュアンスで使われる。\n\nLife is hard, but doable.\n\n（人生はハードだ。でもやっていける。）", author: "word" },
+  { text: "Garbage can", author: "言葉遊び" },
+  { text: "理解することと感情が動かないことは必ずしも同じではない。", author: "Chappy" },
+  { text: "小さすぎて笑っちゃうくらいの一歩", author: "Jimmy" },
+  { text: "Thank you for trying!\n\n（挑戦してくれてありがとう！)", author: "育児の定番フレーズ" },
+  { text: "自分がされて嫌なことを人にしない", author: "人生の基本" },
+  { text: "私が見てる「醜い部分」は誰かを傷つけているわけではなくて、自分を責める材料になっているだけ。", author: "Jimmy" },
+  { text: "不自由と不幸はイコールじゃない。哀れに思われる理由はないよ。", author: "鋼の錬金術師 / アルフォンス" },
+  { text: "変化とは髪の毛のようなものだ。\n新しきものは少しずつ、されど確実に土台となる。\n古きものが煩わしくなったときは切り落としてしまえばよい。", author: "Jimmy" }
 ];
 
 export default function PoemPage() {
