@@ -69,7 +69,6 @@ export default function NotToDoPage() {
       setEntries(updatedEntries);
 
       const newCompletedCount = updatedEntries.filter(e => e.is_completed).length;
-      // 5個の区切りでセレブレーション
       if (newCompletedCount > 0 && newCompletedCount % 5 === 0) {
         setTimeout(() => setShowCelebration(true), 1000);
       }
@@ -89,11 +88,8 @@ export default function NotToDoPage() {
     }
   }
 
-  // 進捗計算: 5個で100%になるように計算
-  // 5個完了した瞬間に100%になり、トロフィー保存後に次のサイクル（0%）へ
   const completedCount = entries.filter(e => e.is_completed).length;
   const currentProgressCount = completedCount % 5;
-  // ちょうど5の倍数の時は、まだトロフィー画面が出る前なら100%として表示
   const progressPercent = (currentProgressCount === 0 && completedCount > 0 && !showCelebration && trophies.length < Math.floor(completedCount / 5)) 
     ? 100 
     : (currentProgressCount / 5) * 100;
@@ -106,7 +102,6 @@ export default function NotToDoPage() {
         <Link href="/menu" className="p-2 hover:opacity-50 transition-opacity">
           <ChevronLeft size={22} strokeWidth={1.5} />
         </Link>
-        {/* 説明用ボタン: 丸い枠を追加 */}
         <button 
           onClick={() => setShowInfo(true)} 
           className="p-2 border border-stone-300 rounded-full hover:bg-stone-100 transition-all shadow-sm"
@@ -115,14 +110,10 @@ export default function NotToDoPage() {
         </button>
       </nav>
 
-      {/* 右側のIdentityエリア: インジケーター + トロフィー棚 */}
+      {/* Identity Area */}
       <div className="fixed right-4 md:right-10 top-1/2 -translate-y-1/2 flex flex-col items-center gap-8 z-0">
-        
-        {/* Identity Indicator */}
         <div className="relative w-32 h-64 md:w-40 md:h-80 flex items-end justify-center">
-          {/* 背景のグロー効果 */}
           <div className="absolute inset-0 bg-amber-100/20 blur-3xl rounded-full" />
-          
           <div className="absolute bottom-0 w-full h-full overflow-hidden" style={{ clipPath: 'url(#human-mask)' }}>
             <motion.div 
               initial={{ height: 0 }}
@@ -131,7 +122,6 @@ export default function NotToDoPage() {
               className="w-full bg-gradient-to-t from-amber-600 via-amber-400 to-yellow-200 absolute bottom-0 shadow-[0_0_30px_rgba(251,191,36,0.6)]"
             />
           </div>
-
           <svg className="w-full h-full text-stone-200 fill-current opacity-90 relative z-10" viewBox="0 0 24 24">
             <defs>
               <clipPath id="human-mask">
@@ -141,13 +131,11 @@ export default function NotToDoPage() {
             <path d="M12,2c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,2,12,2z M10.5,7h3c1.1,0,2,0.9,2,2v5.5h-1.5V22h-4v-7.5H8.5V9C8.5,7.9,9.4,7,10.5,7z" 
               fill="none" stroke="#D6D3D1" strokeWidth="0.2" />
           </svg>
-          
           <div className="absolute -bottom-6 w-full text-center">
              <p className="text-[8px] tracking-[0.4em] uppercase opacity-40 font-medium">Core Progress</p>
           </div>
         </div>
 
-        {/* Trophy Shelf (棚) */}
         <div className="relative flex flex-col items-center">
           <div className="flex flex-wrap justify-center gap-3 max-w-[160px] min-h-[40px] px-2 pb-1">
             {trophies.map((t) => (
@@ -161,7 +149,6 @@ export default function NotToDoPage() {
               </motion.button>
             ))}
           </div>
-          {/* Shelf Line */}
           <div className="w-32 md:w-40 h-[2px] bg-stone-300 rounded-full shadow-sm" />
           <div className="w-28 md:w-36 h-[4px] mt-[2px] bg-stone-200/50 rounded-full" />
           <p className="text-[8px] mt-2 tracking-[0.3em] uppercase opacity-30">Achievements</p>
@@ -268,14 +255,45 @@ export default function NotToDoPage() {
       <AnimatePresence>
         {showInfo && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-stone-100/90 backdrop-blur-sm">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white border border-stone-200 p-8 md:p-10 max-w-sm w-full relative shadow-2xl">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white border border-stone-200 p-8 md:p-10 max-w-lg w-full relative shadow-2xl max-h-[90vh] overflow-y-auto">
               <button onClick={() => setShowInfo(false)} className="absolute top-6 right-6 opacity-30 hover:opacity-100 transition-opacity">
                 <X size={20} strokeWidth={1} />
               </button>
-              <h3 className="text-[13px] font-serif italic tracking-[0.2em] mb-6 border-b border-stone-100 pb-4">Not to do list について</h3>
-              <div className="text-[12px] leading-relaxed space-y-4 opacity-70">
-                <p>レポートを5つ書くたびに、黄金のインジケーターが満たされ、一つのトロフィーが生成されます。</p>
-                <p>棚に並ぶトロフィーは、あなたが「自分ではない何か」を観察し、本質に近づいた証です。</p>
+              
+              <div className="space-y-8">
+                <header className="border-b border-stone-100 pb-6">
+                  <h3 className="text-[15px] font-serif italic tracking-[0.1em] mb-2">Not to do list について</h3>
+                  <p className="text-[11px] opacity-50 tracking-wider">〜自分らしさの輪郭を描く、逆説の実験室〜</p>
+                </header>
+
+                <div className="text-[12px] leading-relaxed space-y-6 opacity-80 text-stone-600">
+                  <p>
+                    「自分らしさ」を見つけるのは難しいけれど、「これじゃない！」という違和感は、私たちの体が教えてくれる最も信頼できるシグナルです。
+                    このページは、あえて「自分らしくない選択」をすることで、その裏側に隠れているあなたの理想や、本当に大切にしたい価値観を浮かび上がらせるための場所です。
+                  </p>
+
+                  <section className="space-y-3 bg-stone-50 p-4 rounded-sm">
+                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400">How to use</h4>
+                    <ul className="space-y-2">
+                      <li><span className="font-bold text-stone-800">らしくない選択:</span> 普段の自分なら選ばない行動を、あえて実験的に選んでみる。</li>
+                      <li><span className="font-bold text-stone-800">違和感をキャッチ:</span> その時に生じる「恥ずかしさ」や「無理してる感」を、心のシグナルとして観察する。</li>
+                      <li><span className="font-bold text-stone-800">シグナルを貯める:</span> ログを貯めていくことで、右側のインジケーターが満たされ、あなたの「無理のない形」が少しずつ見えてきます。</li>
+                    </ul>
+                  </section>
+
+                  <section className="space-y-3">
+                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400">この実験の良さ</h4>
+                    <ul className="space-y-2">
+                      <li><span className="font-bold text-stone-800">無責任を肯定する:</span> 「こんなの私じゃない」と手放すことは、自分への誠実さです。</li>
+                      <li><span className="font-bold text-stone-800">正解を探さない:</span> 何が正解か分からなくても、「これではない」を減らすだけで心は軽くなります。</li>
+                      <li><span className="font-bold text-stone-800">余白を作る:</span> 合わない役割を置いていくことで、今のあなたが自然に収まるための「余白」が生まれます。</li>
+                    </ul>
+                  </section>
+
+                  <p className="italic pt-4 border-t border-stone-100 text-center opacity-60">
+                    「これじゃない」というシグナルの先に、あなたが少しだけ楽にいられる場所が見つかります。
+                  </p>
+                </div>
               </div>
             </motion.div>
           </motion.div>
