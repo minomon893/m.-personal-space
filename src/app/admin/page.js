@@ -19,6 +19,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+// タブごとの色設定（くすみカラー）
+const tabThemes = {
+  notices: { primary: "#E6D5A9", bg: "#FAF4E6", text: "#8C7E55" },
+  jimmys: { primary: "#D4A5A5", bg: "#FDF2F2", text: "#8C6363" },
+  bingos: { primary: "#A9B2B9", bg: "#F1F3F5", text: "#636E7A" },
+  feedbacks: { primary: "#A9B9A9", bg: "#F2F6F2", text: "#637A63" },
+  poems: { primary: "#A9B2D4", bg: "#F2F4FD", text: "#636A8C" }
+};
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -32,6 +41,8 @@ export default function AdminPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   
   const [expandedId, setExpandedId] = useState(null);
+
+  const theme = tabThemes[activeTab] || tabThemes.notices;
 
   const fetchItems = async () => {
     const table = activeTab;
@@ -86,12 +97,18 @@ export default function AdminPage() {
         excerpt: body.substring(0, 80).replace(/\n/g, ' ') + (body.length > 80 ? "..." : "")
       };
     } else if (table === "bingos") {
-      // 改行区切りで9マス分を取得
-      const lines = body.split('\n').filter(l => l.trim() !== "");
+      // 1. テキストエリアの各行を配列にする
+      const lines = body.split('\n').map(line => line.trim()).filter(line => line !== "");
+      // 2. 9マスの空の配列を用意する
       const grid = Array(9).fill("");
+      // 3. 入力された行を順番にそのまま入れる（中央固定ロジックは一切なし）
       lines.forEach((line, idx) => { if(idx < 9) grid[idx] = line; });
-      grid[4] = "日々ンゴを見る"; // 仕様に基づき中央を固定
-      payload = { title, grid, type: noticeTag || "official" };
+      
+      payload = { 
+        title, 
+        grid, 
+        is_official: true // SQLで追加したカラムに合わせて調整
+      };
     } else {
       payload = { title, body };
     }
@@ -99,7 +116,7 @@ export default function AdminPage() {
     const { error } = await supabase.from(table).insert([payload]);
 
     if (error) {
-      alert("Database Error: " + error.message + "\n(Please check RLS policies in Supabase)");
+      alert("Database Error: " + error.message);
     } else {
       setBody("");
       setTitle("");
@@ -113,9 +130,7 @@ export default function AdminPage() {
 
   const handleDelete = async (id) => {
     const labels = { notices: "Notice", feedbacks: "Feedback", poems: "Poem", jimmys: "Jimmy", bingos: "Bingo" };
-    const typeLabel = labels[activeTab] || "Item";
-    
-    if (!confirm(`Delete this ${typeLabel}?`)) return;
+    if (!confirm(`Delete this ${labels[activeTab] || "Item"}?`)) return;
     const { error } = await supabase.from(activeTab).delete().eq("id", id);
     if (!error) fetchItems();
   };
@@ -135,7 +150,7 @@ export default function AdminPage() {
               className="w-full bg-white/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-[#F9EEEE] outline-none focus:border-[#EAB8B8] transition-all text-center text-sm tracking-[0.2em] text-[#7D7474]"
               placeholder="PASSWORD"
             />
-            <button className="w-full py-4 bg-[#EAB8B8] text-white rounded-3xl text-[11px] font-black tracking-[0.3em] uppercase hover:bg-[#B59090] transition-all shadow-sm">
+            <button className="w-full py-4 bg-[#EAB8B8] text-white rounded-3xl text-[11px] font-black tracking-[0.3em] uppercase hover:opacity-80 transition-all shadow-sm">
               Unlock
             </button>
           </div>
@@ -147,7 +162,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#FAF7F7] p-6 text-[#7D7474] font-sans tracking-tight relative">
       {showSuccess && (
-        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#B59090] text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 bg-[#7D7474] text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
           <CheckCircle2 size={14} />
           <span className="text-[9px] font-black tracking-[0.2em]">SUCCESSFULLY SAVED</span>
         </div>
@@ -161,27 +176,32 @@ export default function AdminPage() {
           <div className="text-[9px] font-black tracking-[0.3em] opacity-30 uppercase italic">Picnic Admin</div>
         </header>
 
-        <div className="flex gap-2 mb-12 border-b border-[#F9EEEE] pb-4 overflow-x-auto custom-scrollbar">
+        <div className="flex gap-2 mb-12 border-b border-[#F9EEEE] pb-4 overflow-x-auto no-scrollbar">
           {[
             { id: "notices", icon: <Megaphone size={14} />, label: "Notices" },
             { id: "jimmys", icon: <Coffee size={14} />, label: "Jimmy" },
             { id: "bingos", icon: <Grid3X3 size={14} />, label: "Bingo" },
             { id: "feedbacks", icon: <MessageSquareQuote size={14} />, label: "Feedback" },
             { id: "poems", icon: <PenLine size={14} />, label: "Poems" }
-          ].map((tab) => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-[9px] font-black tracking-widest uppercase whitespace-nowrap border-2 ${activeTab === tab.id ? "bg-[#EAB8B8] border-white text-white shadow-sm" : "bg-white border-[#F9EEEE] opacity-60 text-[#B59090]"}`}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
+          ].map((tab) => {
+            const isTabActive = activeTab === tab.id;
+            const tabTheme = tabThemes[tab.id];
+            return (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-[9px] font-black tracking-widest uppercase whitespace-nowrap border-2 ${isTabActive ? "border-white text-white shadow-sm" : "bg-white border-[#F9EEEE] opacity-60 text-stone-400"}`}
+                style={{ backgroundColor: isTabActive ? tabTheme.primary : "white" }}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm p-8 sm:p-10 rounded-[3rem] border-2 border-white shadow-sm mb-20">
           <div className="mb-10">
-            <h2 className="text-[10px] font-black tracking-[0.3em] uppercase text-[#B59090] flex items-center gap-2 mb-8">
+            <h2 className="text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-2 mb-8" style={{ color: theme.primary }}>
               <PlusCircle size={16} /> New {activeTab === "jimmys" ? "Jimmy Column" : activeTab === "bingos" ? "Hibingo" : activeTab.slice(0, -1)}
             </h2>
             
@@ -195,8 +215,8 @@ export default function AdminPage() {
                     type="text"
                     value={noticeTag}
                     onChange={(e) => setNoticeTag(e.target.value)}
-                    className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] outline-none focus:border-[#EAB8B8] transition-all text-sm text-[#7D7474]"
-                    placeholder={activeTab === "feedbacks" ? "text / realtime / guide" : activeTab === "jimmys" ? "JIMMY" : activeTab === "bingos" ? "official" : "Update"}
+                    className="w-full p-4 rounded-2xl border border-[#F9EEEE] outline-none focus:border-stone-300 transition-all text-sm text-[#7D7474]"
+                    style={{ backgroundColor: theme.bg }}
                   />
                 </div>
               )}
@@ -209,7 +229,8 @@ export default function AdminPage() {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] outline-none focus:border-[#EAB8B8] transition-all text-sm font-bold text-[#7D7474]"
+                  className="w-full p-4 rounded-2xl border border-[#F9EEEE] outline-none focus:border-stone-300 transition-all text-sm font-bold text-[#7D7474]"
+                  style={{ backgroundColor: theme.bg }}
                   required
                 />
               </div>
@@ -221,7 +242,8 @@ export default function AdminPage() {
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] h-48 outline-none focus:border-[#EAB8B8] transition-all text-sm leading-relaxed text-[#7D7474]"
+                  className="w-full p-4 rounded-2xl border border-[#F9EEEE] h-48 outline-none focus:border-stone-300 transition-all text-sm leading-relaxed text-[#7D7474]"
+                  style={{ backgroundColor: theme.bg }}
                   placeholder={activeTab === "bingos" ? "Cell 1\nCell 2\nCell 3..." : ""}
                   required
                 />
@@ -231,14 +253,15 @@ export default function AdminPage() {
 
           <button
             disabled={loading}
-            className="w-full py-4 bg-[#B59090] text-white rounded-2xl text-[10px] font-black tracking-[0.4em] uppercase hover:opacity-90 transition-all shadow-md disabled:opacity-50"
+            className="w-full py-4 text-white rounded-2xl text-[10px] font-black tracking-[0.4em] uppercase hover:opacity-90 transition-all shadow-md disabled:opacity-50"
+            style={{ backgroundColor: theme.primary }}
           >
             {loading ? "Processing..." : "Save to Database"}
           </button>
         </form>
 
         <section className="pb-20">
-          <h2 className="text-[10px] font-black tracking-[0.3em] uppercase text-[#B59090] flex items-center gap-2 mb-8">
+          <h2 className="text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-2 mb-8" style={{ color: theme.primary }}>
             <List size={16} /> Entry List
           </h2>
 
@@ -253,7 +276,11 @@ export default function AdminPage() {
                         className="flex gap-3 items-center w-full text-left"
                       >
                         <span className="text-[11px] font-bold text-[#7D7474] uppercase tracking-widest">{item.title}</span>
-                        {(item.tag || item.type) && <span className="text-[8px] px-3 py-1 bg-[#FDF4F4] text-[#B59090] rounded-full font-black border border-[#F9EEEE]">{item.tag || item.type}</span>}
+                        {(item.tag || item.is_official) && (
+                          <span className="text-[8px] px-3 py-1 rounded-full font-black border border-[#F9EEEE]" style={{ backgroundColor: theme.bg, color: theme.primary }}>
+                            {item.tag || (item.is_official ? "official" : "user")}
+                          </span>
+                        )}
                         <ChevronDown size={14} className={`ml-auto transition-transform opacity-30 ${expandedId === item.id ? 'rotate-180' : ''}`} />
                       </button>
                       <div className={`grid transition-all duration-300 ${expandedId === item.id ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
@@ -268,7 +295,7 @@ export default function AdminPage() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         {item.service_tag && (
-                          <span className="text-[8px] bg-[#EAB8B8] text-white px-2 py-0.5 rounded font-black uppercase tracking-tighter">
+                          <span className="text-[8px] text-white px-2 py-0.5 rounded font-black uppercase tracking-tighter" style={{ backgroundColor: theme.primary }}>
                             {item.service_tag}
                           </span>
                         )}
@@ -283,7 +310,7 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
-                <button onClick={() => handleDelete(item.id)} className="p-2 text-[#B59090]/20 hover:text-red-400 transition-colors shrink-0">
+                <button onClick={() => handleDelete(item.id)} className="p-2 text-stone-200 hover:text-red-400 transition-colors shrink-0">
                   <Trash2 size={16} />
                 </button>
               </div>

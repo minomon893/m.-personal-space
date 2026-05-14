@@ -105,10 +105,10 @@ export default function MenuPage() {
               <Link href="/menu/profile">
                 <MenuButton title="プロフィール帳" subtitle="自分を整理" />
               </Link>
-              <Link href="/bingo">
+              <Link href="/menu/bingo">
                 <MenuButton title="日々ンゴ" subtitle="感覚を観測する" />
               </Link>
-              <Link href="/not-to-do-list">
+              <Link href="/menu/nottodolist">
                 <MenuButton title="Not to do list" subtitle="違和感を記録する" />
               </Link>
               <MenuButton title="RPGカード" subtitle="特性の可視化" isDisabled />

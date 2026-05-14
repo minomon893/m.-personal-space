@@ -4,344 +4,497 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { 
-  Book, 
+  BookOpen, 
   Plus, 
   X, 
-  Heart, 
-  ChevronLeft, 
-  Trash2, 
   RotateCcw,
-  Sparkles
+  Sparkles,
+  ArrowLeft,
+  Heart,
+  Lock,
+  Edit2,
+  Trash2
 } from "lucide-react";
+import Link from "next/link";
 
-// --- 季節判定ロジック ---
 const getSeasonTheme = () => {
   const month = new Date().getMonth() + 1;
-  if (month >= 3 && month <= 5) return { name: "spring", colors: "from-[#FDF2F4] to-[#F9FDF9]", accent: "#D4A5A5", text: "#7A6363" };
-  if (month >= 6 && month <= 8) return { name: "summer", colors: "from-[#F0F4F8] to-[#FFFFFF]", accent: "#9BB7D4", text: "#5F6F7A" };
-  if (month >= 9 && month <= 11) return { name: "autumn", colors: "from-[#F5F2ED] to-[#EBE4D9]", accent: "#A68B6D", text: "#635A51" };
-  return { name: "winter", colors: "from-[#EDF0F2] to-[#D9E1E8]", accent: "#7A8A99", text: "#535D66" };
+  if (month >= 3 && month <= 5) return { name: "spring", colors: "from-[#FDF2F4] to-[#F9FDF9]", accent: "#D4A5A5", text: "#7A6363", glow: "rgba(212, 165, 165, 0.4)" };
+  if (month >= 6 && month <= 8) return { name: "summer", colors: "from-[#F0F4F8] to-[#FFFFFF]", accent: "#9BB7D4", text: "#5F6F7A", glow: "rgba(155, 183, 212, 0.4)" };
+  if (month >= 9 && month <= 11) return { name: "autumn", colors: "from-[#F5F2ED] to-[#EBE4D9]", accent: "#A68B6D", text: "#635A51", glow: "rgba(166, 139, 109, 0.4)" };
+  return { name: "winter", colors: "from-[#EDF0F2] to-[#D9E1E8]", accent: "#7A8A99", text: "#535D66", glow: "rgba(122, 138, 153, 0.4)" };
 };
+
+const BINGO_MESSAGES = ["いい感じです。", "一列そろいましたね。", "いい調子です。"];
+
+const OFFICIAL_BINGOS = [
+  {
+    id: "official-1",
+    title: "朝のゆとり日々ンゴ",
+    is_official: true,
+    grid: [
+      "起きる時にうにゃーーと伸びをしてみる", "朝ごはんにスープを飲む", "パンのにおいを嗅ぐ",
+      "歯磨き後の歯を舌でなぞってみる", "朝風呂してみる", "目を瞑って太陽の方を向いてみる",
+      "Tシャツを素べく畳んでみる", "いらないものを一つ捨てる", "使ってなかったものを使ってみる"
+    ]
+  },
+  {
+    id: "official-2",
+    title: "夜の癒やし日々ンゴ",
+    is_official: true,
+    grid: [
+      "スマホで雨音を流しながら眠る", "歌詞を見ながら一曲聴いてみる", "いい香りのアイテムをゲットする",
+      "お気に入りの曲を一曲流す間だけ家事", "余洗いをちゃんとしてみる", "誰かにボイスメッセージを送ってみる",
+      "自分の好きな食材の旬を調べる", "挨拶したことない人に挨拶してみる", "目を瞑って太陽の方を向いてみる"
+    ]
+  }
+];
 
 export default function BingoPage() {
   const [theme, setTheme] = useState(getSeasonTheme());
-  const [bingos, setBingos] = useState([]);
+  const [bingos, setBingos] = useState(OFFICIAL_BINGOS);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [progress, setProgress] = useState(Array(9).fill(false));
-  const [favorites, setFavorites] = useState([]);
-  const [isLocked, setIsLocked] = useState(false);
+  const [favorites, setFavorites] = useState([]); 
   const [showIntro, setShowIntro] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
   const [showReward, setShowReward] = useState(false);
   const [rewardText, setRewardText] = useState("");
-  const [isFirstOpen, setIsFirstOpen] = useState(true);
   const [bingoEffect, setBingoEffect] = useState(false);
+  const [messageIdx, setMessageIdx] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [newTitle, setNewTitle] = useState("");
+  const [newGrid, setNewGrid] = useState(Array(9).fill(""));
+  const [activeInputIdx, setActiveInputIdx] = useState(0);
 
   const currentBingo = bingos[selectedIdx];
 
-  // --- データ取得 ---
+  // 修正：is_officialフラグを厳密にチェック
+  const isOfficial = 
+    currentBingo?.id.toString().startsWith('official-') || 
+    currentBingo?.is_official === true;
+
   const fetchData = useCallback(async () => {
     const { data: bData } = await supabase.from('bingos').select('*').order('created_at', { ascending: false });
-    const { data: fData } = await supabase.from('favorites').select('*').eq('category', 'hibingo');
-    const { data: lData } = await supabase.from('locks').select('locked_until').single();
+    if (bData) {
+      setBingos([...OFFICIAL_BINGOS, ...bData]);
+    }
 
-    if (bData) setBingos(bData);
-    if (fData) setFavorites(fData);
-    if (lData && new Date(lData.locked_until) > new Date()) setIsLocked(true);
+    const { data: fData } = await supabase.from('favorites').select('content');
+    if (fData) {
+      setFavorites(fData.map(f => f.content));
+    }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // --- 進捗同期 ---
   useEffect(() => {
     if (currentBingo) {
       const fetchProgress = async () => {
-        const { data } = await supabase.from('progress').select('checked').eq('bingo_id', currentBingo.id).single();
-        setProgress(data?.checked || Array(9).fill(false));
-        // 初回演出の判定（簡易的にローカルストレージ使用）
-        const viewed = localStorage.getItem(`viewed_${currentBingo.id}`);
-        setIsFirstOpen(!viewed);
+        const { data } = await supabase.from('progress').select('checked, updated_at').eq('bingo_id', currentBingo.id).single();
+        const currentProgress = data?.checked || Array(9).fill(false);
+        setProgress(currentProgress);
+
+        if (currentProgress.every(v => v) && data?.updated_at) {
+          const lastUpdate = new Date(data.updated_at).getTime();
+          const now = new Date().getTime();
+          if (now - lastUpdate < 24 * 60 * 60 * 1000) {
+            setIsLocked(true);
+          } else {
+            setIsLocked(false);
+          }
+        } else {
+          setIsLocked(false);
+        }
       };
       fetchProgress();
     }
   }, [currentBingo]);
 
-  // --- ビンゴ判定 ---
-  const checkBingo = (p) => {
+  const checkBingoCount = (p) => {
     const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-    return lines.some(line => line.every(i => p[i]));
+    return lines.filter(line => line.every(i => p[i])).length;
   };
 
-  // --- セル操作 ---
   const toggleCell = async (i) => {
     if (isLocked) return;
     const newProgress = [...progress];
+    const prevCount = checkBingoCount(progress);
     newProgress[i] = !newProgress[i];
+    const newCount = checkBingoCount(newProgress);
     setProgress(newProgress);
 
-    if (i === 4) {
-      localStorage.setItem(`viewed_${currentBingo.id}`, "true");
-      setIsFirstOpen(false);
-    }
-
-    if (checkBingo(newProgress)) {
+    if (newCount > prevCount) {
       setBingoEffect(true);
-      setTimeout(() => setBingoEffect(false), 3000);
+      setMessageIdx((prev) => (prev + 1) % BINGO_MESSAGES.length);
+      setTimeout(() => setBingoEffect(false), 3500);
     }
 
-    if (newProgress.every(v => v)) setShowReward(true);
+    if (newProgress.every(v => v)) {
+      setTimeout(() => setShowReward(true), 1000);
+      setIsLocked(true);
+    }
 
     await supabase.from('progress').upsert({
       bingo_id: currentBingo.id,
-      user_id: "user_uuid", // Auth実装時は要変更
       checked: newProgress,
       updated_at: new Date()
     });
   };
 
-  // --- リセット機能 ---
-  const resetBingo = async () => {
-    if (!confirm("日々ンゴを新品にしますか？")) return;
-    await supabase.from('progress').delete().eq('bingo_id', currentBingo.id);
-    setProgress(Array(9).fill(false));
+  const toggleFavorite = async (e, text) => { 
+    e.stopPropagation();
+    const isFav = favorites.includes(text);
+    if (isFav) {
+      setFavorites(favorites.filter(f => f !== text));
+      await supabase.from('favorites').delete().eq('content', text);
+    } else {
+      setFavorites([...favorites, text]);
+      await supabase.from('favorites').insert({ content: text });
+    }
   };
 
-  // --- 24時間ロック実行 ---
-  const submitReward = async () => {
-    const until = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await supabase.from('locks').insert({ user_id: "user_uuid", locked_until: until });
-    setIsLocked(true);
-    setShowReward(false);
-    alert("十分がんばったのでおやすみです。");
+  const handleSaveBingo = async () => {
+    const isGridComplete = newGrid.every(val => val.trim().length > 0);
+    if (!newTitle.trim() || !isGridComplete) return;
+
+    if (editingId) {
+      const { data } = await supabase.from('bingos').update({
+        title: newTitle.trim(),
+        grid: newGrid.map(v => v.trim())
+      }).eq('id', editingId).select().single();
+
+      if (data) {
+        const updatedBingos = bingos.map(b => b.id === editingId ? data : b);
+        setBingos(updatedBingos);
+      }
+    } else {
+      const { data } = await supabase.from('bingos').insert({
+        title: newTitle.trim(),
+        grid: newGrid.map(v => v.trim()),
+        is_official: false 
+      }).select().single();
+
+      if (data) {
+        setBingos([...OFFICIAL_BINGOS, data, ...bingos.filter(b => !b.id.toString().startsWith('official-'))]);
+        setSelectedIdx(OFFICIAL_BINGOS.length);
+      }
+    }
+    resetForm();
   };
 
-  if (isLocked) {
-    return (
-      <div className={`min-h-screen bg-gradient-to-b ${theme.colors} flex items-center justify-center p-10 text-center`}>
-         <div className="space-y-4 opacity-60">
-            <p className="text-sm font-light tracking-widest">十分がんばったのでおやすみです。</p>
-            <p className="text-[10px] uppercase">Locked for 24 hours</p>
-         </div>
-      </div>
-    );
-  }
+  const handleDeleteBingo = async () => {
+    if (isOfficial || !currentBingo) return;
+    if (confirm("この日々ンゴを削除してもよろしいですか？")) {
+      await supabase.from('bingos').delete().eq('id', currentBingo.id);
+      await supabase.from('progress').delete().eq('bingo_id', currentBingo.id);
+      const newBingos = bingos.filter(b => b.id !== currentBingo.id);
+      setBingos(newBingos);
+      setSelectedIdx(0);
+    }
+  };
+
+  const openEdit = () => {
+    if (isOfficial) return; 
+    setEditingId(currentBingo.id);
+    setNewTitle(currentBingo.title);
+    setNewGrid([...currentBingo.grid]);
+    setShowCreate(true);
+  };
+
+  const resetForm = () => {
+    setShowCreate(false);
+    setEditingId(null);
+    setNewTitle("");
+    setNewGrid(Array(9).fill(""));
+  };
+
+  const insertFavorite = (text) => {
+    const next = [...newGrid];
+    next[activeInputIdx] = text;
+    setNewGrid(next);
+    if (activeInputIdx < 8) setActiveInputIdx(activeInputIdx + 1);
+  };
+
+  const canSave = newTitle.trim().length > 0 && newGrid.every(v => v.trim().length > 0);
 
   return (
-    <main className={`min-h-screen bg-gradient-to-b ${theme.colors} transition-colors duration-[2000ms] py-12 px-6 relative flex flex-col items-center overflow-hidden font-sans`}>
-      {/* 和紙テクスチャレイヤー */}
-      <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-multiply select-none" 
+    <main className={`min-h-screen bg-gradient-to-b ${theme.colors} transition-colors duration-[2000ms] flex flex-col items-center overflow-hidden font-sans relative`}>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.12] mix-blend-multiply" 
            style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/natural-paper.png')" }} />
 
-      {/* Header */}
-      <header className="z-10 mb-12 text-center">
-        <h1 className="text-xl font-light tracking-[0.4em] opacity-80" style={{ color: theme.text }}>日々ンゴ</h1>
-        <p className="text-[9px] tracking-widest uppercase opacity-40 mt-2" style={{ color: theme.text }}>Observation of Daily Life</p>
-      </header>
-
-      {/* Bingo Cards Slider */}
-      <div className="w-full max-w-md overflow-x-auto flex gap-4 pb-10 no-scrollbar snap-x z-10">
-        {bingos.map((b, i) => (
-          <motion.div
-            key={b.id}
-            onClick={() => setSelectedIdx(i)}
-            className={`min-w-[120px] p-4 bg-white/50 border backdrop-blur-sm cursor-pointer snap-center transition-all duration-500
-              ${selectedIdx === i ? 'border-stone-400 shadow-md scale-105' : 'border-stone-200 opacity-40 scale-95'}`}
-          >
-            <p className="text-[8px] uppercase tracking-tighter mb-1 opacity-50">{b.type}</p>
-            <p className="text-[11px] font-medium truncate" style={{ color: theme.text }}>{b.title}</p>
-          </motion.div>
-        ))}
+      <div className="w-full flex justify-between items-center px-6 pt-8 z-50">
+        <Link href="/menu" className="p-3 bg-white/40 backdrop-blur-md rounded-full border border-white/60 text-stone-500 hover:bg-white transition-all shadow-sm">
+          <ArrowLeft size={18} />
+        </Link>
+        <button onClick={() => setShowIntro(true)} className="p-3 bg-white/40 backdrop-blur-md rounded-full border border-white/60 text-stone-500 hover:bg-white transition-all shadow-sm">
+          <BookOpen size={18} />
+        </button>
       </div>
 
-      {/* Bingo Grid */}
-      <AnimatePresence mode="wait">
-        {currentBingo && (
-          <motion.div 
-            key={currentBingo.id}
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="w-full max-w-sm aspect-square grid grid-cols-3 gap-3 z-10"
-          >
-            {currentBingo.grid.map((text, i) => (
+      <div className="w-full z-40 pt-4 pb-4 px-6 text-center">
+          <h1 className="text-xl font-light tracking-[0.4em] opacity-80 mb-6" style={{ color: theme.text }}>日々ンゴ</h1>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x max-w-md mx-auto">
+            {bingos.map((b, i) => (
               <motion.button
-                key={i}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => toggleCell(i)}
-                className={`relative p-2 text-[11px] leading-relaxed flex items-center justify-center text-center border transition-all duration-700
-                  ${progress[i] ? 'bg-black/5 border-transparent text-stone-300' : 'bg-white/90 border-stone-100 text-stone-600 shadow-sm'}`}
+                key={b.id}
+                onClick={() => setSelectedIdx(i)}
+                className={`min-w-[110px] px-4 py-2.5 rounded-2xl border text-left transition-all duration-500 snap-center
+                  ${selectedIdx === i ? `bg-white shadow-lg border-white scale-105` : 'bg-white/20 border-transparent opacity-40 scale-95'}`}
               >
-                {text}
-                {i === 4 && isFirstOpen && !progress[i] && (
-                  <motion.div animate={{ opacity: [0, 0.4, 0] }} transition={{ repeat: Infinity, duration: 3 }} className="absolute inset-0 bg-white" />
-                )}
-                {progress[i] && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute bottom-1 w-1 h-1 rounded-full bg-stone-300" />
-                )}
+                <p className="text-[10px] font-bold truncate opacity-80" style={{ color: theme.text }}>{b.title}</p>
               </motion.button>
             ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Bingo Effect Message */}
-      <AnimatePresence>
-        {bingoEffect && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-8 text-center">
-            <p className="text-xs italic font-serif text-stone-400">一列そろいました。いい感じです。</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Footer Tools */}
-      <div className="mt-16 z-10 flex flex-col items-center gap-6">
-        <button onClick={resetBingo} className="text-[10px] text-stone-400 flex items-center gap-2 hover:text-stone-600 transition-colors">
-          <RotateCcw size={12} /> 日々ンゴを新品にする
-        </button>
-        
-        <div className="flex gap-8">
-          <button onClick={() => setShowIntro(true)} className="p-3 bg-white/40 backdrop-blur-md rounded-full border border-white/40 shadow-sm text-stone-500 hover:bg-white transition-all"><Book size={18} /></button>
-          <button onClick={() => setShowCreate(true)} className="p-3 bg-white/40 backdrop-blur-md rounded-full border border-white/40 shadow-sm text-stone-500 hover:bg-white transition-all"><Plus size={18} /></button>
-        </div>
+          </div>
       </div>
 
-      {/* --- Modals --- */}
-      
-      {/* 1. Create Modal */}
-      <AnimatePresence>
-        {showCreate && (
-          <CreateBingoModal 
-            favorites={favorites} 
-            onClose={() => setShowCreate(false)} 
-            onSave={() => { fetchData(); setShowCreate(false); }}
-            theme={theme}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* 2. Intro Modal */}
-      <AnimatePresence>
-        {showIntro && (
-          <Modal onClose={() => setShowIntro(false)}>
-            <div className="text-xs leading-loose text-stone-500 space-y-4">
-              <p className="font-medium text-stone-700">日々ンゴは、小さな行動を3×3に並べたビンゴです。</p>
-              <p>1. 日々ンゴを選ぶ<br/>2. マスを押して記録する<br/>3. 一列そろって演出を楽しむ<br/>4. 全達成で自分をご褒美</p>
-              <div className="pt-4 border-t border-stone-100 flex items-center gap-2 opacity-60">
-                <Heart size={10} /> <span>お気に入りは♡で保存できます</span>
-              </div>
-            </div>
-          </Modal>
-        )}
-      </AnimatePresence>
-
-      {/* 3. Reward Modal */}
-      <AnimatePresence>
-        {showReward && (
-          <Modal onClose={() => setShowReward(false)} title="全マス達成おめでとう">
-            <div className="space-y-4">
-              <p className="text-xs text-stone-500">今日は、自分にどんなご褒美をあげますか？</p>
-              <input 
-                value={rewardText} 
-                onChange={(e) => setRewardText(e.target.value)}
-                className="w-full border-b border-stone-200 py-2 focus:outline-none text-xs"
-                placeholder="例：ちょっと高いアイスを買う"
-              />
-              <button 
-                onClick={submitReward}
-                className="w-full py-3 bg-stone-800 text-white text-[10px] tracking-widest uppercase"
-              >
-                送信して休む
-              </button>
-            </div>
-          </Modal>
-        )}
-      </AnimatePresence>
-    </main>
-  );
-}
-
-// --- サブコンポーネント: 共通モーダル ---
-function Modal({ children, onClose, title }) {
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-stone-900/10 backdrop-blur-sm">
-      <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="bg-white p-8 w-full max-w-sm relative shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 text-stone-300 hover:text-stone-600 transition-colors"><X size={18}/></button>
-        {title && <h2 className="text-sm font-medium text-stone-700 mb-6 tracking-widest">{title}</h2>}
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// --- サブコンポーネント: ビンゴ作成 ---
-function CreateBingoModal({ favorites, onClose, onSave, theme }) {
-  const [title, setTitle] = useState("");
-  const [cells, setCells] = useState(Array(9).fill(""));
-  
-  const updateCell = (i, val) => {
-    const next = [...cells];
-    next[i] = val;
-    setCells(next);
-  };
-
-  const handleSave = async () => {
-    const grid = [...cells];
-    grid[4] = "日々ンゴを見る";
-    if (!title) return alert("タイトルを入力してください");
-    
-    await supabase.from('bingos').insert({
-      title,
-      grid,
-      type: 'custom',
-      user_id: 'user_uuid'
-    });
-    onSave();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-      <div className={`min-h-screen bg-gradient-to-b ${theme.colors} p-8 flex flex-col items-center`}>
-        <button onClick={onClose} className="self-start mb-10 text-stone-400 hover:text-stone-700"><ChevronLeft size={24} /></button>
-        
-        <div className="w-full max-w-sm space-y-8">
-          <input 
-            placeholder="日々ンゴの名前"
-            className="w-full bg-transparent border-b border-stone-300 py-3 text-lg font-light focus:outline-none"
-            value={title} onChange={(e) => setTitle(e.target.value)}
-          />
-
-          <div className="grid grid-cols-3 gap-2 aspect-square border p-2 bg-stone-50/50">
-            {cells.map((text, i) => (
-              <div key={i} className="bg-white border border-stone-100 p-1 flex items-center justify-center">
-                {i === 4 ? (
-                  <span className="text-[8px] text-stone-300 text-center">日々ンゴを見る<br/>(固定)</span>
-                ) : (
-                  <textarea 
-                    className="w-full h-full text-[10px] resize-none focus:outline-none text-center"
-                    value={text} onChange={(e) => updateCell(i, e.target.value)}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-[10px] tracking-widest text-stone-400 uppercase">お気に入りパレット</p>
-            <div className="flex flex-wrap gap-2">
-              {favorites.map(f => (
-                <button key={f.id} onClick={() => {
-                  const empty = cells.findIndex((c, idx) => c === "" && idx !== 4);
-                  if (empty !== -1) updateCell(empty, f.text);
-                }} className="px-3 py-1 bg-white border border-stone-200 text-[10px] text-stone-500 hover:border-stone-400">
-                  {f.text}
-                </button>
+      <div className="flex-1 w-full max-w-sm px-6 pt-4 pb-20 z-10 flex flex-col items-center justify-center">
+        <AnimatePresence mode="wait">
+          {currentBingo && (
+            <motion.div 
+              key={currentBingo.id}
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}
+              className="w-full aspect-square grid grid-cols-3 gap-4 relative"
+            >
+              {currentBingo.grid.map((text, i) => (
+                <motion.div
+                  key={i}
+                  whileTap={!isLocked ? { scale: 0.94 } : {}}
+                  onClick={() => toggleCell(i)}
+                  role="button"
+                  className={`relative p-3 text-[11px] leading-relaxed flex items-center justify-center text-center border transition-all duration-700 rounded-[2rem] outline-none
+                    ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}
+                    ${progress[i] 
+                      ? `bg-black/[0.05] border-transparent text-stone-300 shadow-inner` 
+                      : `bg-white/80 border-white shadow-xl text-stone-600`}`}
+                >
+                  <button 
+                    onClick={(e) => toggleFavorite(e, text)}
+                    className="absolute top-3 right-3 z-20 outline-none"
+                  >
+                    <Heart 
+                      size={14} 
+                      className={favorites.includes(text) ? "fill-red-400 text-red-400" : "text-stone-300 opacity-60"} 
+                    />
+                  </button>
+                  {/* 中央（インデックス4）も含め、DBのtextをそのまま表示 */}
+                  <span className="relative z-10 font-medium px-1 pointer-events-none">{text}</span>
+                </motion.div>
               ))}
-            </div>
-          </div>
+              
+              {isLocked && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/10 backdrop-blur-[2px] rounded-[2.5rem] z-30 pointer-events-none">
+                  <div className="bg-white/90 p-4 rounded-full shadow-lg">
+                    <Lock size={24} className="text-stone-400" />
+                  </div>
+                  <p className="mt-4 text-[10px] text-stone-500 font-bold tracking-widest bg-white/80 px-4 py-2 rounded-full shadow-sm">明日また遊べます</p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          <button onClick={handleSave} className="w-full py-4 bg-stone-800 text-white text-xs tracking-[0.2em] uppercase shadow-lg">
-            この日々を保存する
+        <div className="h-16 mt-8 flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {bingoEffect && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                className="flex flex-col items-center gap-1 text-sm italic font-serif"
+                style={{ color: theme.text }}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles size={14} className="animate-pulse" />
+                  <span>{BINGO_MESSAGES[messageIdx]}</span>
+                </div>
+                <span className="text-[9px] opacity-40 tracking-widest uppercase">Self-compassion</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="mt-auto flex flex-wrap justify-center gap-6">
+          <button onClick={() => { resetForm(); setShowCreate(true); }} className="flex items-center gap-2 text-[10px] text-stone-400 hover:text-stone-600 transition-colors tracking-[0.2em] uppercase">
+            <Plus size={12} /> New
+          </button>
+          
+          {/* 公式データ以外の場合のみ、EditとDeleteボタンを表示 */}
+          {!isOfficial && (
+            <>
+              <button onClick={openEdit} className="flex items-center gap-2 text-[10px] text-stone-400 hover:text-stone-600 transition-colors tracking-[0.2em] uppercase">
+                <Edit2 size={12} /> Edit
+              </button>
+              <button onClick={handleDeleteBingo} className="flex items-center gap-2 text-[10px] text-red-300 hover:text-red-400 transition-colors tracking-[0.2em] uppercase">
+                <Trash2 size={12} /> Delete
+              </button>
+            </>
+          )}
+
+          <button 
+            disabled={isLocked}
+            onClick={async () => {
+             if (isLocked) return;
+             if (confirm("進捗をリセットしますか？")) {
+               await supabase.from('progress').delete().eq('bingo_id', currentBingo.id);
+               setProgress(Array(9).fill(false));
+             }
+            }} 
+            className={`flex items-center gap-2 text-[10px] transition-colors tracking-[0.2em] uppercase ${isLocked ? 'text-stone-200' : 'text-stone-400 hover:text-stone-600'}`}
+          >
+            <RotateCcw size={12} /> Reset
           </button>
         </div>
       </div>
-    </div>
+
+      <AnimatePresence>
+        {showCreate && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-stone-900/20 backdrop-blur-xl">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white/95 w-full max-w-sm rounded-[2.5rem] shadow-2xl relative border border-white overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-8 overflow-y-auto no-scrollbar">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-sm font-bold tracking-widest" style={{ color: theme.text }}>
+                    {editingId ? "日々ンゴを編集" : "オリジナル日々ンゴ"}
+                  </h3>
+                  <button onClick={resetForm} className="text-stone-400"><X size={20} /></button>
+                </div>
+                
+                <input 
+                  type="text" 
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="ビンゴのタイトル"
+                  className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-[12px] mb-4 outline-none"
+                />
+
+                <div className="grid grid-cols-3 gap-2 mb-6">
+                  {newGrid.map((val, i) => (
+                    <div key={i} className="aspect-square relative">
+                      <textarea
+                        onFocus={() => setActiveInputIdx(i)}
+                        value={val}
+                        onChange={(e) => {
+                          const next = [...newGrid];
+                          next[i] = e.target.value;
+                          setNewGrid(next);
+                        }}
+                        placeholder={`${i + 1}`}
+                        className={`w-full h-full p-2 text-[10px] bg-white border rounded-xl resize-none outline-none flex items-center justify-center text-center leading-tight
+                          ${activeInputIdx === i ? 'border-stone-400 ring-1 ring-stone-100' : 'border-stone-100'}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mb-8">
+                  <p className="text-[9px] text-stone-400 mb-3 tracking-widest uppercase flex items-center gap-2">
+                    <Heart size={10} className="fill-stone-300 text-stone-300" /> Favorites
+                  </p>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1 no-scrollbar">
+                    {favorites.length > 0 ? (
+                      favorites.map((fav, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => insertFavorite(fav)}
+                          className="px-3 py-1.5 bg-stone-50 hover:bg-stone-100 border border-stone-100 rounded-full text-[10px] text-stone-500"
+                        >
+                          {fav}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-[10px] text-stone-300 italic">お気に入りはまだありません</p>
+                    )}
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleSaveBingo}
+                  disabled={!canSave}
+                  className="w-full py-4 rounded-2xl text-white text-[12px] font-bold tracking-widest shadow-lg transition-all active:scale-95 disabled:bg-stone-200"
+                  style={{ backgroundColor: !canSave ? '#e5e7eb' : theme.accent }}
+                >
+                  {editingId ? "更新する" : "保存してはじめる"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showIntro && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-stone-900/10 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white/95 w-full max-w-sm rounded-[2.5rem] shadow-2xl relative border border-white overflow-hidden flex flex-col max-h-[85vh]">
+                <div className="p-8 overflow-y-auto no-scrollbar">
+                  <h3 className="text-sm font-bold mb-6 tracking-widest text-center" style={{ color: theme.text }}>📖 日々ンゴについて</h3>
+                  <div className="text-[11px] leading-[2] text-stone-500 font-light space-y-6">
+                    <p className="text-center">
+                      日々ンゴは、<br/>
+                      小さな行動を3×3に並べたビンゴです。<br/><br/>
+                      その日の気分や状態に合わせて選びます。
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <p className="font-bold border-b border-stone-100 pb-1">1. 日々ンゴを選ぶ</p>
+                      <p>その時の状態に近いものを選びます。</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="font-bold border-b border-stone-100 pb-1">2. マスを押す</p>
+                      <p>マスを押すと、その行動が記録されます。</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="font-bold border-b border-stone-100 pb-1">3. 一列そろう</p>
+                      <p>縦・横・斜めで一列そろうと、<br/>小さな演出が表示されます。</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="font-bold border-b border-stone-100 pb-1">4. 全マス埋まる</p>
+                      <p>9マスすべて埋まると、<br/>ご褒美を入力する画面が表示されます。<br/><br/>入力後、その日々ンゴは一時的にロックされます。</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="font-bold border-b border-stone-100 pb-1">お気に入り</p>
+                      <p>マス右上の♡で保存できます。作成時に利用可能です。</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="font-bold border-b border-stone-100 pb-1">オリジナル日々ンゴ</p>
+                      <p>自分で作成・編集・削除が可能です。</p>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setShowIntro(false)} className="w-full py-5 bg-stone-50 text-[10px] font-bold tracking-widest text-stone-400 border-t border-stone-100">閉じる</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showReward && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-white/60 backdrop-blur-xl">
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-10 w-full max-w-sm rounded-[3rem] shadow-2xl border border-stone-100 text-center">
+              <Sparkles className="mx-auto mb-6 text-yellow-400" size={32} />
+              <h2 className="text-lg font-light mb-2" style={{ color: theme.text }}>全マス達成しました。<br/>ご褒美は何にしますか？</h2>
+              <input 
+                type="text" 
+                value={rewardText}
+                onChange={(e) => setRewardText(e.target.value)}
+                placeholder="例：美味しいアイスを食べる"
+                className="w-full bg-stone-50 border-none rounded-2xl px-5 py-4 text-[12px] mb-8 outline-none"
+              />
+              <button 
+                onClick={() => { setShowReward(false); setRewardText(""); }}
+                className="w-full py-4 rounded-2xl text-white text-[12px] font-bold shadow-lg"
+                style={{ backgroundColor: theme.accent }}
+              >
+                入力を完了する
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </main>
   );
 }
