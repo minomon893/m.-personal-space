@@ -4,7 +4,19 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Trash2, PlusCircle, List, ArrowLeft, Megaphone, PenLine, CheckCircle2, MessageSquareQuote, ChevronDown, Coffee } from "lucide-react";
+import { 
+  Trash2, 
+  PlusCircle, 
+  List, 
+  ArrowLeft, 
+  Megaphone, 
+  PenLine, 
+  CheckCircle2, 
+  MessageSquareQuote, 
+  ChevronDown, 
+  Coffee,
+  Grid3X3
+} from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -35,6 +47,8 @@ export default function AdminPage() {
       setNoticeTag("Update"); 
     } else if (activeTab === "jimmys") {
       setNoticeTag("JIMMY");
+    } else if (activeTab === "bingos") {
+      setNoticeTag("official");
     } else {
       setNoticeTag(""); 
     }
@@ -71,6 +85,13 @@ export default function AdminPage() {
         tag: noticeTag || "JIMMY",
         excerpt: body.substring(0, 80).replace(/\n/g, ' ') + (body.length > 80 ? "..." : "")
       };
+    } else if (table === "bingos") {
+      // 改行区切りで9マス分を取得
+      const lines = body.split('\n').filter(l => l.trim() !== "");
+      const grid = Array(9).fill("");
+      lines.forEach((line, idx) => { if(idx < 9) grid[idx] = line; });
+      grid[4] = "日々ンゴを見る"; // 仕様に基づき中央を固定
+      payload = { title, grid, type: noticeTag || "official" };
     } else {
       payload = { title, body };
     }
@@ -82,7 +103,7 @@ export default function AdminPage() {
     } else {
       setBody("");
       setTitle("");
-      setNoticeTag(activeTab === "notices" ? "Update" : activeTab === "jimmys" ? "JIMMY" : "");
+      setNoticeTag(activeTab === "notices" ? "Update" : activeTab === "jimmys" ? "JIMMY" : activeTab === "bingos" ? "official" : "");
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       await fetchItems();
@@ -91,7 +112,7 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id) => {
-    const labels = { notices: "Notice", feedbacks: "Feedback", poems: "Poem", jimmys: "Jimmy" };
+    const labels = { notices: "Notice", feedbacks: "Feedback", poems: "Poem", jimmys: "Jimmy", bingos: "Bingo" };
     const typeLabel = labels[activeTab] || "Item";
     
     if (!confirm(`Delete this ${typeLabel}?`)) return;
@@ -144,6 +165,7 @@ export default function AdminPage() {
           {[
             { id: "notices", icon: <Megaphone size={14} />, label: "Notices" },
             { id: "jimmys", icon: <Coffee size={14} />, label: "Jimmy" },
+            { id: "bingos", icon: <Grid3X3 size={14} />, label: "Bingo" },
             { id: "feedbacks", icon: <MessageSquareQuote size={14} />, label: "Feedback" },
             { id: "poems", icon: <PenLine size={14} />, label: "Poems" }
           ].map((tab) => (
@@ -160,11 +182,11 @@ export default function AdminPage() {
         <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm p-8 sm:p-10 rounded-[3rem] border-2 border-white shadow-sm mb-20">
           <div className="mb-10">
             <h2 className="text-[10px] font-black tracking-[0.3em] uppercase text-[#B59090] flex items-center gap-2 mb-8">
-              <PlusCircle size={16} /> New {activeTab === "jimmys" ? "Jimmy Column" : activeTab.slice(0, -1)}
+              <PlusCircle size={16} /> New {activeTab === "jimmys" ? "Jimmy Column" : activeTab === "bingos" ? "Hibingo" : activeTab.slice(0, -1)}
             </h2>
             
             <div className="space-y-6">
-              {(activeTab === "notices" || activeTab === "feedbacks" || activeTab === "jimmys") && (
+              {(activeTab === "notices" || activeTab === "feedbacks" || activeTab === "jimmys" || activeTab === "bingos") && (
                 <div>
                   <label className="block text-[8px] font-black tracking-[0.2em] mb-2 opacity-40 uppercase">
                     {activeTab === "feedbacks" ? "Service Path" : "Tag"}
@@ -174,7 +196,7 @@ export default function AdminPage() {
                     value={noticeTag}
                     onChange={(e) => setNoticeTag(e.target.value)}
                     className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] outline-none focus:border-[#EAB8B8] transition-all text-sm text-[#7D7474]"
-                    placeholder={activeTab === "feedbacks" ? "text / realtime / guide" : activeTab === "jimmys" ? "JIMMY" : "Update"}
+                    placeholder={activeTab === "feedbacks" ? "text / realtime / guide" : activeTab === "jimmys" ? "JIMMY" : activeTab === "bingos" ? "official" : "Update"}
                   />
                 </div>
               )}
@@ -193,11 +215,14 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block text-[8px] font-black tracking-[0.2em] mb-2 opacity-40 uppercase">Content Body</label>
+                <label className="block text-[8px] font-black tracking-[0.2em] mb-2 opacity-40 uppercase">
+                  {activeTab === "bingos" ? "Grid Content (Enter each line for 9 cells)" : "Content Body"}
+                </label>
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   className="w-full p-4 rounded-2xl bg-[#FAF7F7] border border-[#F9EEEE] h-48 outline-none focus:border-[#EAB8B8] transition-all text-sm leading-relaxed text-[#7D7474]"
+                  placeholder={activeTab === "bingos" ? "Cell 1\nCell 2\nCell 3..." : ""}
                   required
                 />
               </div>
@@ -221,20 +246,20 @@ export default function AdminPage() {
             {items.map((item) => (
               <div key={item.id} className="bg-white/60 p-6 rounded-[2.5rem] border border-white flex justify-between items-start group hover:bg-white transition-all shadow-sm">
                 <div className="flex-1 pr-4">
-                  {(activeTab === "notices" || activeTab === "jimmys") ? (
+                  {(activeTab === "notices" || activeTab === "jimmys" || activeTab === "bingos") ? (
                     <div className="space-y-2">
                       <button 
                         onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
                         className="flex gap-3 items-center w-full text-left"
                       >
                         <span className="text-[11px] font-bold text-[#7D7474] uppercase tracking-widest">{item.title}</span>
-                        {item.tag && <span className="text-[8px] px-3 py-1 bg-[#FDF4F4] text-[#B59090] rounded-full font-black border border-[#F9EEEE]">{item.tag}</span>}
+                        {(item.tag || item.type) && <span className="text-[8px] px-3 py-1 bg-[#FDF4F4] text-[#B59090] rounded-full font-black border border-[#F9EEEE]">{item.tag || item.type}</span>}
                         <ChevronDown size={14} className={`ml-auto transition-transform opacity-30 ${expandedId === item.id ? 'rotate-180' : ''}`} />
                       </button>
                       <div className={`grid transition-all duration-300 ${expandedId === item.id ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
                           <p className="text-[12px] leading-relaxed opacity-70 whitespace-pre-wrap border-t border-[#F9EEEE] pt-4 text-[#7D7474]">
-                            {item.content}
+                            {activeTab === "bingos" ? item.grid?.join(" / ") : item.content}
                           </p>
                         </div>
                       </div>
