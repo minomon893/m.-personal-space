@@ -108,6 +108,9 @@ export default function MenuPage() {
               <Link href="/bingo">
                 <MenuButton title="日々ンゴ" subtitle="感覚を観測する" />
               </Link>
+              <Link href="/not-to-do-list">
+                <MenuButton title="Not to do list" subtitle="違和感を記録する" />
+              </Link>
               <MenuButton title="RPGカード" subtitle="特性の可視化" isDisabled />
               <MenuButton title="恋愛タイプ診断" subtitle="Relationship Dynamics" isDisabled />
               <Link href="/menu/external">
@@ -133,7 +136,7 @@ export default function MenuPage() {
                 <MenuButton title="Ezine" subtitle="Support / ¥500~" highlight />
               </Link>
               <Link href="/menu/stickers">
-                <MenuButton title="LINE Stamp" subtitle="もっちりシリーズ" />
+                <MenuButton title="LINE Stamp" subtitle="もっちりとした人シリーズ" />
               </Link>
             </div>
           </section>
