@@ -129,6 +129,11 @@ export default function MenuPage() {
             </h2>
 
             <div className="grid gap-4">
+              {/* セクションの一番上に配置した「中庸大冒険」ボタン（app/menu/cardsに対応するパス） */}
+              <Link href="/menu/cards">
+                <MenuButton title="中庸大冒険" subtitle="中庸選択トレーニング" />
+              </Link>
+              
               <Link href="/menu/poem">
                 <MenuButton title="Free a poem" subtitle="今日のおまもり" />
               </Link>
