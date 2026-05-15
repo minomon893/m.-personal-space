@@ -9,7 +9,8 @@ import {
   Lock,
   BookOpen,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+// エイリアス依存を回避し、確実な相対パスに修正しました
+import { supabase } from "../../lib/supabase";
 
 export default function MenuPage() {
   const [hasNewNotice, setHasNewNotice] = useState(false);
