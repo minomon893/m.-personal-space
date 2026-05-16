@@ -62,14 +62,14 @@ export default function MenuPage() {
             </h2>
             <Link href="/menu/notices">
               <button
-                className="relative w-full py-6 px-7 bg-white/60 border border-white/40 rounded-2xl hover:bg-white/80 transition-all text-left shadow-sm shadow-black/[0.02]"
+                className="relative w-full py-6 px-7 bg-white/60 border border-white/40 rounded-2xl hover:bg-white/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 text-left shadow-sm shadow-black/[0.02] active:scale-[0.98]"
               >
-                <span className="text-[15px] font-bold block mb-0.5">お知らせ</span>
+                <span className="text-[15px] font-bold block mb-0.5 tracking-wide">お知らせ</span>
                 <span className="text-[10px] opacity-40 uppercase tracking-wider">News & Updates</span>
 
                 {hasNewNotice && (
                   <span className="absolute top-6 right-8 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute h-full w-full rounded-full bg-[#B5A773] opacity-60"></span>
+                    <span className="animate-ping absolute h-full w-full rounded-full bg-[#B5A773] opacity-40 duration-1000"></span>
                     <span className="relative h-2.5 w-2.5 rounded-full bg-[#B5A773]"></span>
                   </span>
                 )}
@@ -109,11 +109,13 @@ export default function MenuPage() {
               <Link href="/menu/bingo">
                 <MenuButton title="日々ンゴ" subtitle="感覚を観測する" />
               </Link>
+              {/* 日々ンゴの下に移動し、タイトルをMAXIMUM vs MINIMUMに変更 */}
+              <Link href="/menu/cards">
+                <MenuButton title="MAXIMUM vs MINIMUM" subtitle="中庸選択トレーニング" />
+              </Link>
               <Link href="/menu/nottodolist">
                 <MenuButton title="Not to do list" subtitle="違和感を記録する" />
               </Link>
-              <MenuButton title="RPGカード" subtitle="特性の可視化" isDisabled />
-              <MenuButton title="恋愛タイプ診断" subtitle="Relationship Dynamics" isDisabled />
               <Link href="/menu/external">
                 <MenuButton 
                   title="外部ソース" 
@@ -130,11 +132,6 @@ export default function MenuPage() {
             </h2>
 
             <div className="grid gap-4">
-              {/* セクションの一番上に配置した「中庸大冒険」ボタン（app/menu/cardsに対応するパス） */}
-              <Link href="/menu/cards">
-                <MenuButton title="中庸大冒険" subtitle="中庸選択トレーニング" />
-              </Link>
-              
               <Link href="/menu/poem">
                 <MenuButton title="Free a poem" subtitle="今日のおまもり" />
               </Link>
@@ -144,17 +141,11 @@ export default function MenuPage() {
               <Link href="/menu/stickers">
                 <MenuButton title="LINE Stamp" subtitle="もっちりとした人シリーズ" />
               </Link>
+              {/* LINE Stampの下にWeb siteボタンを新設、遷移先を/menu/webに指定 */}
+              <Link href="/menu/web">
+                <MenuButton title="Web site" subtitle="フリー素材 / 話し合いタイプ診断" />
+              </Link>
             </div>
-          </section>
-
-          {/* LOCKED (Night area) */}
-          <section className="bg-white/10 p-6 rounded-[2.5rem] border border-white/20 text-center shadow-inner backdrop-blur-sm">
-            <h2 className="text-[10px] tracking-[0.2em] font-bold text-white/50 mb-4 flex justify-center items-center gap-2 uppercase">
-              <Lock size={10} /> Members Only
-            </h2>
-            <p className="text-[11px] font-bold italic text-white/30 tracking-widest">
-              Coming Soon...
-            </p>
           </section>
 
         </div>
@@ -175,11 +166,11 @@ function MenuButton({ title, subtitle, isSmall = false, highlight = false, isDis
       disabled={isDisabled}
       className={`w-full ${
         isSmall ? "py-4" : "py-6"
-      } px-7 border rounded-2xl transition-all text-left relative overflow-hidden shadow-sm
+      } px-7 border rounded-2xl transition-all duration-300 text-left relative overflow-hidden shadow-sm shadow-black/[0.01]
       ${
         isDisabled 
           ? "bg-black/5 border-transparent cursor-not-allowed opacity-40" 
-          : "bg-white/60 border-white/40 hover:bg-white/80 active:scale-[0.98]"
+          : "bg-white/60 border-white/40 hover:bg-white/80 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
       }`}
     >
       <div className="flex justify-between items-center">
@@ -187,7 +178,7 @@ function MenuButton({ title, subtitle, isSmall = false, highlight = false, isDis
           <span
             className={`${
               isSmall ? "text-xs" : "text-[15px]"
-            } font-bold block mb-0.5`}
+            } font-bold block mb-0.5 tracking-wide`}
           >
             {title}
           </span>

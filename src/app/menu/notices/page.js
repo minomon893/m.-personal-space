@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Terminal, ChevronDown } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../../lib/supabase";
 
 export default function NoticesPage() {
   const [viewedIds, setViewedIds] = useState([]);

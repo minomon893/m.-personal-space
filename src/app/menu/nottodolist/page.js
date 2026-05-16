@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, BookOpen, X, MessageCircle, ChevronLeft, Trophy } from 'lucide-react';
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../../lib/supabase";
 import Link from 'next/link';
 
 export default function NotToDoPage() {

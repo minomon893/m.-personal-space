@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../../lib/supabase";
 import { 
   BookOpen, 
   Plus, 
