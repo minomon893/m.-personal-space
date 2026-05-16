@@ -15,17 +15,19 @@ import {
   MessageSquareQuote, 
   ChevronDown, 
   Coffee,
-  Grid3X3
+  Grid3X3,
+  Sparkles
 } from "lucide-react";
 import Link from "next/link";
 
-// タブごとの色設定（くすみカラー）
+// タブごとの色設定（くすみカラー ＋ 新規Mille用ホワイトテーマ）
 const tabThemes = {
   notices: { primary: "#E6D5A9", bg: "#FAF4E6", text: "#8C7E55" },
   jimmys: { primary: "#D4A5A5", bg: "#FDF2F2", text: "#8C6363" },
   bingos: { primary: "#A9B2B9", bg: "#F1F3F5", text: "#636E7A" },
   feedbacks: { primary: "#A9B9A9", bg: "#F2F6F2", text: "#637A63" },
-  poems: { primary: "#A9B2D4", bg: "#F2F4FD", text: "#636A8C" }
+  poems: { primary: "#A9B2D4", bg: "#F2F4FD", text: "#636A8C" },
+  mille_stories: { primary: "#7D7474", bg: "#FFFFFF", text: "#4A4A4A" } // 各キャラの話（ホワイト・ストーンテーマ）
 };
 
 export default function AdminPage() {
@@ -60,6 +62,8 @@ export default function AdminPage() {
       setNoticeTag("JIMMY");
     } else if (activeTab === "bingos") {
       setNoticeTag("official");
+    } else if (activeTab === "mille_stories") {
+      setNoticeTag(""); // ユーザーがカテゴリを入力/確認できるように空にする
     } else {
       setNoticeTag(""); 
     }
@@ -80,6 +84,7 @@ export default function AdminPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    loading = true; // ローカル状態ロック用
     setLoading(true);
     
     const table = activeTab;
@@ -97,17 +102,20 @@ export default function AdminPage() {
         excerpt: body.substring(0, 80).replace(/\n/g, ' ') + (body.length > 80 ? "..." : "")
       };
     } else if (table === "bingos") {
-      // 1. テキストエリアの各行を配列にする
       const lines = body.split('\n').map(line => line.trim()).filter(line => line !== "");
-      // 2. 9マスの空の配列を用意する
       const grid = Array(9).fill("");
-      // 3. 入力された行を順番にそのまま入れる（中央固定ロジックは一切なし）
       lines.forEach((line, idx) => { if(idx < 9) grid[idx] = line; });
       
       payload = { 
         title, 
         grid, 
-        is_official: true // SQLで追加したカラムに合わせて調整
+        is_official: true 
+      };
+    } else if (table === "mille_stories") {
+      payload = {
+        title,
+        content: body,
+        tag: noticeTag || "" // 死、自由、孤独、無意味のカテゴリを格納
       };
     } else {
       payload = { title, body };
@@ -120,7 +128,11 @@ export default function AdminPage() {
     } else {
       setBody("");
       setTitle("");
-      setNoticeTag(activeTab === "notices" ? "Update" : activeTab === "jimmys" ? "JIMMY" : activeTab === "bingos" ? "official" : "");
+      setNoticeTag(
+        activeTab === "notices" ? "Update" : 
+        activeTab === "jimmys" ? "JIMMY" : 
+        activeTab === "bingos" ? "official" : ""
+      );
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       await fetchItems();
@@ -129,7 +141,14 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id) => {
-    const labels = { notices: "Notice", feedbacks: "Feedback", poems: "Poem", jimmys: "Jimmy", bingos: "Bingo" };
+    const labels = { 
+      notices: "Notice", 
+      feedbacks: "Feedback", 
+      poems: "Poem", 
+      jimmys: "Jimmy", 
+      bingos: "Bingo",
+      mille_stories: "Mille Story"
+    };
     if (!confirm(`Delete this ${labels[activeTab] || "Item"}?`)) return;
     const { error } = await supabase.from(activeTab).delete().eq("id", id);
     if (!error) fetchItems();
@@ -181,6 +200,7 @@ export default function AdminPage() {
             { id: "notices", icon: <Megaphone size={14} />, label: "Notices" },
             { id: "jimmys", icon: <Coffee size={14} />, label: "Jimmy" },
             { id: "bingos", icon: <Grid3X3 size={14} />, label: "Bingo" },
+            { id: "mille_stories", icon: <Sparkles size={14} />, label: "Mille" }, // 追加タブ
             { id: "feedbacks", icon: <MessageSquareQuote size={14} />, label: "Feedback" },
             { id: "poems", icon: <PenLine size={14} />, label: "Poems" }
           ].map((tab) => {
@@ -191,7 +211,10 @@ export default function AdminPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-[9px] font-black tracking-widest uppercase whitespace-nowrap border-2 ${isTabActive ? "border-white text-white shadow-sm" : "bg-white border-[#F9EEEE] opacity-60 text-stone-400"}`}
-                style={{ backgroundColor: isTabActive ? tabTheme.primary : "white" }}
+                style={{ 
+                  backgroundColor: isTabActive ? tabTheme.primary : "white",
+                  color: isTabActive ? (tab.id === "mille_stories" ? "#FFFFFF" : "white") : "#A8A29E" 
+                }}
               >
                 {tab.icon} {tab.label}
               </button>
@@ -202,20 +225,21 @@ export default function AdminPage() {
         <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm p-8 sm:p-10 rounded-[3rem] border-2 border-white shadow-sm mb-20">
           <div className="mb-10">
             <h2 className="text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-2 mb-8" style={{ color: theme.primary }}>
-              <PlusCircle size={16} /> New {activeTab === "jimmys" ? "Jimmy Column" : activeTab === "bingos" ? "Hibingo" : activeTab.slice(0, -1)}
+              <PlusCircle size={16} /> New {activeTab === "jimmys" ? "Jimmy Column" : activeTab === "bingos" ? "Hibingo" : activeTab === "mille_stories" ? "Mille Story" : activeTab.slice(0, -1)}
             </h2>
             
             <div className="space-y-6">
-              {(activeTab === "notices" || activeTab === "feedbacks" || activeTab === "jimmys" || activeTab === "bingos") && (
+              {(activeTab === "notices" || activeTab === "feedbacks" || activeTab === "jimmys" || activeTab === "bingos" || activeTab === "mille_stories") && (
                 <div>
                   <label className="block text-[8px] font-black tracking-[0.2em] mb-2 opacity-40 uppercase">
-                    {activeTab === "feedbacks" ? "Service Path" : "Tag"}
+                    {activeTab === "feedbacks" ? "Service Path" : activeTab === "mille_stories" ? "Category (死、自由、孤独、無意味)" : "Tag"}
                   </label>
                   <input
                     type="text"
                     value={noticeTag}
                     onChange={(e) => setNoticeTag(e.target.value)}
-                    className="w-full p-4 rounded-2xl border border-[#F9EEEE] outline-none focus:border-stone-300 transition-all text-sm text-[#7D7474]"
+                    placeholder={activeTab === "mille_stories" ? "死、自由、孤独、無意味" : ""}
+                    className="w-full p-4 rounded-2xl border border-[#F9EEEE] outline-none focus:border-stone-300 transition-all text-sm text-[#7D7474] placeholder-stone-300 font-medium"
                     style={{ backgroundColor: theme.bg }}
                   />
                 </div>
@@ -269,7 +293,7 @@ export default function AdminPage() {
             {items.map((item) => (
               <div key={item.id} className="bg-white/60 p-6 rounded-[2.5rem] border border-white flex justify-between items-start group hover:bg-white transition-all shadow-sm">
                 <div className="flex-1 pr-4">
-                  {(activeTab === "notices" || activeTab === "jimmys" || activeTab === "bingos") ? (
+                  {(activeTab === "notices" || activeTab === "jimmys" || activeTab === "bingos" || activeTab === "mille_stories") ? (
                     <div className="space-y-2">
                       <button 
                         onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}

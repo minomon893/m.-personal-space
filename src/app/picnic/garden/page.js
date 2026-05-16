@@ -209,6 +209,15 @@ export default function GardenPage() {
           background-size: 40px 40px;
           background-position: 0 0, 20px 20px;
         }
+        /* 灰色のギンガムチェック柄を追加しました */
+        .gingham-gray { 
+          background-color: #ffffff; 
+          background-image: 
+            linear-gradient(45deg, #F1F5F9 25%, transparent 25%, transparent 75%, #F1F5F9 75%, #F1F5F9), 
+            linear-gradient(45deg, #F1F5F9 25%, transparent 25%, transparent 75%, #F1F5F9 75%, #F1F5F9);
+          background-size: 40px 40px;
+          background-position: 0 0, 20px 20px;
+        }
       `}</style>
 
       {/* 右上の本マークボタン */}
@@ -391,6 +400,8 @@ export default function GardenPage() {
           {[
             { title: "ちょこっとーく", desc: "ゆるいつぶやき、誰かの気配。", icon: "💬", path: "/picnic/talk", theme: "gingham-yellow", iconBg: "bg-amber-50/80" },
             { title: "オタトーーーク！！！", desc: "好きを叫ぶ、熱量の社交場。", icon: "🔥", path: "/picnic/otaku", theme: "gingham-blue", iconBg: "bg-sky-50/80" },
+            // オタトーーーク！！！とじみコラムの間に「悩Mille-feuille」を追加しました
+            { title: "悩Mille-feuille", desc: "重なる想い、心のひだを紐解く場所。", icon: "🍰", path: "/picnic/mille", theme: "gingham-gray", iconBg: "bg-slate-50/80" },
             { title: "じみコラム", desc: "ここでしか読めない、内緒の話。", icon: "📖", path: "/picnic/jimmy", theme: "gingham-red", iconBg: "bg-rose-50/80" }
           ].map((item, idx) => (
             <Link href={item.path} key={item.path} className={`block group transform transition-all duration-500 hover:-translate-y-1 active:scale-[0.98] ${idx % 2 === 0 ? 'rotate-1' : '-rotate-1'}`}>
