@@ -33,6 +33,14 @@ export default function MillePage() {
   // キャラクターストーリー進行用
   const [storyIndex, setStoryIndex] = useState(0);
   const [currentStories, setCurrentStories] = useState([]);
+  
+  // Supabaseから取得した各キャラのカスタムストーリーを保持するステート
+  const [dbStories, setDbStories] = useState({
+    endy: [],
+    frida: [],
+    kubotchi: [],
+    yamin: []
+  });
 
   // Supabaseクライアントの初期化
   const supabase = useMemo(() => {
@@ -41,7 +49,7 @@ export default function MillePage() {
     return createBrowserClient(rawUrl, rawKey);
   }, []);
 
-  // 1. キャラクターのマスター定義
+  // 1. キャラクターのマスター定義 (storiesの初期値を空にしておく、またはフォールバック用にする)
   const characters = useMemo(() => ({
     endy: {
       id: "endy",
@@ -49,7 +57,7 @@ export default function MillePage() {
       type: "死の不安",
       badgeBg: "from-[#1A237E] to-[#6A1B9A]", // 静かなミッドナイトブルー〜優しいパープル
       intro: "終わりがあるからこそ、今をどう生きるかを一緒に考えよう。焦らなくていいんだよ。",
-      stories: [
+      defaultStories: [
         "すべての物語に終わりがあるように、命にも終わりがある。それは冷たいことじゃなくて、今この瞬間の温かさを教えてくれる道標んだよ。",
         "終わりを恐れるのは、あなたが今を一生懸命に愛そうとしている証拠。その優しい灯火を、僕はここでずっと見守っているからね。",
         "今日を無事に終えられたら、それだけで満点さ。明日が来るのを怖がらず、今はここで温かいお茶でも飲んで、ゆっくり目を閉じよう。"
@@ -61,7 +69,7 @@ export default function MillePage() {
       type: "自由の不安",
       badgeBg: "from-[#2E7D32] to-[#0288D1]", // 霧がかったミストグリーン〜スカイブルー
       intro: "「何でも自分で決めていい」って、時々すごく重たいよね。僕と一緒にその重さを分け合おう。",
-      stories: [
+      defaultStories: [
         "どこへ飛んでいってもいい自由な空は、時に迷路よりも迷子になりやすい。選ばなかった選択肢を悔やむ必要はないんだよ。",
         "どの道を選んでも、それはあなただけの特別な足跡になる。正解を探すんじゃなくて、選んだ道をのんびり歩いていけばいいのさ。",
         "決めることに疲れたら、今は何も選ばないという「自由」を使おう。雨が上がるまで、羽を休めてぼーっとしていたって誰も怒らないよ。"
@@ -73,7 +81,7 @@ export default function MillePage() {
       type: "孤独の不安",
       badgeBg: "from-[#4E342E] to-[#D7CCC8]", // 温かみのあるココアブラウン〜ベージュ
       intro: "誰もが抱える心の中の、ぽっかり空いた「クボミ」。埋めようとしなくていい、僕がじっと一緒にいるよ。",
-      stories: [
+      defaultStories: [
         "どれだけ誰かと深く繋がっていても、ふとした瞬間に訪れる孤独。それはね、あなたが自分という存在を大切に確かめている時間なんだ。",
         "僕のこのぽっかりしたクボミは、誰かの寂しさを受け止めるためにあるんだ。一人で抱えきれない夜は、ここにそっと腰掛けてね。",
         "人間はみんな、それぞれの星からやってきた旅人みたいなものさ。すれ違う瞬間に、こうして雨宿りを共にするだけでも、もう一人じゃない。"
@@ -85,13 +93,53 @@ export default function MillePage() {
       type: "無意味の不安",
       badgeBg: "from-[#374151] to-[#FCD34D]", // 深いトワイライトグレー〜柔らかなイエロー
       intro: "「人生の意味ってなに？」って考えて、深いヤミに迷い込んじゃった？僕が優しく照らすよ。",
-      stories: [
+      defaultStories: [
         "最初から決まっている「人生の意味」なんて、きっとどこにもない。だからこそ、今日食べた美味しいお菓子の味なんかを、意味にしていけるんだ。",
         "意味が見つからない日は、ただ息をして、雨の音を聴いているだけで大成功。世界は意味だけでできているわけじゃないからね。",
         "真っ白なキャンバスを渡されて立ち尽くす必要はないよ。意味のない落書きをのんびり楽しむような、そんな気楽さで生きていこう。"
       ]
     }
   }), []);
+
+  // Supabaseからmille_stories（アドミンが入力した各キャラのお話）を取得する関数
+  const fetchMilleStories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("mille_stories")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // 各キャラクターの日本語カテゴリー名（またはタグ名）をキーに対応付け
+        // アドミン画面の設定に合わせて、tagに入っている文字でマッピングします
+        const tempStories = { endy: [], frida: [], kubotchi: [], yamin: [] };
+        
+        data.forEach(item => {
+          const tag = item.tag || "";
+          if (tag.includes("死") || tag.toLowerCase().includes("endy")) {
+            tempStories.endy.push(item.content);
+          } else if (tag.includes("自由") || tag.toLowerCase().includes("frida")) {
+            tempStories.frida.push(item.content);
+          } else if (tag.includes("孤独") || tag.toLowerCase().includes("kubotchi")) {
+            tempStories.kubotchi.push(item.content);
+          } else if (tag.includes("意味") || tag.toLowerCase().includes("yamin")) {
+            tempStories.yamin.push(item.content);
+          }
+        });
+
+        setDbStories(tempStories);
+      }
+    } catch (e) {
+      console.error("Mille Storiesの取得に失敗しました:", e);
+    }
+  }, [supabase]);
+
+  // 初期ロード時にお話データをバックエンドから取得
+  useEffect(() => {
+    fetchMilleStories();
+  }, [fetchMilleStories]);
 
   // 2. 本日投稿済みかどうかのローカルチェック (2026年日付ベース)
   useEffect(() => {
@@ -180,11 +228,16 @@ export default function MillePage() {
     }
   };
 
-  // キャラクターの話を聞くランダムストーリー開始
+  // キャラクターの話を聞くストーリー開始
   const startStory = () => {
     if (!selectedChar) return;
-    // ストーリー配列からランダムで選択、またはシャッフルしてセット
-    const stories = [...selectedChar.stories];
+    
+    // Supabaseから取得したデータがある場合はそれを使い、なければ初期設定のデフォルト会話を使用する
+    const customStories = dbStories[selectedChar.id];
+    const stories = customStories && customStories.length > 0 
+      ? [...customStories] 
+      : [...selectedChar.defaultStories];
+
     setCurrentStories(stories);
     setStoryIndex(0);
     setTalkSubMode("story");
@@ -535,7 +588,7 @@ export default function MillePage() {
               </div>
 
               <p className="text-[11px] opacity-70 text-center pt-2">
-                一人で抱え込まず、みんなで悩みを分け合いながら、美味しいミルフィーユのように優しい時間を紡いでいきましょう。
+                一人で抱え込まず、みんなで悩みに分け合いながら、美味しいミルフィーユのように優しい時間を紡いでいきましょう。
               </p>
             </div>
           </div>
