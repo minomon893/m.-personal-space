@@ -84,7 +84,7 @@ export default function AdminPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    loading = true; // ローカル状態ロック用
+    if (loading) return; // すでに処理中の場合は多重送信を防止してロック
     setLoading(true);
     
     const table = activeTab;
@@ -200,7 +200,7 @@ export default function AdminPage() {
             { id: "notices", icon: <Megaphone size={14} />, label: "Notices" },
             { id: "jimmys", icon: <Coffee size={14} />, label: "Jimmy" },
             { id: "bingos", icon: <Grid3X3 size={14} />, label: "Bingo" },
-            { id: "mille_stories", icon: <Sparkles size={14} />, label: "Mille" }, // 追加タブ
+            { id: "mille_stories", icon: <Sparkles size={14} />, label: "Mille" }, 
             { id: "feedbacks", icon: <MessageSquareQuote size={14} />, label: "Feedback" },
             { id: "poems", icon: <PenLine size={14} />, label: "Poems" }
           ].map((tab) => {
