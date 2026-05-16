@@ -254,7 +254,15 @@ export default function MillePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#3B4C43] text-[#DCE5E0] font-[var(--font-sans)] relative overflow-hidden pb-12 select-none">
+    <div 
+      className="min-h-screen bg-[#3B4C43] text-[#DCE5E0] font-[var(--font-sans)] relative overflow-hidden pb-12 select-none"
+      onClick={() => {
+        // exit-narrationモードの時は、画面のどこをタップしても広場へ戻る
+        if (mode === "talk" && talkSubMode === "exit-narration") {
+          setMode("plaza");
+        }
+      }}
+    >
       
       {/* ☂️ 全体にかかる雨のセロファン・弾ける水滴エフェクト風背景 */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -406,7 +414,8 @@ export default function MillePage() {
                 
                 {/* 💬 吹き出しアイコンマーク（常時表示。押すとメニュー/ナレーション起動） */}
                 <button 
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation(); // 画面全体のクリックイベント発火を防ぐ
                     setTalkSubMode("menu");
                     setNarrationText(`やあ、僕は${selectedChar.name}。${selectedChar.intro} 今日はどうする？`);
                   }}
@@ -419,7 +428,15 @@ export default function MillePage() {
             </div>
 
             {/* 下部ダイナミックUIエリア (Glassmorphismですりガラス風) */}
-            <div className="w-full bg-white/10 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-6 shadow-2xl min-h-[180px] flex flex-col justify-center">
+            <div 
+              className="w-full bg-white/10 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-6 shadow-2xl min-h-[180px] flex flex-col justify-center"
+              onClick={(e) => {
+                // 親要素（画面全体）の戻るイベントが重複して走るのを防ぐため、input/menu/storyの時は伝播を止める
+                if (talkSubMode !== "exit-narration") {
+                  e.stopPropagation();
+                }
+              }}
+            >
               
               {/* SUB-MODE A: お悩み入力フォーム */}
               {talkSubMode === "input" && (
@@ -428,7 +445,7 @@ export default function MillePage() {
                     <div className="text-center py-6 space-y-2">
                       <p className="text-sm font-bold text-[#B5A773]">今日のお悩みはカチッと格納されたよ。</p>
                       <p className="text-[11px] opacity-75 max-w-xs mx-auto leading-relaxed">
-                        深く考えすぎて心が疲れてしまわないように。このお悩みは次の住人へと引き継がれます。また明日お話ししようね。
+                        深く考えすぎて心が疲れに変わってしまわないように。このお悩みは次の住人へと引き継がれます。また明日お話ししようね。
                       </p>
                     </div>
                   ) : (
@@ -512,15 +529,12 @@ export default function MillePage() {
 
               {/* SUB-MODE D: 完了・離脱用一時ナレーションボックス */}
               {talkSubMode === "exit-narration" && (
-                <div 
-                  onClick={() => setMode("plaza")} 
-                  className="cursor-pointer text-center py-6 space-y-4 select-none"
-                >
+                <div className="text-center py-6 space-y-4 select-none">
                   <p className="text-xs font-bold leading-relaxed max-w-xs mx-auto text-white/90">
                     {narrationText}
                   </p>
                   <p className="text-[9px] font-bold text-[#B5A773] tracking-widest uppercase animate-pulse">
-                    タップして広場へ戻る ▽
+                    画面のどこかをタップして広場へ戻る ▽
                   </p>
                 </div>
               )}
@@ -538,7 +552,7 @@ export default function MillePage() {
       
       {/* A. ページ解説用モーダル */}
       {isGuideOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300" onClick={(e) => e.stopPropagation()}>
           <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsGuideOpen(false)}></div>
           <div className="relative bg-[#24312A] w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-[3rem] shadow-2xl p-6 md:p-10 no-scrollbar animate-in zoom-in-95 duration-300 border-2 border-white/10 text-white/90 text-xs leading-relaxed">
             
@@ -597,7 +611,7 @@ export default function MillePage() {
 
       {/* B. 前の人のお悩み閲覧用モーダル */}
       {isPrevModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300" onClick={(e) => e.stopPropagation()}>
           <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsPrevModalOpen(false)}></div>
           <div className="relative bg-[#2D3A34] w-full max-w-md rounded-[2.5rem] shadow-2xl p-6 border border-white/10 text-center space-y-6 animate-in zoom-in-95 duration-300">
             <div>
