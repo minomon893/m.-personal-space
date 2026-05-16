@@ -7,7 +7,8 @@ import {
   Quote, Sparkles, BookOpen, FileText, ChevronLeft, ChevronRight 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase"; // インポートを追加
+// エイリアス依存を回避し、確実な相対パスに修正しました
+import { supabase } from "../../../lib/supabase"; 
 
 export default function TextCounselingPage() {
   const [currentIndex, setCurrentIndex] = useState(0);

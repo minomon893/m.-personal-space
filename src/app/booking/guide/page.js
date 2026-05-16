@@ -7,7 +7,7 @@ import {
   MessageCircle, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase"; // インポートを追加
+import { supabase } from "../../../lib/supabase";
 
 export default function BehaviorGuidePage() {
   const [currentIndex, setCurrentIndex] = useState(0);

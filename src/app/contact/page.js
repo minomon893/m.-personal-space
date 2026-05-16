@@ -42,8 +42,9 @@ export default function ContactPage() {
       
       {/* HEADER */}
       <header className="w-full max-w-md flex justify-between items-center mt-6 mb-16">
+        {/* テキストを Back to Top に変更し、トップページへの遷移を維持しました */}
         <Link href="/" className="text-[11px] font-bold opacity-60 uppercase flex items-center gap-2 hover:opacity-100 transition-all">
-          <ArrowLeft size={14}/> Back to Home
+          <ArrowLeft size={14}/> Back to Top
         </Link>
         <span className="text-[10px] tracking-[0.3em] font-bold opacity-30 uppercase">Contact</span>
       </header>

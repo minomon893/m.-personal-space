@@ -7,7 +7,8 @@ import {
   MessageCircle, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase";
+// エイリアス依存を回避し、確実な相対パスに修正しました
+import { supabase } from "../../../lib/supabase";
 
 export default function LiveSessionPage() {
   const [currentIndex, setCurrentIndex] = useState(0);

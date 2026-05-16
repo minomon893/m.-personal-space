@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export default function TermsPage() {
@@ -11,9 +10,10 @@ export default function TermsPage() {
         
         {/* ヘッダー */}
         <nav className="mb-12">
-          <Link href="/booking" className="text-[11px] font-bold opacity-60 uppercase flex items-center gap-2 hover:opacity-100 transition-all">
-            <ArrowLeft size={14}/> Back to Booking
-          </Link>
+          {/* aタグに切り替え、確実にトップページ(src/app/page.js)へ遷移するようにしました */}
+          <a href="/" className="text-[11px] font-bold opacity-60 uppercase flex items-center gap-2 hover:opacity-100 transition-all">
+            <ArrowLeft size={14}/> Back to Top
+          </a>
         </nav>
 
         <header className="mb-16 border-b border-[#5F6F7A]/10 pb-8">
