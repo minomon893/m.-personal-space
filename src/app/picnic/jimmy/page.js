@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
 
 export default function JimmyPage() {
+  const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState([]);
@@ -14,20 +16,53 @@ export default function JimmyPage() {
   const [showOnlyLiked, setShowOnlyLiked] = useState(false);
   const [viewedIds, setViewedIds] = useState([]);
 
+  // プロフィール用ステート
+  const [profile, setProfile] = useState(null);
+  const [daysCount, setDaysCount] = useState(0);
+
   const supabase = useMemo(() => {
     const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/['"]+/g, "").replace(/\/$/, "");
     const rawKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim().replace(/['"]+/g, "");
     return createBrowserClient(rawUrl, rawKey);
   }, []);
 
+  // 画像URL変換関数
+  const getFullImageUrl = useCallback((path) => {
+    if (!path) return null;
+    if (path.startsWith('http') || path.startsWith('data:') || path.length < 5) return path;
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/$/, "");
+    const cleanPath = path.replace(/^talkimage\//, "");
+    return `${supabaseUrl}/storage/v1/object/public/talkimage/${cleanPath}`;
+  }, []);
+
+  // 経過日数計算
+  const calcDays = useCallback((dateStr) => {
+    const createdDate = new Date(dateStr || new Date());
+    const diffDays = Math.ceil(Math.abs(new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    setDaysCount(diffDays);
+  }, []);
+
+  // 初期読み込み＆プロフィールキャッシュ取得
   useEffect(() => {
     const savedLikes = localStorage.getItem("jimi_liked_posts");
     if (savedLikes) setLikedIds(JSON.parse(savedLikes));
     
     const savedViewed = localStorage.getItem("jimi_viewed_posts");
     if (savedViewed) setViewedIds(JSON.parse(savedViewed));
-  }, []);
 
+    const savedProfile = localStorage.getItem("picnic_user_profile");
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        setProfile(parsed);
+        calcDays(parsed.created_at);
+      } catch (e) {
+        console.error("Cache parse error", e);
+      }
+    }
+  }, [calcDays]);
+
+  // コラム一覧取得
   const fetchJimmys = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -44,10 +79,40 @@ export default function JimmyPage() {
     }
   }, [supabase]);
 
-  useEffect(() => { fetchJimmys(); }, [fetchJimmys]);
+  // プロフィールをDBから追従取得
+  useEffect(() => {
+    fetchJimmys();
 
-  const totalPagesPC = Math.ceil(posts.length / 2);
-  const totalPagesMobile = posts.length;
+    const fetchProfileData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+
+        const { data: profRes } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (profRes) {
+          setProfile(profRes);
+          localStorage.setItem("picnic_user_profile", JSON.stringify(profRes));
+          calcDays(profRes.created_at);
+        }
+      } catch (e) {
+        console.error("Profile fetch error in jimmy page:", e);
+      }
+    };
+    fetchProfileData();
+  }, [supabase, fetchJimmys, calcDays]);
+
+  // 通常ページのカウント（特別ページ用に+1する前の最大値）
+  const baseTotalPagesPC = Math.ceil(posts.length / 2);
+  const baseTotalPagesMobile = posts.length;
+
+  // 特別ページ（プロフィール）を含めた最大ページ数
+  const totalPagesPC = baseTotalPagesPC + 1;
+  const totalPagesMobile = baseTotalPagesMobile + 1;
 
   const hasNewPost = useMemo(() => {
     if (posts.length === 0) return false;
@@ -55,6 +120,7 @@ export default function JimmyPage() {
     return !viewedIds.includes(latestPost.id);
   }, [posts, viewedIds]);
 
+  // 既読処理
   useEffect(() => {
     if (!isOpen || posts.length === 0) return;
     
@@ -67,14 +133,17 @@ export default function JimmyPage() {
     };
 
     if (window.innerWidth < 640) {
-      if (currentPage > 0) markAsViewed(posts[currentPage - 1]);
+      // 特別ページ以外かつインデックス（0）以外のとき
+      if (currentPage > 0 && currentPage <= baseTotalPagesMobile) {
+        markAsViewed(posts[currentPage - 1]);
+      }
     } else {
-      if (currentPage > 0) {
+      if (currentPage > 0 && currentPage <= baseTotalPagesPC) {
         markAsViewed(posts[(currentPage - 1) * 2]);
         markAsViewed(posts[(currentPage - 1) * 2 + 1]);
       }
     }
-  }, [currentPage, isOpen, posts, viewedIds]);
+  }, [currentPage, isOpen, posts, viewedIds, baseTotalPagesPC, baseTotalPagesMobile]);
 
   const toggleLike = (e, id) => {
     e.preventDefault();
@@ -90,17 +159,59 @@ export default function JimmyPage() {
     ? posts.filter(p => likedIds.includes(p.id)) 
     : posts;
 
-  const Bookmark = ({ isAtLatest, isClosed }) => {
+  // アイコンレンダリングコンポーネント
+  const RenderIcon = ({ user, sizeClass = "w-24 h-24", textClass = "text-3xl" }) => {
+    const [imgError, setImgError] = useState(false);
+    const rawPath = user?.avatar_url || user?.icon || user?.avatar;
+    const imageUrl = getFullImageUrl(rawPath);
+    const isEmoji = rawPath && rawPath.length < 5;
+    const shouldShowImage = imageUrl && imageUrl.startsWith('http') && !imgError && !isEmoji;
+
+    return (
+      <div className={`${sizeClass} bg-white rounded-[2.5rem] overflow-hidden flex items-center justify-center border-[3px] border-white shadow-sm flex-shrink-0 transition-transform active:scale-95`}>
+        {shouldShowImage ? (
+          <img 
+            src={imageUrl} 
+            className="w-full h-full object-cover" 
+            alt="" 
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <span className={`${textClass} leading-none select-none`}>
+            {isEmoji ? rawPath : "🍃"}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  // 栞コンポーネント
+  const Bookmark = ({ isClosed, currentPage, totalPagesMobile, totalPagesPC }) => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    const maxPage = isMobile ? totalPagesMobile : totalPagesPC;
+    const isSpecialPage = isOpen && currentPage === maxPage;
+    const isAtLatest = isOpen && !isSpecialPage && currentPage === (isMobile ? baseTotalPagesMobile : baseTotalPagesPC);
     const isLatestOnRight = posts.length % 2 === 0;
 
     let positionClass = "";
+    
     if (isClosed) {
-      // 本が閉じている時：表紙(z-10)の裏側(z-0)に配置して、上部20pxだけはみ出させる
-      positionClass = "top-[-20px] left-[65%] h-[60px] z-0 opacity-100";
+      // 本が閉じている時：表紙の裏側、上部に20pxはみ出す位置
+      positionClass = "top-[-20px] left-[65%] h-[60px] z-0 opacity-100 border-b-[12px] border-b-transparent after:bottom-[-12px] after:border-b-transparent after:border-l-[#EAB8B8] after:border-r-[#EAB8B8]";
+    } else if (isSpecialPage) {
+      // 特別ページ（プロフィール）表示中：通常ページを読んでいる時の「top-[-15px]」のサイズ・位置感に完全一致。
+      // かつ、背面（z-0）に回すことで、本の下に隠れる部分は被ってピシッと切れます。
+      positionClass = `top-[-15px] h-[220px] z-0 opacity-100 border-b-[12px] border-b-transparent after:bottom-[-12px] after:border-b-transparent after:border-l-[#EAB8B8] after:border-r-[#EAB8B8] ${
+        isMobile 
+          ? "right-4 translate-x-0" 
+          : isLatestOnRight 
+            ? "left-1/2 translate-x-0" 
+            : "left-1/2 -translate-x-full"
+      }`;
     } else if (isAtLatest) {
-      // 最新ページ表示中：紙の上に乗る
-      positionClass = `top-[-10px] h-[220px] z-50 shadow-md opacity-100 ${
+      // 最新ページ表示中：通常ページを読んでいる時の「top-[-15px]」のサイズ・位置感に完全一致。
+      // 紙の上に乗るため z-50 と影を設定します。
+      positionClass = `top-[-15px] h-[220px] z-50 shadow-md opacity-100 border-b-[12px] border-b-transparent after:bottom-[-12px] after:border-b-transparent after:border-l-[#EAB8B8] after:border-r-[#EAB8B8] ${
         isMobile 
           ? "right-4 translate-x-0" 
           : isLatestOnRight 
@@ -108,8 +219,8 @@ export default function JimmyPage() {
             : "left-1/2 -translate-x-full"
       }`;
     } else {
-      // 前のページを読んでいる時：最新ページ（後ろ）に挟まっているので裏側へ
-      positionClass = `top-[-15px] h-[220px] z-0 opacity-100 ${
+      // 前のページ（目次など）を読んでいる時：後ろに挟まっているので裏側へ（z-0）
+      positionClass = `top-[-15px] h-[220px] z-0 opacity-100 border-b-[12px] border-b-transparent after:bottom-[-12px] after:border-b-transparent after:border-l-[#EAB8B8] after:border-r-[#EAB8B8] ${
         isMobile ? "right-4" : isLatestOnRight ? "left-1/2" : "left-1/2 -translate-x-full"
       }`;
     }
@@ -119,9 +230,16 @@ export default function JimmyPage() {
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(true);
-          setCurrentPage(isMobile ? totalPagesMobile : totalPagesPC);
+          // 閉じている時、または特別ページにいる時は「最新ページ」へジャンプ。それ以外の時は「最新ページ / 特別ページ」のトグル移動が可能
+          if (isClosed || isSpecialPage) {
+            setCurrentPage(isMobile ? baseTotalPagesMobile : baseTotalPagesPC);
+          } else {
+            setCurrentPage(maxPage);
+          }
         }}
-        className={`absolute cursor-pointer transition-all duration-700 ease-in-out w-8 bg-[#EAB8B8] border-b-[12px] border-b-transparent after:content-[''] after:absolute after:bottom-[-12px] after:left-0 after:border-l-[16px] after:border-l-[#EAB8B8] after:border-r-[16px] after:border-r-[#EAB8B8] after:border-b-[12px] after:border-b-transparent ${hasNewPost ? 'animate-bookmark-glow' : ''} ${positionClass}`}
+        className={`absolute cursor-pointer transition-all duration-700 ease-in-out w-8 bg-[#EAB8B8] border-x border-x-white/10 after:content-[''] after:absolute after:left-0 after:border-l-[16px] after:border-r-[16px] ${
+          hasNewPost ? 'animate-bookmark-glow' : ''
+        } ${positionClass}`}
       >
         <div className="w-full h-full border-x border-white/10" />
       </div>
@@ -131,7 +249,7 @@ export default function JimmyPage() {
   return (
     <div className="min-h-screen bg-[#F0F7EE] relative overflow-x-hidden">
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Mochiypop+One&family=Cherry+Bomb+One&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght=500;700;900&family=Mochiypop+One&family=Cherry+Bomb+One&display=swap');
         
         .font-pop { font-family: 'Mochiypop One', sans-serif; }
         .font-cute { font-family: 'Cherry Bomb One', cursive; }
@@ -171,8 +289,10 @@ export default function JimmyPage() {
         <div className="relative w-full max-w-5xl aspect-[0.7/1] sm:aspect-[1.6/1] px-2 sm:px-4">
           
           <Bookmark 
-            isAtLatest={isOpen && currentPage === (typeof window !== 'undefined' && window.innerWidth < 640 ? totalPagesMobile : totalPagesPC)} 
             isClosed={!isOpen}
+            currentPage={currentPage}
+            totalPagesMobile={totalPagesMobile}
+            totalPagesPC={totalPagesPC}
           />
 
           {!isOpen ? (
@@ -188,17 +308,28 @@ export default function JimmyPage() {
           ) : (
             <div className="w-full h-full bg-[#FFFBFA] rounded-xl flex overflow-hidden book-shadow border-[4px] sm:border-[6px] border-white relative z-10">
               
+              {/* PC用見開き表示 */}
               <div className="hidden sm:flex w-full h-full relative z-10">
                 {/* 左ページ */}
                 <div className="flex-1 p-14 overflow-y-auto page-left bg-white/60 relative z-10">
                   {currentPage === 0 ? (
                     <div className="h-full flex flex-col justify-center">
-                       <div className="space-y-6">
+                      <div className="space-y-6">
                         <p className="text-[10px] font-bold leading-loose text-[#B59090]/60">
                           日々の地味な出来事を<br />
                           一頁ずつ綴っています。
                         </p>
                       </div>
+                    </div>
+                  ) : currentPage === totalPagesPC ? (
+                    /* 特別ページの左側 */
+                    <div className="h-full flex flex-col justify-center text-center p-4">
+                      <span className="text-4xl mb-4 animate-bounce">🌿</span>
+                      <h3 className="font-cute text-[#B59090] text-xl mb-2">管理人プロフィール</h3>
+                      <p className="text-[11px] leading-relaxed opacity-70 font-bold">
+                        いつも広場を大切にしてくれてありがとうございます。<br />
+                        ここは私の小さなお部屋の裏書きです。
+                      </p>
                     </div>
                   ) : (
                     <ColumnContent post={posts[(currentPage - 1) * 2]} likedIds={likedIds} toggleLike={toggleLike} viewedIds={viewedIds} />
@@ -250,13 +381,42 @@ export default function JimmyPage() {
                         )}
                       </div>
                     </div>
+                  ) : currentPage === totalPagesPC ? (
+                    /* 特別ページの右側（プロフィールカード） */
+                    <div className="h-full flex flex-col items-center justify-center animate-in fade-in duration-500">
+                      {profile && (
+                        <div className="w-[280px] min-h-[420px] bg-white/95 backdrop-blur-md pt-10 pb-8 px-8 rounded-[4.5rem] shadow-xl border-2 border-white flex flex-col items-center text-center gap-5 relative">
+                          <div onClick={() => router.push('/picnic/me')} className="cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
+                            <RenderIcon user={profile} sizeClass="w-32 h-32" textClass="text-5xl" />
+                          </div>
+                          
+                          <div className="space-y-3 w-full">
+                            <span className="text-[9px] font-black bg-[#A8C69F] text-white px-5 py-2 rounded-full uppercase tracking-widest inline-block">
+                              {profile.title || "Resident"}
+                            </span>
+                            <h2 onClick={() => router.push('/picnic/me')} className="text-xl font-black text-[#5F6F7A] tracking-tight cursor-pointer hover:text-[#A8C69F] transition-colors">
+                              {profile.username || "Anonymous"}
+                            </h2>
+                            <p className="text-[10px] tracking-widest font-bold text-[#94A684]/60 uppercase">
+                              Day {daysCount} in space
+                            </p>
+                          </div>
+
+                          <div className="w-full bg-[#F4F7F2] rounded-[2rem] p-5 border border-white/60 min-h-[80px] flex items-center justify-center">
+                            <p className="text-[11px] leading-relaxed font-bold text-[#5F6F7A]/80 whitespace-pre-wrap">
+                              {profile.status_message || "のんびりピクニック中..."}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <ColumnContent post={posts[(currentPage - 1) * 2 + 1]} likedIds={likedIds} toggleLike={toggleLike} viewedIds={viewedIds} />
                   )}
                 </div>
               </div>
 
-              {/* スマホ用 */}
+              {/* スマホ用単一ページ表示 */}
               <div className="sm:hidden w-full h-full overflow-y-auto p-6 bg-white/50 relative z-10">
                 {currentPage === 0 ? (
                   <div>
@@ -293,12 +453,41 @@ export default function JimmyPage() {
                       })}
                     </div>
                   </div>
+                ) : currentPage === totalPagesMobile ? (
+                  /* スマホ用特別ページ表示 */
+                  <div className="h-full flex flex-col items-center justify-center p-4 animate-in fade-in duration-500">
+                    {profile && (
+                      <div className="w-[260px] min-h-[400px] bg-white/95 backdrop-blur-md pt-8 pb-6 px-6 rounded-[4.5rem] shadow-xl border-2 border-white flex flex-col items-center text-center gap-4 relative">
+                        <div onClick={() => router.push('/picnic/me')} className="cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
+                          <RenderIcon user={profile} sizeClass="w-28 h-28" textClass="text-4xl" />
+                        </div>
+                        
+                        <div className="space-y-2 w-full">
+                          <span className="text-[9px] font-black bg-[#A8C69F] text-white px-4 py-1.5 rounded-full uppercase tracking-widest inline-block">
+                            {profile.title || "Resident"}
+                          </span>
+                          <h2 onClick={() => router.push('/picnic/me')} className="text-lg font-black text-[#5F6F7A] tracking-tight cursor-pointer hover:text-[#A8C69F] transition-colors">
+                            {profile.username || "Anonymous"}
+                          </h2>
+                          <p className="text-[9px] tracking-widest font-bold text-[#94A684]/60 uppercase">
+                            Day {daysCount} in space
+                          </p>
+                        </div>
+
+                        <div className="w-full bg-[#F4F7F2] rounded-[2rem] p-4 border border-white/60 min-h-[70px] flex items-center justify-center">
+                          <p className="text-[11px] leading-relaxed font-bold text-[#5F6F7A]/80 whitespace-pre-wrap">
+                            {profile.status_message || "のんびりピクニック中..."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <ColumnContent post={posts[currentPage - 1]} likedIds={likedIds} toggleLike={toggleLike} viewedIds={viewedIds} />
                 )}
               </div>
 
-              {/* ナビゲーション */}
+              {/* ナビゲーションボタン */}
               <div className="absolute bottom-6 left-0 right-0 flex justify-between px-6 sm:px-10 pointer-events-none z-50">
                 <button 
                   onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))} 

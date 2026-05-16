@@ -50,7 +50,7 @@ export default function MillePage() {
       badgeBg: "from-[#1A237E] to-[#6A1B9A]", // 静かなミッドナイトブルー〜優しいパープル
       intro: "終わりがあるからこそ、今をどう生きるかを一緒に考えよう。焦らなくていいんだよ。",
       stories: [
-        "すべての物語に終わりがあるように、命にも終わりがある。それは冷たいことじゃなくて、今この瞬間の温かさを教えてくれる道標なんだよ。",
+        "すべての物語に終わりがあるように、命にも終わりがある。それは冷たいことじゃなくて、今この瞬間の温かさを教えてくれる道標んだよ。",
         "終わりを恐れるのは、あなたが今を一生懸命に愛そうとしている証拠。その優しい灯火を、僕はここでずっと見守っているからね。",
         "今日を無事に終えられたら、それだけで満点さ。明日が来るのを怖がらず、今はここで温かいお茶でも飲んで、ゆっくり目を閉じよう。"
       ]
@@ -201,11 +201,11 @@ export default function MillePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#2D3A34] text-[#DCE5E0] font-[var(--font-sans)] relative overflow-hidden pb-12 select-none">
+    <div className="min-h-screen bg-[#3B4C43] text-[#DCE5E0] font-[var(--font-sans)] relative overflow-hidden pb-12 select-none">
       
       {/* ☂️ 全体にかかる雨のセロファン・弾ける水滴エフェクト風背景 */}
       <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#232F2A]/30 to-[#19241F]/80 mix-blend-multiply" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#2A3831]/20 to-[#1F2C26]/60 mix-blend-multiply" />
         {/* 縦の雨ライン */}
         <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_bottom,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_50%,rgba(255,255,255,0)_100%)] bg-[length:2px_100%] animate-pulse" />
         {/* 水滴が細かく降るようなドット背景 */}
@@ -235,7 +235,7 @@ export default function MillePage() {
 
       {/* ───────────────────────────────────────────
           1. ４匹の広場画面 (Plaza Mode)
-         ─────────────────────────────────────────── */}
+          ─────────────────────────────────────────── */}
       {mode === "plaza" && (
         <div className="relative z-10 max-w-4xl mx-auto p-6 flex flex-col min-h-screen">
           
@@ -255,26 +255,26 @@ export default function MillePage() {
           {/* MAIN TITLES */}
           <div className="text-center space-y-2 my-4">
             <h1 className="text-3xl font-black tracking-widest text-[#B4C7BC] italic">悩Mille-feuille</h1>
-            <p className="text-xs opacity-60 tracking-wider">死、自由、孤独、無意味とおしゃべりしよう。</p>
+            <p className="text-xs opacity-75 tracking-wider">死、自由、孤独、無意味とおしゃべりしよう。</p>
           </div>
 
           {/* 🏕️ ピクニック広場風の配置フィールド */}
-          <div className="flex-1 w-full max-w-2xl mx-auto my-6 relative min-h-[400px] bg-white/5 backdrop-blur-sm rounded-[3.5rem] border border-white/10 p-8 flex flex-col justify-between shadow-2xl overflow-hidden">
+          <div className="flex-1 w-full max-w-2xl mx-auto my-6 relative min-h-[500px] bg-white/5 backdrop-blur-md rounded-[3.5rem] border border-white/10 p-8 flex flex-col justify-between shadow-2xl overflow-hidden">
             
-            {/* 🏁 ギンガムチェックのピクニックシート & 湯気小物演出 */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[85%] h-[40%] bg-white/10 rounded-[2.5rem] rotate-1 overflow-hidden opacity-40 border border-white/10 pointer-events-none">
+            {/* 🏁 ギンガムチェックのピクニックシート（全域に大きく広げ、枠の白背景を透過に変更） */}
+            <div className="absolute inset-2 w-[96%] h-[94%] rounded-[2.5rem] overflow-hidden opacity-50 pointer-events-none">
               <div className="w-full h-full" style={{
-                backgroundImage: `linear-gradient(45deg, #374940 25%, transparent 25%, transparent 75%, #374940 75%, #374940), linear-gradient(45deg, #374940 25%, transparent 25%, transparent 75%, #374940 75%, #374940)`,
-                backgroundSize: '30px 30px',
-                backgroundPosition: '0 0, 15px 15px'
+                backgroundImage: `linear-gradient(45deg, #44584E 25%, transparent 25%, transparent 75%, #44584E 75%, #44584E), linear-gradient(45deg, #44584E 25%, transparent 25%, transparent 75%, #44584E 75%, #44584E)`,
+                backgroundSize: '40px 40px',
+                backgroundPosition: '0 0, 20px 20px'
               }} />
               {/* キャンドル・マグの気配（絵文字で代用演出） */}
-              <div className="absolute top-2 left-6 text-xl animate-bounce" style={{ animationDuration: '4s' }}>☕</div>
-              <div className="absolute bottom-4 right-8 text-lg opacity-80">🕯️</div>
+              <div className="absolute top-4 left-8 text-xl animate-bounce" style={{ animationDuration: '4s' }}>☕</div>
+              <div className="absolute bottom-6 right-10 text-lg opacity-80">🕯️</div>
             </div>
 
             {/* 4匹のキャラクタースタンド */}
-            <div className="grid grid-cols-2 gap-8 my-auto relative z-10">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-10 my-auto relative z-10 pt-6 pb-4">
               {Object.keys(characters).map((key) => {
                 const char = characters[key];
                 return (
@@ -284,16 +284,16 @@ export default function MillePage() {
                     className="flex flex-col items-center justify-center cursor-pointer group relative"
                   >
                     {/* 💡 足元の暖色系ぽわんとしたランタン光演出 */}
-                    <div className="absolute w-32 h-32 bg-orange-500/20 rounded-full blur-2xl pointer-events-none group-hover:bg-orange-400/30 transition-all duration-500 -bottom-4" />
+                    <div className="absolute w-36 h-36 bg-orange-500/15 rounded-full blur-2xl pointer-events-none group-hover:bg-orange-400/25 transition-all duration-500 -bottom-2" />
                     
-                    {/* キャラクターイラスト（sticker1.png固定・ふあふあ振動アニメ） */}
-                    <div className="w-28 h-28 flex items-center justify-center bg-white/10 rounded-[2.5rem] p-3 shadow-md border border-white/20 transition-all duration-300 group-hover:scale-105 group-hover:bg-white/20 animate-character">
-                      <img src="/sticker1.png" alt={char.name} className="w-full h-full object-contain pointer-events-none" />
+                    {/* キャラクターイラスト（大きく調整・ふあふあ振動アニメ） */}
+                    <div className="w-36 h-36 flex items-center justify-center bg-white/15 rounded-[2.5rem] p-4 shadow-lg border border-white/20 transition-all duration-300 group-hover:scale-105 group-hover:bg-white/25 animate-character">
+                      <img src="/images/sticker1.png" alt={char.name} className="w-full h-full object-contain pointer-events-none" />
                     </div>
 
                     {/* タグ情報 */}
                     <div className="mt-3 text-center space-y-1">
-                      <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold text-white bg-gradient-to-r ${char.badgeBg} opacity-80`}>
+                      <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold text-white bg-gradient-to-r ${char.badgeBg} opacity-90 shadow-sm`}>
                         {char.type}
                       </span>
                       <h3 className="text-sm font-black tracking-wide group-hover:text-white transition-colors">{char.name}</h3>
@@ -301,7 +301,7 @@ export default function MillePage() {
 
                     {/* 本日投稿済みマーク */}
                     {postedToday[char.id] && (
-                      <div className="absolute top-0 right-[20%] bg-amber-500 text-slate-900 text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-md rotate-12">
+                      <div className="absolute top-0 right-[15%] bg-amber-500 text-slate-900 text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-md rotate-12">
                         託し済
                       </div>
                     )}
@@ -312,7 +312,7 @@ export default function MillePage() {
           </div>
 
           {/* FOOTER */}
-          <footer className="w-full text-center mt-auto opacity-30 text-[9px] tracking-[0.4em] italic text-white">
+          <footer className="w-full text-center mt-auto opacity-40 text-[9px] tracking-[0.4em] italic text-white">
             m. personal space &copy; 2026
           </footer>
         </div>
@@ -320,7 +320,7 @@ export default function MillePage() {
 
       {/* ───────────────────────────────────────────
           2. 1対1のお話し画面 (Talk Mode)
-         ─────────────────────────────────────────── */}
+          ─────────────────────────────────────────── */}
       {mode === "talk" && selectedChar && (
         <div className="relative z-10 max-w-xl mx-auto p-6 flex flex-col min-h-screen justify-between">
           
@@ -345,11 +345,11 @@ export default function MillePage() {
               </span>
             </div>
 
-            {/* キャラ画像表示（ぽわんとした光のベース & ふわふわアニメーション） */}
+            {/* キャラ画像表示 */}
             <div className="relative w-44 h-44 flex items-center justify-center">
               <div className="absolute w-48 h-48 bg-orange-400/20 rounded-full blur-3xl pointer-events-none" />
               <div className="w-40 h-40 bg-white/10 backdrop-blur-md rounded-[3.5rem] p-4 border border-white/20 shadow-xl animate-character relative">
-                <img src="/sticker1.png" alt={selectedChar.name} className="w-full h-full object-contain" />
+                <img src="/images/sticker1.png" alt={selectedChar.name} className="w-full h-full object-contain" />
                 
                 {/* 💬 吹き出しアイコンマーク（常時表示。押すとメニュー/ナレーション起動） */}
                 <button 
@@ -374,7 +374,7 @@ export default function MillePage() {
                   {postedToday[selectedChar.id] ? (
                     <div className="text-center py-6 space-y-2">
                       <p className="text-sm font-bold text-[#B5A773]">今日のお悩みはカチッと格納されたよ。</p>
-                      <p className="text-[11px] opacity-60 max-w-xs mx-auto leading-relaxed">
+                      <p className="text-[11px] opacity-75 max-w-xs mx-auto leading-relaxed">
                         深く考えすぎて心が疲れてしまわないように。このお悩みは次の住人へと引き継がれます。また明日お話ししようね。
                       </p>
                     </div>
@@ -391,7 +391,7 @@ export default function MillePage() {
                         />
                         {/* カスタムプレースホルダー（入力開始で消える霧のような淡いグレー） */}
                         {issueInput.length === 0 && (
-                          <label htmlFor="issue-field" className="absolute top-3 left-4 text-sm text-white/30 pointer-events-none tracking-wide font-medium">
+                          <label htmlFor="issue-field" className="absolute top-3 left-4 text-sm text-white/40 pointer-events-none tracking-wide font-medium">
                             あなたのお悩みはなに？
                           </label>
                         )}
@@ -481,7 +481,7 @@ export default function MillePage() {
 
       {/* ───────────────────────────────────────────
           3. モーダル類 (解説・前の人の悩み)
-         ─────────────────────────────────────────── */}
+          ─────────────────────────────────────────── */}
       
       {/* A. ページ解説用モーダル */}
       {isGuideOpen && (
@@ -512,29 +512,29 @@ export default function MillePage() {
 
               <div className="space-y-3">
                 <h3 className="font-black text-[#B4C7BC] text-sm">💬 ４つの不安と、４匹のともだち</h3>
-                <p className="opacity-70">広場にたたずむ４匹は、人間なら誰しもが抱える「４つの根本的な不安」がカタチになったものです。怖い存在ではないので、気軽に話しかけてみてくださいね。</p>
+                <p className="opacity-75">広場にたたずむ４匹は、人間なら誰しもが抱える「４つの根本的な不安」がカタチになったものです。怖い存在ではないので、気軽に話しかけてみてくださいね。</p>
                 
                 <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
                   <p><strong>・エンディー（☠️死の不安）:</strong> 終わりがあるからこそ、今をどう生きるかを一緒に考えてくれる。</p>
                   <p><strong>・フリーダ（🕊️自由の不安）:</strong> 「何でも自分で決めていい」という自由の重さに、寄り添ってくれる。</p>
                   <p><strong>・クボッチ（🕳️孤独の不安）:</strong> 誰もが抱える心の中の「ぽっかり空いたクボミ」を、じっと見守ってくれる。</p>
-                  <p><strong>・ヤーミン（🌌無意味の不安）:</strong> 「人生の意味ってなに？」という深い闇（ヤミ）を、優しく照らしてくれる。</p>
+                  <p><strong>・ヤーミン（🌌無意味の不安）:</strong> 「人生の意味ってなに？」という深い闇（ヤミ）を、優しく照らし、導いてくれる。</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <h3 className="font-black text-[#B4C7BC] text-sm">🕒 広場での過ごし方</h3>
-                <p className="opacity-70"><strong>1. （キャラ名）の話を聞く:</strong> 不安にまつわるちょっとしたお話や、心が軽くなる言葉を語りかけてくれます。</p>
-                <p className="opacity-70"><strong>2. 前の人のお悩みを聞く:</strong> 訪れた「前の誰か」が残していったお悩みをそっと覗き、「悩んでいるのは自分だけじゃないんだ」と確かめられます。</p>
-                <p className="opacity-70"><strong>3. 自分の悩みを話す:</strong> いま抱えているモヤモヤをキャラクターに託すことができます。</p>
+                <p className="opacity-75"><strong>1. （キャラ名）の話を聞く:</strong> 不安にまつわるちょっとしたお話や、心が軽くなる言葉を語りかけてくれます。</p>
+                <p className="opacity-75"><strong>2. 前の人のお悩みを聞く:</strong> 訪れた「前の誰か」が残していったお悩みをそっと覗き、「悩んでいるのは自分だけじゃないんだ」と確かめられます。</p>
+                <p className="opacity-75"><strong>3. 自分の悩みを話す:</strong> いま抱えているモヤモヤをキャラクターに託すことができます。</p>
               </div>
 
               <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl">
                 <p className="font-bold text-amber-400">⚠️ お悩みは、１日につき各キャラ「１回まで」</p>
-                <p className="text-[11px] opacity-80 mt-1">実存的不安は、答えのない深い問いです。あまり考えすぎて心が疲れてしまわないよう、お悩み相談は１日１回までとなっています。</p>
+                <p className="text-[11px] opacity-80 mt-1">実存的不安は、答えのない深い問いです。あまり考えすぎて心が疲れに変わってしまわないよう、お悩み相談は１日１回までとなっています。</p>
               </div>
 
-              <p className="text-[11px] opacity-60 text-center pt-2">
+              <p className="text-[11px] opacity-70 text-center pt-2">
                 一人で抱え込まず、みんなで悩みを分け合いながら、美味しいミルフィーユのように優しい時間を紡いでいきましょう。
               </p>
             </div>
