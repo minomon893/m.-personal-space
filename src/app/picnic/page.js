@@ -169,9 +169,6 @@ export default function PicnicLandingPage() {
                 <p className="text-[12px] leading-loose opacity-70">
                   4つの実存的不安（死・自由・孤独・無意味）と向き合い、お悩みを次の住人へと託していく、1日1回のリレー式おしゃべり広場。重たいテーマをみんなで少しずつ重ねて、美味しいミルフィーユのように味わい深い対話へと変えていく特別な空間です。
                 </p>
-                <Link href="/picnic/millefeuille" className="inline-flex items-center gap-1 text-[11px] font-black tracking-wider text-[#A8C69F] hover:text-[#7A8C69] transition-colors mt-1">
-                  悩みの層をのぞいてみる →
-                </Link>
               </div>
             </div>
 
