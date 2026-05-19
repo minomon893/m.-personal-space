@@ -93,7 +93,7 @@ export default function MyPage() {
       } else {
         const [{ data: myTalks }, { data: myReactions }, { data: favs }] = await Promise.all([
           supabase.from("talk_posts").select("*, profiles:user_id(*)").eq("user_id", user.id),
-          supabase.from("talk_reactions").select("*, talk_posts(*, profiles:user_id(*))").eq("user_id", user.id),
+          supabase.from("talk_reactions").select("id, created_at, reaction_type, talk_posts(*, profiles:user_id(*))").eq("user_id", user.id),
           supabase.from("favorites")
             .select("id, created_at, talk_post_id, talk_posts!talk_post_id(*, profiles:user_id(*))")
             .eq("user_id", user.id)
@@ -105,6 +105,7 @@ export default function MyPage() {
           ...(myReactions?.filter(r => r.talk_posts).map(r => ({ 
             ...r.talk_posts, 
             reaction_id: r.id,
+            reaction_type: r.reaction_type,
             created_at: r.created_at, 
             type: 'my_reaction', 
             label: 'リアクション済', 
@@ -142,7 +143,10 @@ export default function MyPage() {
     e.preventDefault(); e.stopPropagation();
     if (!confirm("お気に入りを解除しますか？")) return;
     const { error } = await supabase.from("favorites").delete().eq("id", favId);
-    if (!error) fetchMyData();
+    if (!error) {
+      // 画面上のステートからリアルタイムに削除して即時反映させる
+      setItems(prevItems => prevItems.filter(item => item.fav_id !== favId));
+    }
   };
 
   const ItemCard = ({ item, idx }) => {
@@ -177,6 +181,13 @@ export default function MyPage() {
                 <p className={`text-[12px] font-bold text-[#5F6F7A] leading-relaxed truncate ${isExpanded ? "whitespace-normal" : ""}`}>
                   {item.content || "リアクションしました ✨"}
                 </p>
+                {item.type === 'my_reaction' && item.reaction_type && (
+                  <div className="mt-2 flex gap-1">
+                    <span className="inline-flex items-center justify-center bg-white border border-gray-100 px-2.5 py-1 rounded-xl text-[12px] shadow-sm font-bold">
+                      {item.reaction_type}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -266,7 +277,7 @@ export default function MyPage() {
             <div className="text-center py-20 opacity-40 animate-pulse text-[10px] tracking-widest uppercase">Loading your memories...</div>
           ) : showFavoritesOnly ? (
             <div className="h-full flex flex-col animate-in fade-in duration-500">
-              <h2 className="text-[10px] font-black opacity-30 mb-6 tracking-widest uppercase text-center flex items-center justify-center gap-2">🔖 Favorites Only ({activeTab})</h2>
+              <h2 className="text-[10px] font-black opacity-30 mb-6 tracking-widest uppercase text-center flex items-center justify-center gap-2">🔖 Favorites Only ({activeTab === 'otaku' ? 'オタトーーーク！！！' : 'ちょこっとーく'})</h2>
               <div className="flex-1 overflow-y-auto custom-scroll px-4">
                 <div className="max-w-md mx-auto">
                   {favoriteItems.length === 0 ? (

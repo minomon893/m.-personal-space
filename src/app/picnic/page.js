@@ -155,6 +155,26 @@ export default function PicnicLandingPage() {
               </div>
             </div>
 
+            {/* 新機能「悩Mille-feuille」の追加 */}
+            <div className="group">
+              <Link href="/picnic/millefeuille" className="block focus:outline-none">
+                <div className="flex items-center gap-4 mb-4 group-hover:translate-x-1 transition-transform">
+                  <span className="w-10 h-10 rounded-2xl bg-[#FDF2F8] flex items-center justify-center text-lg shadow-sm border border-pink-100/50">🍰</span>
+                  <h3 className="text-sm font-black tracking-wider text-[#5F6F7A] group-hover:text-[#A8C69F] transition-colors flex items-center gap-2">
+                    悩Mille-feuille <span className="text-[9px] bg-[#FDF2F8] text-pink-500 px-2 py-0.5 rounded-full font-bold tracking-normal border border-pink-100">NEW</span>
+                  </h3>
+                </div>
+              </Link>
+              <div className="space-y-3 pl-14">
+                <p className="text-[12px] leading-loose opacity-70">
+                  4つの実存的不安（死・自由・孤独・無意味）と向き合い、お悩みを次の住人へと託していく、1日1回のリレー式おしゃべり広場。重たいテーマをみんなで少しずつ重ねて、美味しいミルフィーユのように味わい深い対話へと変えていく特別な空間です。
+                </p>
+                <Link href="/picnic/millefeuille" className="inline-flex items-center gap-1 text-[11px] font-black tracking-wider text-[#A8C69F] hover:text-[#7A8C69] transition-colors mt-1">
+                  悩みの層をのぞいてみる →
+                </Link>
+              </div>
+            </div>
+
             <div className="group">
               <div className="flex items-center gap-4 mb-4">
                 <span className="w-10 h-10 rounded-2xl bg-[#F0F7EE] flex items-center justify-center text-lg shadow-sm border border-[#DDE6D9]">🌼</span>
@@ -186,7 +206,7 @@ export default function PicnicLandingPage() {
             <div className="space-y-3">
               <h4 className="text-[11px] font-black text-[#A8C69F]">01. 一度きりのアイデンティティ</h4>
               <p className="text-[11px] leading-relaxed opacity-60">
-                名前、アイコン、そして肩書。ここで決めたあなたのプロフィールは、この場所での「分身」です。納得いくまで選べますが、決定した後は二度と変更できません。 容易に変えられないからこそ、その姿はあなただけの確かな証明になります。
+                名前、アイコン、精度、そして肩書。ここで決めたあなたのプロフィールは、この場所での「分身」です。納得いくまで選べますが、決定した後は二度と変更できません。 容易に変えられないからこそ、その姿はあなただけの確かな証明になります。
               </p>
             </div>
             <div className="space-y-3">

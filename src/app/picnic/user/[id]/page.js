@@ -30,20 +30,24 @@ export default function UserProfilePage() {
         if (profErr) throw profErr;
         setTargetProfile(prof);
 
-        // talk_posts テーブルから取得
-        // もしオタク投稿が別テーブル(例: otaku_posts)なら、Promise.allで両方取得する必要があります
-        const { data: postData, error: postErr } = await supabase
-          .from("talk_posts") 
-          .select("*")
-          .eq("user_id", id)
-          .order("created_at", { ascending: false });
+        // talk_posts（ちょこっとーく）と otaku_posts（オタトーーーク！！！）の両方から取得して結合
+        const [{ data: talkPosts }, { data: otakuPosts }] = await Promise.all([
+          supabase.from("talk_posts").select("*").eq("user_id", id),
+          supabase.from("otaku_posts").select("*").eq("user_id", id)
+        ]);
 
-        if (!postErr) setPosts(postData);
+        const combinedPosts = [
+          ...(talkPosts?.map(p => ({ ...p, is_otaku: false })) || []),
+          ...(otakuPosts?.map(p => ({ ...p, is_otaku: true })) || [])
+        ];
+
+        // 作成日時の新しい順にソートしてステートにセット
+        setPosts(combinedPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
 
       } catch (err) {
         console.error("Error fetching user data:", err);
       } finally {
-        setLoading(false);
+        loading && setLoading(false);
       }
     };
 
