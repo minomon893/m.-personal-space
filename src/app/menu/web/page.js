@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Globe, Image, Users, AlertCircle } from "lucide-react";
+import { ArrowLeft, Globe, Image, Users, Building, AlertCircle } from "lucide-react";
 
 export default function WebPage() {
   return (
@@ -42,7 +42,6 @@ export default function WebPage() {
               日々の温度や小さないとおしさを詰め込んだ、個人利用・商用利用可能なフリーイラスト素材サイトです。あなたの日常や、大切な発信の添え木になれますように。
             </p>
 
-            {/* 将来的に実際のURLへ変更してください */}
             <a href="https://example.com/illustration" target="_blank" rel="noopener noreferrer">
               <button className="w-full py-4 px-6 bg-white/80 border border-white/60 rounded-xl font-bold text-xs tracking-wider shadow-sm hover:bg-white hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2">
                 <Globe size={13} /> サイトを訪ねる
@@ -66,10 +65,32 @@ export default function WebPage() {
               身近な人との関係性や、対話のクセを紐解く診断コンテンツ。自分がどんな言葉を大切にしていて、どんな対話が心地よいと感じるのか、静かに見つめ直す場所です。
             </p>
 
-            {/* 将来的に実際のURLへ変更してください */}
             <a href="https://example.com/diagnosis" target="_blank" rel="noopener noreferrer">
               <button className="w-full py-4 px-6 bg-white/80 border border-white/60 rounded-xl font-bold text-xs tracking-wider shadow-sm hover:bg-white hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2">
                 <Globe size={13} /> 診断をはじめる
+              </button>
+            </a>
+          </section>
+
+          {/* SITE 3: MUSIC APARTMENT */}
+          <section className="bg-white/40 border border-white/30 rounded-[2rem] p-7 shadow-sm shadow-black/[0.01] backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-4 opacity-80">
+              <div className="p-2 bg-white/60 rounded-xl border border-white/50">
+                <Building size={18} className="text-[#5F6F7A]" />
+              </div>
+              <div>
+                <h2 className="text-[16px] font-bold tracking-wide">MUSIC APARTMENT</h2>
+                <span className="text-[9px] opacity-40 uppercase tracking-widest block font-sans">Residence Management</span>
+              </div>
+            </div>
+            
+            <p className="text-xs leading-relaxed opacity-70 mb-6 pl-1">
+              空っぽの土地に、新しい住民たちを迎える場所。誰が隣に住むかで、この街の空気は変わっていきます。
+            </p>
+
+            <a href="/apartment">
+              <button className="w-full py-4 px-6 bg-white/80 border border-white/60 rounded-xl font-bold text-xs tracking-wider shadow-sm hover:bg-white hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2">
+                <Globe size={13} /> 音楽を作る
               </button>
             </a>
           </section>

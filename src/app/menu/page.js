@@ -84,8 +84,14 @@ export default function MenuPage() {
             </h2>
 
             <div className="grid gap-4">
+              <Link href="/menu/rpg">
+                <MenuButton title="REbeLABEL" subtitle="性格解釈RPG" />
+              </Link>
               <Link href="/menu/bot">
                 <MenuButton title="やわらかことぼっとくん" subtitle="アサーティブ変換ツール" />
+              </Link>
+              <Link href="/menu/bingo">
+                <MenuButton title="日々ンゴ" subtitle="感覚を観測する" />
               </Link>
               <Link href="/menu/metacognition">
                 <MenuButton title="メタ認知トリガー開発部" subtitle="交流型脱フュージョントレーニング" />
@@ -106,10 +112,6 @@ export default function MenuPage() {
               <Link href="/menu/profile">
                 <MenuButton title="プロフィール帳" subtitle="自分を整理" />
               </Link>
-              <Link href="/menu/bingo">
-                <MenuButton title="日々ンゴ" subtitle="感覚を観測する" />
-              </Link>
-              {/* 日々ンゴの下に移動し、タイトルをMAXIMUM vs MINIMUMに変更 */}
               <Link href="/menu/cards">
                 <MenuButton title="MAXIMUM vs MINIMUM" subtitle="中庸選択トレーニング" />
               </Link>
@@ -141,9 +143,8 @@ export default function MenuPage() {
               <Link href="/menu/stickers">
                 <MenuButton title="LINE Stamp" subtitle="もっちりとした人シリーズ" />
               </Link>
-              {/* LINE Stampの下にWeb siteボタンを新設、遷移先を/menu/webに指定 */}
               <Link href="/menu/web">
-                <MenuButton title="Web site" subtitle="フリー素材 / 話し合いタイプ診断" />
+                <MenuButton title="Web site" subtitle="フリー素材 / 話し合いタイプ診断 / AI作曲ツール" />
               </Link>
             </div>
           </section>
