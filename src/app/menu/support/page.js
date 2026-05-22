@@ -15,10 +15,10 @@ export default function SupportPage() {
       border: "border-[#E6CFCF]"
     },
     {
-      title: "DV相談プラス (配偶者・恋人)",
+      title: "DV相談プラス (恋人・家族)",
       tel: "0120-279-889",
       description:
-        "パートナーからの暴力や支配関係の相談窓口です。",
+        "近しい人からの身体面、精神面、金銭面での暴力に関する相談窓口です。",
       icon: <ShieldAlert size={24} className="text-[#B89A6A]" />,
       bg: "bg-[#F3EFE7]",
       border: "border-[#E6D7C3]"

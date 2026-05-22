@@ -1,347 +1,183 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, BookOpen, X, MessageCircle, ChevronLeft, Trophy } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, BookOpen, X, Trash2, Edit2, ChevronLeft, Trophy } from 'lucide-react';
 import { supabase } from "../../../lib/supabase";
 import Link from 'next/link';
 
 export default function NotToDoPage() {
   const [entries, setEntries] = useState([]);
-  const [trophies, setTrophies] = useState([]);
   const [newAction, setNewAction] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
-  
   const [showCelebration, setShowCelebration] = useState(false);
   const [currentFeelings, setCurrentFeelings] = useState('');
-  const [selectedTrophy, setSelectedTrophy] = useState(null);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
+  useEffect(() => { fetchInitialData(); }, []);
 
   async function fetchInitialData() {
-    setIsLoading(true);
-    const { data: logData } = await supabase
-      .from('not_to_do_logs')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    const { data: trophyData } = await supabase
-      .from('not_to_do_trophies')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (logData) {
-      setEntries(logData);
-      localStorage.setItem('not_to_do_cache', JSON.stringify(logData));
-    }
-    if (trophyData) setTrophies(trophyData);
-    setIsLoading(false);
+    const { data: logs } = await supabase.from('not_to_do_logs').select('*').order('created_at', { ascending: false });
+    if (logs) setEntries(logs);
   }
 
   async function handleAddAction(e) {
     if (e) e.preventDefault();
     if (!newAction.trim()) return;
-
-    const { data, error } = await supabase
-      .from('not_to_do_logs')
-      .insert([{ action: newAction, is_completed: false }])
-      .select().single();
-
-    if (!error && data) {
-      setEntries([data, ...entries]);
-      setNewAction('');
-    }
+    const { data } = await supabase.from('not_to_do_logs').insert([{ action: newAction, is_completed: false }]).select().single();
+    if (data) { setEntries([data, ...entries]); setNewAction(''); }
   }
 
-  async function handleUpdateReflection(id, reflection, tags) {
-    const { error } = await supabase
-      .from('not_to_do_logs')
-      .update({ reflection, tags, is_completed: true })
-      .eq('id', id);
-
+  async function handleUpdate(id, reflection, tags, nextActions) {
+    const { error } = await supabase.from('not_to_do_logs').update({ reflection, tags, nextActions, is_completed: true }).eq('id', id);
     if (!error) {
-      const updatedEntries = entries.map(e => 
-        e.id === id ? { ...e, reflection, tags, is_completed: true } : e
-      );
+      const updatedEntries = entries.map(e => e.id === id ? { ...e, reflection, tags, nextActions, is_completed: true } : e);
       setEntries(updatedEntries);
-
-      const newCompletedCount = updatedEntries.filter(e => e.is_completed).length;
-      if (newCompletedCount > 0 && newCompletedCount % 5 === 0) {
-        setTimeout(() => setShowCelebration(true), 1000);
-      }
+      if ((updatedEntries.filter(e => e.is_completed).length) % 5 === 0) setShowCelebration(true);
     }
   }
 
   async function saveTrophy() {
-    const { data, error } = await supabase
-      .from('not_to_do_trophies')
-      .insert([{ feelings: currentFeelings }])
-      .select().single();
-
-    if (!error && data) {
-      setTrophies([...trophies, data]);
-      setShowCelebration(false);
-      setCurrentFeelings('');
-    }
+    await supabase.from('not_to_do_trophies').insert({ feelings: currentFeelings });
+    setShowCelebration(false);
+    setCurrentFeelings('');
   }
 
   const completedCount = entries.filter(e => e.is_completed).length;
-  const currentProgressCount = completedCount % 5;
-  const progressPercent = (currentProgressCount === 0 && completedCount > 0 && !showCelebration && trophies.length < Math.floor(completedCount / 5)) 
-    ? 100 
-    : (currentProgressCount / 5) * 100;
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7] text-[#4A4A4A] font-sans selection:bg-stone-200 relative overflow-x-hidden">
-      
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-center z-40 bg-[#F7F7F7]/80 backdrop-blur-sm">
-        <Link href="/menu" className="p-2 hover:opacity-50 transition-opacity">
-          <ChevronLeft size={22} strokeWidth={1.5} />
-        </Link>
-        <button 
-          onClick={() => setShowInfo(true)} 
-          className="p-2 border border-stone-300 rounded-full hover:bg-stone-100 transition-all shadow-sm"
-        >
-          <BookOpen size={20} strokeWidth={1.5} />
-        </button>
-      </nav>
+    <div className="min-h-screen bg-[#dccfb0] text-[#4a4030] font-mono relative overflow-hidden">
+      <div className="fixed inset-0 z-0 opacity-30 pointer-events-none">
+        <div className="h-3/4 bg-gradient-to-b from-[#2c3e50] to-[#e67e22]" />
+        <div className="h-1/4 bg-[#5d6d4e]" />
+        {[...Array(5)].map((_, i) => (
+          <motion.div key={i} animate={{ x: [-200, 1200] }} transition={{ repeat: Infinity, duration: 15 + i * 5, ease: "linear", delay: i * 3 }} className="absolute text-3xl" style={{ top: `${10 + i * 15}%` }}>
+            {['☁️', '🚁', '✈️'][i % 3]}
+          </motion.div>
+        ))}
+        <motion.div animate={{ y: [0, -15, 0] }} transition={{ repeat: Infinity, duration: 0.8 }} className="absolute bottom-[20%] right-[5%] text-5xl rotate-[-10deg]">🏃‍♂️</motion.div>
+      </div>
 
-      {/* Identity Area */}
-      <div className="fixed right-4 md:right-10 top-1/2 -translate-y-1/2 flex flex-col items-center gap-8 z-0">
-        <div className="relative w-32 h-64 md:w-40 md:h-80 flex items-end justify-center">
-          <div className="absolute inset-0 bg-amber-100/20 blur-3xl rounded-full" />
-          <div className="absolute bottom-0 w-full h-full overflow-hidden" style={{ clipPath: 'url(#human-mask)' }}>
-            <motion.div 
-              initial={{ height: 0 }}
-              animate={{ height: `${progressPercent}%` }}
-              transition={{ type: "spring", stiffness: 30, damping: 15 }}
-              className="w-full bg-gradient-to-t from-amber-600 via-amber-400 to-yellow-200 absolute bottom-0 shadow-[0_0_30px_rgba(251,191,36,0.6)]"
-            />
-          </div>
-          <svg className="w-full h-full text-stone-200 fill-current opacity-90 relative z-10" viewBox="0 0 24 24">
-            <defs>
-              <clipPath id="human-mask">
-                <path d="M12,2c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,2,12,2z M10.5,7h3c1.1,0,2,0.9,2,2v5.5h-1.5V22h-4v-7.5H8.5V9C8.5,7.9,9.4,7,10.5,7z" />
-              </clipPath>
-            </defs>
-            <path d="M12,2c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,2,12,2z M10.5,7h3c1.1,0,2,0.9,2,2v5.5h-1.5V22h-4v-7.5H8.5V9C8.5,7.9,9.4,7,10.5,7z" 
-              fill="none" stroke="#D6D3D1" strokeWidth="0.2" />
-          </svg>
-          <div className="absolute -bottom-6 w-full text-center">
-             <p className="text-[8px] tracking-[0.4em] uppercase opacity-40 font-medium">Core Progress</p>
-          </div>
-        </div>
+      <div className="relative z-10 p-6 max-w-2xl mx-auto">
+        <nav className="flex justify-between items-center mb-8">
+          <Link href="/menu" className="p-2 bg-black/5 rounded-full"><ChevronLeft /></Link>
+          <button onClick={() => setShowInfo(true)} className="p-3 bg-black/5 rounded-full"><BookOpen size={20} /></button>
+        </nav>
 
-        <div className="relative flex flex-col items-center">
-          <div className="flex flex-wrap justify-center gap-3 max-w-[160px] min-h-[40px] px-2 pb-1">
-            {trophies.map((t) => (
-              <motion.button
-                key={t.id}
-                whileHover={{ scale: 1.2, y: -5 }}
-                onClick={() => setSelectedTrophy(t)}
-                className="text-amber-500 drop-shadow-sm cursor-pointer"
-              >
-                <Trophy size={18} fill="currentColor" fillOpacity={0.2} />
-              </motion.button>
-            ))}
+        <header className="mb-8">
+          <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-2">Not to do list</h1>
+          <p className="text-xs opacity-60">違和感を実験し、自分らしさの輪郭を削り出すための記録場所。</p>
+        </header>
+
+        <section className="bg-white/30 p-4 rounded-xl border border-white/50 mb-8">
+          <p className="text-[10px] uppercase opacity-50 mb-2">次のトロフィーまで：{5 - (completedCount % 5)} レポート</p>
+          <div className="w-full h-2 bg-black/10 rounded-full overflow-hidden">
+            <div className="h-full bg-[#e67e22]/60 rounded-full transition-all duration-500" style={{ width: `${(completedCount % 5) * 20}%` }} />
           </div>
-          <div className="w-32 md:w-40 h-[2px] bg-stone-300 rounded-full shadow-sm" />
-          <div className="w-28 md:w-36 h-[4px] mt-[2px] bg-stone-200/50 rounded-full" />
-          <p className="text-[8px] mt-2 tracking-[0.3em] uppercase opacity-30">Achievements</p>
+        </section>
+
+        <form onSubmit={handleAddAction} className="flex gap-2 mb-8">
+          <input value={newAction} onChange={(e) => setNewAction(e.target.value)} placeholder="例）派手な服を着てみる" className="flex-1 bg-white/50 rounded-lg p-3 outline-none border border-white" />
+          <button type="submit" className="bg-[#4a4030] text-white px-6 rounded-lg font-bold"><Plus /></button>
+        </form>
+
+        <div className="space-y-4">
+          {entries.map(e => <LogItem key={e.id} entry={e} onUpdate={handleUpdate} onDelete={async (id) => { await supabase.from('not_to_do_logs').delete().eq('id', id); setEntries(entries.filter(i => i.id !== id)); }} />)}
         </div>
       </div>
 
-      <header className="max-w-xl mx-auto pt-28 px-6 pb-12 relative z-10">
-        <h1 className="text-2xl md:text-3xl font-serif tracking-widest mb-2 italic">Not to do list</h1>
-        <p className="text-[11px] md:text-[12px] uppercase tracking-[0.3em] opacity-40 leading-relaxed">
-          Recording the feeling of not being yourself.
-        </p>
-      </header>
-
-      <main className="max-w-xl mx-auto px-6 space-y-12 pb-32 relative z-10">
-        <section className="bg-white p-6 md:p-8 border border-[#E5E5E5] shadow-sm">
-          <p className="text-[10px] mb-4 tracking-widest opacity-60 italic">まずは、やってみることを決める</p>
-          <form onSubmit={handleAddAction} className="flex gap-4">
-            <input 
-              type="text" 
-              value={newAction}
-              onChange={(e) => setNewAction(e.target.value)}
-              placeholder="例：あえて苦手な色の服を着る"
-              className="flex-1 bg-transparent border-b border-stone-200 py-2 text-sm focus:outline-none focus:border-stone-800 transition-colors"
-            />
-            <button type="submit" className="p-2 hover:bg-stone-50 transition-colors">
-              <Plus size={20} strokeWidth={1} />
-            </button>
-          </form>
-        </section>
-
-        <section className="space-y-6">
-          <h2 className="text-[10px] tracking-[0.2em] uppercase opacity-40">Observation Logs</h2>
-          <div className="space-y-4">
-            <AnimatePresence mode="popLayout">
-              {entries.map((entry) => (
-                <LogItem key={entry.id} entry={entry} onUpdate={handleUpdateReflection} />
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
-      </main>
-
-      {/* Celebration Modal */}
-      <AnimatePresence>
-        {showCelebration && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-stone-900/90 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} className="text-center max-w-sm w-full space-y-8">
-              <motion.div 
-                animate={{ rotateY: 360, scale: [1, 1.2, 1] }} 
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="flex justify-center text-amber-400"
-              >
-                <Trophy size={80} strokeWidth={1} />
-              </motion.div>
-              <div className="space-y-4">
-                <h2 className="text-white font-serif italic text-lg tracking-widest">Congratulations.</h2>
-                <p className="text-stone-400 text-xs leading-loose">おめでとう。あなたが変わろうとした証です。</p>
-              </div>
-              <div className="space-y-4 bg-white/5 p-6 rounded-sm">
-                <p className="text-[10px] text-stone-500 uppercase tracking-widest">How do you feel now?</p>
-                <textarea 
-                  value={currentFeelings}
-                  onChange={(e) => setCurrentFeelings(e.target.value)}
-                  placeholder="今の気持ちを台座に刻みましょう"
-                  className="w-full bg-transparent border-b border-white/20 text-white text-sm py-2 focus:outline-none focus:border-amber-400 resize-none h-20"
-                />
-                <button 
-                  onClick={saveTrophy}
-                  className="w-full py-3 bg-amber-500 text-stone-900 text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-amber-400 transition-colors"
-                >
-                  Collect Trophy
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Trophy Detail View */}
-      <AnimatePresence>
-        {selectedTrophy && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setSelectedTrophy(null)}
-            className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-stone-100/95 backdrop-blur-md"
-          >
-            <motion.div className="relative flex flex-col items-center">
-              <Trophy size={100} className="text-amber-500 mb-6 drop-shadow-lg" strokeWidth={1} fill="currentColor" fillOpacity={0.1} />
-              <div className="bg-stone-800 px-8 py-6 rounded-sm shadow-2xl text-center max-w-xs border-t-4 border-amber-600">
-                <p className="text-amber-200/50 text-[9px] mb-2 font-serif italic uppercase tracking-widest">
-                  {new Date(selectedTrophy.created_at).toLocaleDateString()}
-                </p>
-                <p className="text-white text-[13px] leading-relaxed font-sans italic">
-                  "{selectedTrophy.feelings || "静かな変化の記録"}"
-                </p>
-              </div>
-              <p className="mt-8 text-[10px] uppercase tracking-widest opacity-30 italic cursor-pointer">Tap to return</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Info Modal */}
-      <AnimatePresence>
-        {showInfo && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-stone-100/90 backdrop-blur-sm">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white border border-stone-200 p-8 md:p-10 max-w-lg w-full relative shadow-2xl max-h-[90vh] overflow-y-auto">
-              <button onClick={() => setShowInfo(false)} className="absolute top-6 right-6 opacity-30 hover:opacity-100 transition-opacity">
-                <X size={20} strokeWidth={1} />
-              </button>
-              
-              <div className="space-y-8">
-                <header className="border-b border-stone-100 pb-6">
-                  <h3 className="text-[15px] font-serif italic tracking-[0.1em] mb-2">Not to do list について</h3>
-                  <p className="text-[11px] opacity-50 tracking-wider">〜自分らしさの輪郭を描く、逆説の実験室〜</p>
-                </header>
-
-                <div className="text-[12px] leading-relaxed space-y-6 opacity-80 text-stone-600">
-                  <p>
-                    「自分らしさ」を見つけるのは難しいけれど、「これじゃない！」という違和感は、私たちの体が教えてくれる最も信頼できるシグナルです。
-                    このページは、あえて「自分らしくない選択」をすることで、その裏側に隠れているあなたの理想や、本当に大切にしたい価値観を浮かび上がらせるための場所です。
-                  </p>
-
-                  <section className="space-y-3 bg-stone-50 p-4 rounded-sm">
-                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400">How to use</h4>
-                    <ul className="space-y-2">
-                      <li><span className="font-bold text-stone-800">らしくない選択:</span> 普段の自分なら選ばない行動を、あえて実験的に選んでみる。</li>
-                      <li><span className="font-bold text-stone-800">違和感をキャッチ:</span> その時に生じる「恥ずかしさ」や「無理してる感」を、心のシグナルとして観察する。</li>
-                      <li><span className="font-bold text-stone-800">シグナルを貯める:</span> ログを貯めていくことで、右側のインジケーターが満たされ、あなたの「無理のない形」が少しずつ見えてきます。</li>
-                    </ul>
-                  </section>
-
-                  <section className="space-y-3">
-                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400">この実験の良さ</h4>
-                    <ul className="space-y-2">
-                      <li><span className="font-bold text-stone-800">無責任を肯定する:</span> 「こんなの私じゃない」と手放すことは、自分への誠実さです。</li>
-                      <li><span className="font-bold text-stone-800">正解を探さない:</span> 何が正解か分からなくても、「これではない」を減らすだけで心は軽くなります。</li>
-                      <li><span className="font-bold text-stone-800">余白を作る:</span> 合わない役割を置いていくことで、今のあなたが自然に収まるための「余白」が生まれます。</li>
-                    </ul>
-                  </section>
-
-                  <p className="italic pt-4 border-t border-stone-100 text-center opacity-60">
-                    「これじゃない」というシグナルの先に、あなたが少しだけ楽にいられる場所が見つかります。
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <CelebrationModal show={showCelebration} setShow={setShowCelebration} saveTrophy={saveTrophy} currentFeelings={currentFeelings} setCurrentFeelings={setCurrentFeelings} />
+      <InfoModal show={showInfo} setShow={setShowInfo} />
     </div>
   );
 }
 
-function LogItem({ entry, onUpdate }) {
+function LogItem({ entry, onUpdate, onDelete }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [reflection, setReflection] = useState(entry.reflection || '');
-  const [selectedTags, setSelectedTags] = useState(entry.tags || []);
-  const tagsList = ['違和感', '無理感', '恥ずかしさ', '新しい発見', 'ざわつき'];
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [refl, setRefl] = useState(entry.reflection || '');
+  const [tags, setTags] = useState(entry.tags || []);
+  const [next, setNext] = useState(entry.nextActions || []);
 
-  const toggleTag = (tag) => {
-    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
-  };
+  const tagsList = ['違和感', '無理感', '恥ずかしさ', '新しい発見', 'ざわつき'];
+  const options = ["ハードルを下げる", "今は時期じゃない", "誰かに聞く", "満足！"];
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white/70 border border-white p-5 md:p-7 backdrop-blur-sm hover:border-stone-300 transition-all shadow-sm relative overflow-hidden group">
-      <div className="flex justify-between items-start mb-4">
-        <span className="text-sm font-medium tracking-tight">{entry.action}</span>
-        <span className="text-[10px] opacity-30 italic font-serif">{new Date(entry.created_at).toLocaleDateString('ja-JP').replace(/\//g, '.')}</span>
+    <div className="bg-white/60 p-5 rounded-2xl border border-white cursor-pointer" onClick={() => !isEditing && entry.is_completed && setIsExpanded(!isExpanded)}>
+      <div className="flex justify-between items-center">
+        <h3 className={`font-bold ${entry.is_completed ? '' : 'opacity-60'}`}>{entry.action}</h3>
+        <div className="flex gap-2 opacity-50" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => onDelete(entry.id)}><Trash2 size={16} /></button>
+          <button onClick={() => setIsEditing(!isEditing)}><Edit2 size={16} /></button>
+        </div>
       </div>
 
-      {!entry.is_completed && !isEditing ? (
-        <button onClick={() => setIsEditing(true)} className="text-[11px] flex items-center gap-2 opacity-40 hover:opacity-100"><MessageCircle size={13} /> 観察結果を記録する</button>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            {(isEditing ? tagsList : entry.tags || []).map(tag => (
-              <button key={tag} disabled={!isEditing} onClick={() => toggleTag(tag)} className={`text-[9px] px-2 py-0.5 border rounded-full transition-colors ${selectedTags.includes(tag) ? 'bg-stone-800 text-white border-stone-800' : 'border-stone-200 text-stone-500'}`}>{tag}</button>
-            ))}
+      {isEditing ? (
+        <div className="mt-4 pt-4 border-t border-black/10" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {tagsList.map(t => <button key={t} onClick={() => setTags(prev => prev.includes(t) ? prev.filter(i => i !== t) : [...prev, t])} className={`text-[9px] px-2 py-1 rounded-full border ${tags.includes(t) ? 'bg-[#e67e22] text-white' : 'border-black/20'}`}>{t}</button>)}
           </div>
-          {isEditing ? (
-            <div className="space-y-3">
-              <textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="その時、心はどう動きましたか？" className="w-full bg-transparent border-b border-stone-100 py-2 text-[13px] focus:outline-none min-h-[80px] resize-none" />
-              <div className="flex justify-end gap-4 items-center">
-                <button onClick={() => setIsEditing(false)} className="text-[10px] uppercase opacity-40">Cancel</button>
-                <button onClick={() => { onUpdate(entry.id, reflection, selectedTags); setIsEditing(false); }} className="text-[10px] uppercase underline underline-offset-8 decoration-stone-200 hover:decoration-stone-800">Save Discovery</button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-[12px] leading-relaxed opacity-60 whitespace-pre-wrap">{entry.reflection}</p>
-          )}
+          <textarea value={refl} onChange={(e) => setRefl(e.target.value)} className="w-full p-2 bg-white/50 rounded-lg text-sm mb-3" placeholder="心はどう動いた？" />
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {options.map(o => <button key={o} onClick={() => setNext(prev => prev.includes(o) ? prev.filter(i => i !== o) : [...prev, o])} className={`p-2 text-[9px] rounded-lg border ${next.includes(o) ? 'bg-[#e67e22] text-white' : 'border-black/20'}`}>{o}</button>)}
+          </div>
+          <button onClick={() => { onUpdate(entry.id, refl, tags, next); setIsEditing(false); }} className="w-full bg-[#4a4030] text-white py-2 rounded-lg text-xs font-bold">SUBMIT</button>
         </div>
+      ) : entry.is_completed ? (
+        isExpanded ? (
+          <div className="mt-4 pt-4 border-t border-black/10">
+            <div className="flex gap-1 mb-2">
+              {tags.map(t => <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#e67e22]/20 text-[#4a4030]">{t}</span>)}
+            </div>
+            <p className="mb-2 opacity-80 whitespace-pre-wrap text-sm">{entry.reflection}</p>
+            <div className="text-[10px] opacity-60">次の一歩: {entry.nextActions?.join(', ')}</div>
+          </div>
+        ) : (
+          <div className="mt-3 text-xs opacity-70 flex flex-col gap-1">
+            <div className="flex gap-1">{entry.tags?.map(t => <span key={t} className="bg-[#e67e22]/10 px-1 rounded">{t}</span>)}</div>
+            <p className="truncate">{entry.reflection || "記録なし"}</p>
+          </div>
+        )
+      ) : (
+        <button onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className="mt-4 w-full py-2 border border-dashed border-[#4a4030]/30 rounded-lg text-xs opacity-50 text-center hover:opacity-100 transition-opacity">
+          実践結果を記録する
+        </button>
       )}
-    </motion.div>
+    </div>
+  );
+}
+
+function CelebrationModal({ show, setShow, saveTrophy, currentFeelings, setCurrentFeelings }) {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+      <div className="bg-[#dccfb0] p-8 rounded-3xl max-w-sm w-full text-center">
+        <Trophy size={60} className="mx-auto text-[#e67e22] mb-4" />
+        <h2 className="font-black mb-4">ROUND CLEAR!</h2>
+        <textarea value={currentFeelings} onChange={(e) => setCurrentFeelings(e.target.value)} placeholder="今の気持ちを刻む" className="w-full p-3 rounded-lg mb-4" />
+        <button onClick={saveTrophy} className="w-full py-3 bg-[#e67e22] text-white rounded-xl font-bold">COLLECT</button>
+      </div>
+    </div>
+  );
+}
+
+function InfoModal({ show, setShow }) {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
+      <div className="bg-[#dccfb0] p-8 rounded-3xl max-w-lg w-full relative">
+        <button onClick={() => setShow(false)} className="absolute top-4 right-4"><X /></button>
+        <h3 className="font-bold mb-4">How to use</h3>
+        <div className="text-sm leading-relaxed opacity-70 space-y-4">
+          <p>「自分らしさ」を見つけるのは難しいものですが、「これじゃない！」という違和感は、体が教えてくれる最も信頼できるシグナルです。</p>
+          <p>このリストは、あえて「自分らしくない選択」をすることで、その裏側に隠れているあなたの本当に大切にしたい価値観を浮かび上がらせるための実験室です。</p>
+          <ul className="list-disc pl-4 space-y-1">
+            <li><strong>らしくない選択:</strong> 普段なら選ばない行動をあえて取ってみる。</li>
+            <li><strong>違和感を観察:</strong> 「恥ずかしさ」や「無理感」を心のシグナルとして記録する。</li>
+            <li><strong>シグナルを貯める:</strong> 5つの記録でトロフィーを獲得し、自分の心地よい境界線を見つける。</li>
+          </ul>
+          <p className="italic pt-2">「これではない」という選択肢を減らしていくことで、心は少しずつ軽くなっていきます。</p>
+        </div>
+      </div>
+    </div>
   );
 }

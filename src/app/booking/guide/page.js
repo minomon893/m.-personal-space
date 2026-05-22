@@ -156,7 +156,7 @@ export default function BehaviorGuidePage() {
           >
             <MessageCircle size={20} fill="currentColor" className="opacity-80 group-hover:text-[#A9B9A8] transition-colors" />
             <span className="text-[12px] font-bold tracking-wider whitespace-nowrap">
-              よくある質問
+              LINEを追加 / よくある質問
             </span>
           </Link>
         </div>
