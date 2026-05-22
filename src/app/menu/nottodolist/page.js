@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 export default function NotToDoPage() {
   const [entries, setEntries] = useState([]);
+  const [trophies, setTrophies] = useState([]);
   const [newAction, setNewAction] = useState('');
   const [showInfo, setShowInfo] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -17,7 +18,10 @@ export default function NotToDoPage() {
 
   async function fetchInitialData() {
     const { data: logs } = await supabase.from('not_to_do_logs').select('*').order('created_at', { ascending: false });
+    const { data: savedTrophies } = await supabase.from('not_to_do_trophies').select('*').order('created_at', { ascending: false });
+    
     if (logs) setEntries(logs);
+    if (savedTrophies) setTrophies(savedTrophies);
   }
 
   async function handleAddAction(e) {
@@ -28,11 +32,21 @@ export default function NotToDoPage() {
   }
 
   async function handleUpdate(id, reflection, tags, nextActions) {
-    const { error } = await supabase.from('not_to_do_logs').update({ reflection, tags, nextActions, is_completed: true }).eq('id', id);
-    if (!error) {
-      const updatedEntries = entries.map(e => e.id === id ? { ...e, reflection, tags, nextActions, is_completed: true } : e);
+    const { data, error } = await supabase
+      .from('not_to_do_logs')
+      .update({ reflection, tags, nextActions, is_completed: true })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (!error && data) {
+      const updatedEntries = entries.map(e => e.id === id ? data : e);
       setEntries(updatedEntries);
-      if ((updatedEntries.filter(e => e.is_completed).length) % 5 === 0) setShowCelebration(true);
+      
+      // 5回ごとのチェック（全完了数をもとに判定）
+      if ((updatedEntries.filter(e => e.is_completed).length) % 5 === 0) {
+        setShowCelebration(true);
+      }
     }
   }
 
@@ -40,9 +54,15 @@ export default function NotToDoPage() {
     await supabase.from('not_to_do_trophies').insert({ feelings: currentFeelings });
     setShowCelebration(false);
     setCurrentFeelings('');
+    const { data: savedTrophies } = await supabase.from('not_to_do_trophies').select('*').order('created_at', { ascending: false });
+    if (savedTrophies) setTrophies(savedTrophies);
   }
 
   const completedCount = entries.filter(e => e.is_completed).length;
+  // 修正箇所：5個達成時に「残り5」に戻るように計算
+  const progress = completedCount % 5;
+  const displayCount = progress;
+  const remaining = displayCount === 0 ? 5 : 5 - displayCount;
 
   return (
     <div className="min-h-screen bg-[#dccfb0] text-[#4a4030] font-mono relative overflow-hidden">
@@ -69,9 +89,11 @@ export default function NotToDoPage() {
         </header>
 
         <section className="bg-white/30 p-4 rounded-xl border border-white/50 mb-8">
-          <p className="text-[10px] uppercase opacity-50 mb-2">次のトロフィーまで：{5 - (completedCount % 5)} レポート</p>
+          <p className="text-[10px] uppercase opacity-50 mb-2">
+            次のトロフィーまで：{remaining} レポート
+          </p>
           <div className="w-full h-2 bg-black/10 rounded-full overflow-hidden">
-            <div className="h-full bg-[#e67e22]/60 rounded-full transition-all duration-500" style={{ width: `${(completedCount % 5) * 20}%` }} />
+            <div className="h-full bg-[#e67e22]/60 rounded-full transition-all duration-500" style={{ width: `${displayCount * 20}%` }} />
           </div>
         </section>
 
@@ -80,13 +102,40 @@ export default function NotToDoPage() {
           <button type="submit" className="bg-[#4a4030] text-white px-6 rounded-lg font-bold"><Plus /></button>
         </form>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mb-12">
           {entries.map(e => <LogItem key={e.id} entry={e} onUpdate={handleUpdate} onDelete={async (id) => { await supabase.from('not_to_do_logs').delete().eq('id', id); setEntries(entries.filter(i => i.id !== id)); }} />)}
         </div>
+
+        {trophies.length > 0 && (
+          <section className="mt-12 mb-12">
+            <h2 className="font-bold opacity-60 text-sm mb-4 flex items-center gap-2">
+              <Trophy size={16} /> COLLECTED TROPHIES ({trophies.length})
+            </h2>
+            <div className="flex gap-4 overflow-x-auto pb-6 snap-x scrollbar-hide">
+              {trophies.map((t, i) => (
+                <div key={t.id} className="min-w-[240px] snap-start bg-[#4a4030]/10 p-6 rounded-3xl border border-white/50 flex flex-col justify-between">
+                  <div>
+                    <Trophy className="text-[#e67e22] mb-4" size={32} />
+                    <p className="text-xs opacity-50 mb-2 uppercase tracking-widest">Round {trophies.length - i}</p>
+                    <p className="italic text-lg font-bold">"{t.feelings}"</p>
+                  </div>
+                  <p className="text-[10px] opacity-40 mt-6">
+                    {new Date(t.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <CelebrationModal show={showCelebration} setShow={setShowCelebration} saveTrophy={saveTrophy} currentFeelings={currentFeelings} setCurrentFeelings={setCurrentFeelings} />
       <InfoModal show={showInfo} setShow={setShowInfo} />
+      
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 }
@@ -97,6 +146,12 @@ function LogItem({ entry, onUpdate, onDelete }) {
   const [refl, setRefl] = useState(entry.reflection || '');
   const [tags, setTags] = useState(entry.tags || []);
   const [next, setNext] = useState(entry.nextActions || []);
+
+  useEffect(() => {
+    setRefl(entry.reflection || '');
+    setTags(entry.tags || []);
+    setNext(entry.nextActions || []);
+  }, [entry]);
 
   const tagsList = ['違和感', '無理感', '恥ずかしさ', '新しい発見', 'ざわつき'];
   const options = ["ハードルを下げる", "今は時期じゃない", "誰かに聞く", "満足！"];
