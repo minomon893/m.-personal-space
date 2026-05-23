@@ -1,20 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // ルーターを追加
+import { useRouter } from "next/navigation";
 import { X, BookOpen, User, Users } from "lucide-react";
 
 export default function RpgMenuPage() {
   const [showModal, setShowModal] = useState(false);
-  const router = useRouter(); // useRouterフックを使用
+  const router = useRouter();
 
-  const handleStartRandomBattle = () => {
-    // 5体のモンスターからランダムに決定
-    const monsters = ['witch', 'dragon', 'slime', 'blackhall', 'golem'];
-    const randomMonster = monsters[Math.floor(Math.random() * monsters.length)];
-    
-    // 戦闘ページへモンスターキーを渡して遷移
-    router.push(`/menu/rpg/solo?monster=${randomMonster}`);
+  // セットアップ画面へ遷移する共通関数
+  const handleStartBattle = () => {
+    router.push('/menu/rpg/setup');
   };
 
   return (
@@ -26,20 +22,25 @@ export default function RpgMenuPage() {
         </h1>
 
         <div className="space-y-6">
-          {/* LinkタグからonClickボタンに変更 */}
+          {/* SINGLE MODE */}
           <button 
-            onClick={handleStartRandomBattle}
+            onClick={handleStartBattle}
             className="w-full py-4 border-2 border-[#B5A773] bg-[#3E4A56] hover:bg-[#B5A773] hover:text-[#1A252F] transition-all flex items-center justify-center gap-3"
           >
             <User size={20} />
             <span>SINGLE MODE (修行)</span>
           </button>
 
-          <button className="w-full py-4 border-2 border-[#5F6F7A] bg-[#3E4A56] opacity-50 cursor-not-allowed flex items-center justify-center gap-3">
+          {/* MULTI MODE */}
+          <button 
+            onClick={handleStartBattle}
+            className="w-full py-4 border-2 border-[#5F6F7A] bg-[#3E4A56] hover:bg-[#5F6F7A] hover:text-[#1A252F] transition-all flex items-center justify-center gap-3"
+          >
             <Users size={20} />
             <span>MULTI MODE (共闘)</span>
           </button>
 
+          {/* 遊び方 */}
           <button 
             onClick={() => setShowModal(true)}
             className="w-full py-4 border-2 border-[#D0D9DF] hover:bg-[#D0D9DF] hover:text-[#1A252F] transition-all flex items-center justify-center gap-3"
@@ -54,7 +55,7 @@ export default function RpgMenuPage() {
         </p>
       </div>
 
-      {/* Modalは変更なし */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
           <div className="bg-[#1A252F] border-4 border-[#D0D9DF] p-6 max-w-sm w-full relative">
