@@ -323,12 +323,22 @@ export default function MillePage() {
           <div className="flex-1 w-full max-w-2xl mx-auto my-6 relative min-h-[500px] bg-white/5 backdrop-blur-md rounded-[3.5rem] border border-white/10 p-8 flex flex-col justify-between shadow-2xl overflow-hidden">
             
             {/* 🏁 ギンガムチェックのピクニックシート（全域に大きく広げ、枠の白背景を透過に変更） */}
-            <div className="absolute inset-2 w-[96%] h-[94%] rounded-[2.5rem] overflow-hidden opacity-50 pointer-events-none">
-              <div className="w-full h-full" style={{
-                backgroundImage: `linear-gradient(45deg, #44584E 25%, transparent 25%, transparent 75%, #44584E 75%, #44584E), linear-gradient(45deg, #44584E 25%, transparent 25%, transparent 75%, #44584E 75%, #44584E)`,
-                backgroundSize: '40px 40px',
-                backgroundPosition: '0 0, 20px 20px'
-              }} />
+            <div 
+              className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none"
+              style={{
+                backgroundColor: '#3B4C43', // 不透明なベース色
+              }}
+            >
+              <div 
+                className="w-full h-full" 
+                style={{
+                  backgroundImage: `linear-gradient(45deg, #44584E 25%, transparent 25%, transparent 75%, #44584E 75%, #44584E), linear-gradient(45deg, #44584E 25%, transparent 25%, transparent 75%, #44584E 75%, #44584E)`,
+                  backgroundSize: '40px 40px',
+                  backgroundPosition: '0 0, 20px 20px',
+                  opacity:1// 不透明に固定
+              }} 
+            />
+          </div>
               {/* キャンドル・マグの気配（絵文字で代用演出） */}
               <div className="absolute top-4 left-8 text-xl animate-bounce" style={{ animationDuration: '4s' }}>☕</div>
               <div className="absolute bottom-6 right-10 text-lg opacity-80">🕯️</div>
@@ -348,8 +358,8 @@ export default function MillePage() {
                     <div className="absolute w-36 h-36 bg-orange-500/15 rounded-full blur-2xl pointer-events-none group-hover:bg-orange-400/25 transition-all duration-500 -bottom-2" />
                     
                     {/* キャラクターイラスト（大きく調整・ふあふあ振動アニメ） */}
-                    <div className="w-36 h-36 flex items-center justify-center bg-white/15 rounded-[2.5rem] p-4 shadow-lg border border-white/20 transition-all duration-300 group-hover:scale-105 group-hover:bg-white/25 animate-character">
-                      <img src="/images/sticker1.png" alt={char.name} className="w-full h-full object-contain pointer-events-none" />
+                    <div className="w-36 h-36 flex items-center justify-center bg-white rounded-[2.5rem] p-4 shadow-lg border border-white/20 transition-all duration-300 group-hover:scale-105 group-hover:bg-white/25 animate-character">
+                      <img src={`/images/${char.id}.png`} alt={char.name} className="w-full h-full object-contain pointer-events-none" />
                     </div>
 
                     {/* タグ情報 */}
@@ -402,7 +412,7 @@ export default function MillePage() {
             {/* 上部不安・名前バッジ */}
             <div className="text-center space-y-2">
               <span className={`text-xs px-4 py-1.5 rounded-full font-black text-white tracking-widest bg-gradient-to-r ${selectedChar.badgeBg} shadow-lg block mx-auto w-max`}>
-                {selectedChar.type}　{selectedChar.name}
+                {selectedChar.type} {selectedChar.name}
               </span>
             </div>
 
@@ -410,7 +420,7 @@ export default function MillePage() {
             <div className="relative w-44 h-44 flex items-center justify-center">
               <div className="absolute w-48 h-48 bg-orange-400/20 rounded-full blur-3xl pointer-events-none" />
               <div className="w-40 h-40 bg-white/10 backdrop-blur-md rounded-[3.5rem] p-4 border border-white/20 shadow-xl animate-character relative">
-                <img src="/images/sticker1.png" alt={selectedChar.name} className="w-full h-full object-contain" />
+                <img src={`/images/${selectedChar.id}.png`} alt={selectedChar.name} className="w-full h-full object-contain" />
                 
                 {/* 💬 吹き出しアイコンマーク（常時表示。押すとメニュー/ナレーション起動） */}
                 <button 
