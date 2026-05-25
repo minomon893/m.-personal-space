@@ -450,9 +450,9 @@ export default function MillePage() {
                 <div className="space-y-4">
                   {postedToday[selectedChar.id] ? (
                     <div className="text-center py-6 space-y-2">
-                      <p className="text-sm font-bold text-[#B5A773]">今日のお悩みはカチッと格納されたよ。</p>
+                      <p className="text-sm font-bold text-[#B5A773]">君の気持ちを聞かせてくれてありがとう。</p>
                       <p className="text-[11px] opacity-75 max-w-xs mx-auto leading-relaxed">
-                        深く考えすぎて心が疲れに変わってしまわないように。このお悩みは次の住人へと引き継がれます。また明日お話ししようね。
+                        深く考えすぎて心が疲れに変わってしまわないように。このお悩みは僕がしっかり次の誰かに引き継ぐよ。また明日お話ししようね。
                       </p>
                     </div>
                   ) : (
@@ -496,21 +496,21 @@ export default function MillePage() {
                       onClick={fetchPreviousIssue}
                       className="w-full py-3 bg-white/5 hover:bg-white/10 active:scale-[0.99] rounded-xl text-xs font-bold text-left px-4 transition-all text-[#B4C7BC] flex items-center justify-between group"
                     >
-                      <span>・前の人のお悩みを聞く</span>
+                      <span>前の人のお悩みを聞く</span>
                       <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     </button>
                     <button 
                       onClick={() => setTalkSubMode("input")}
                       className="w-full py-3 bg-white/5 hover:bg-white/10 active:scale-[0.99] rounded-xl text-xs font-bold text-left px-4 transition-all text-[#B4C7BC] flex items-center justify-between group"
                     >
-                      <span>・自分の悩みを話す</span>
+                      <span>自分の悩みを話す</span>
                       <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     </button>
                     <button 
                       onClick={startStory}
                       className="w-full py-3 bg-white/5 hover:bg-white/10 active:scale-[0.99] rounded-xl text-xs font-bold text-left px-4 transition-all text-[#B4C7BC] flex items-center justify-between group"
                     >
-                      <span>・{selectedChar.name}の話を聞く</span>
+                      <span>{selectedChar.name}の話を聞く</span>
                       <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     </button>
                   </div>
