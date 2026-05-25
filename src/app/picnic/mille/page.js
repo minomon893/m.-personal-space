@@ -334,11 +334,8 @@ export default function MillePage() {
                 style={{
                   backgroundImage: `linear-gradient(45deg, #44584E 25%, transparent 25%, transparent 75%, #44584E 75%, #44584E), linear-gradient(45deg, #44584E 25%, transparent 25%, transparent 75%, #44584E 75%, #44584E)`,
                   backgroundSize: '40px 40px',
-                  backgroundPosition: '0 0, 20px 20px',
-                  opacity:1// 不透明に固定
-              }} 
-            />
-          </div>
+                  backgroundPosition: '0 0, 20px 20px'
+              }} />
               {/* キャンドル・マグの気配（絵文字で代用演出） */}
               <div className="absolute top-4 left-8 text-xl animate-bounce" style={{ animationDuration: '4s' }}>☕</div>
               <div className="absolute bottom-6 right-10 text-lg opacity-80">🕯️</div>
@@ -358,7 +355,7 @@ export default function MillePage() {
                     <div className="absolute w-36 h-36 bg-orange-500/15 rounded-full blur-2xl pointer-events-none group-hover:bg-orange-400/25 transition-all duration-500 -bottom-2" />
                     
                     {/* キャラクターイラスト（大きく調整・ふあふあ振動アニメ） */}
-                    <div className="w-36 h-36 flex items-center justify-center bg-white rounded-[2.5rem] p-4 shadow-lg border border-white/20 transition-all duration-300 group-hover:scale-105 group-hover:bg-white/25 animate-character">
+                    <div className="w-36 h-36 flex items-center justify-center bg-white rounded-[2.5rem] p-4 shadow-lg border border-white transition-all duration-300 group-hover:scale-105 group-hover:bg-white animate-character">
                       <img src={`/images/${char.id}.png`} alt={char.name} className="w-full h-full object-contain pointer-events-none" />
                     </div>
 
@@ -419,7 +416,7 @@ export default function MillePage() {
             {/* キャラ画像表示 */}
             <div className="relative w-44 h-44 flex items-center justify-center">
               <div className="absolute w-48 h-48 bg-orange-400/20 rounded-full blur-3xl pointer-events-none" />
-              <div className="w-40 h-40 bg-white/10 backdrop-blur-md rounded-[3.5rem] p-4 border border-white/20 shadow-xl animate-character relative">
+              <div className="w-40 h-40 bg-white backdrop-blur-md rounded-[3.5rem] p-4 border border-white/20 shadow-xl animate-character relative">
                 <img src={`/images/${selectedChar.id}.png`} alt={selectedChar.name} className="w-full h-full object-contain" />
                 
                 {/* 💬 吹き出しアイコンマーク（常時表示。押すとメニュー/ナレーション起動） */}
@@ -544,7 +541,6 @@ export default function MillePage() {
                     {narrationText}
                   </p>
                   <p className="text-[9px] font-bold text-[#B5A773] tracking-widest uppercase animate-pulse">
-                    画面のどこかをタップして広場へ戻る ▽
                   </p>
                 </div>
               )}
