@@ -65,7 +65,7 @@ export default function WebPage() {
               身近な人との関係性や、対話のクセを紐解く診断コンテンツ。自分がどんな言葉を大切にしていて、どんな対話が心地よいと感じるのか、静かに見つめ直す場所です。
             </p>
 
-            <a href="https://example.com/diagnosis" target="_blank" rel="noopener noreferrer">
+            <a href="https://lovetype-7ys3.vercel.app/" target="_blank" rel="noopener noreferrer">
               <button className="w-full py-4 px-6 bg-white/80 border border-white/60 rounded-xl font-bold text-xs tracking-wider shadow-sm hover:bg-white hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2">
                 <Globe size={13} /> 診断をはじめる
               </button>
