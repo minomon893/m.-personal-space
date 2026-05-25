@@ -138,7 +138,7 @@ export default function SoloBattle() {
             {isEscaped ? "撤退..." : "ゲームオーバー..."}
           </h2>
         )}
-        {isEscaped && <p className="text-xl mb-4">武器がなくなった。。。一回逃ぎよう！</p>}
+        {isEscaped && <p className="text-xl mb-4">武器がなくなった。。。一回逃げよう！</p>}
         <button onClick={() => window.location.href = '/menu/rpg'} className="mt-8 px-6 py-2 border border-[#8b5cf6]">リストへ戻る</button>
       </div>
     );
