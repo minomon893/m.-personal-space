@@ -20,7 +20,7 @@ export default function WebPage() {
         <h1 className="text-2xl font-[var(--font-serif)] font-medium tracking-[0.35em] mb-4 text-center italic opacity-90">
           Web site
         </h1>
-        <p className="text-[10px] tracking-[0.2em] uppercase opacity-40 text-center mb-16">
+        <p className="text-[10px] tracking-[0.2em] uppercase opacity-40 text-center mb-10">
           External Project Hub
         </p>
 

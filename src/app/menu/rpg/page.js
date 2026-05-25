@@ -1,78 +1,102 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X, BookOpen, User, Users } from "lucide-react";
 
 export default function RpgMenuPage() {
   const [showModal, setShowModal] = useState(false);
+  const [bgImage, setBgImage] = useState("");
   const router = useRouter();
 
-  // セットアップ画面へ遷移する共通関数
+  useEffect(() => {
+    const monsters = ["blackhall.png", "dragon.png", "slime.png", "witch.png", "golem.png"];
+    const randomMonster = monsters[Math.floor(Math.random() * monsters.length)];
+    setBgImage(`/images/monsters/${randomMonster}`);
+  }, []);
+
   const handleStartBattle = () => {
     router.push('/menu/rpg/setup');
   };
 
   return (
-    <div className="min-h-screen bg-[#2C3E50] p-6 font-mono text-[#E6E1CF]">
-      <div className="max-w-md mx-auto border-4 border-[#D0D9DF] p-6 bg-[#1A252F] shadow-[8px_8px_0px_0px_rgba(208,217,223,0.3)]">
-        
-        <h1 className="text-3xl font-bold text-center mb-10 text-[#F2EBD4] tracking-widest uppercase italic">
-          REbeLABEL
-        </h1>
+    <div className="min-h-screen bg-[#020502] p-4 md:p-8 flex items-center justify-center font-serif text-[#dcded8] relative overflow-hidden">
+      
+      {/* 背景浮遊画像 */}
+      <div 
+        className="absolute inset-0 z-0 opacity-20 bg-cover bg-center animate-[float_15s_ease-in-out_infinite]"
+        style={{ backgroundImage: `url(${bgImage})` }}
+      />
+      
+      {/* 画面全体を覆う深い森のグラデーション */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(10,30,10,0.9)_0%,_rgba(2,5,2,1)_100%)] z-0" />
 
-        <div className="space-y-6">
-          {/* SINGLE MODE */}
+      {/* メインメニュー枠 */}
+      <div className="relative z-10 w-full max-w-sm bg-[#080d08]/90 border-double border-8 border-[#7a6b4a] p-8 shadow-[0_0_40px_rgba(0,0,0,0.8)] backdrop-blur-md">
+        
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-[#c5a059] tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+            REbeLABEL
+          </h1>
+          <p className="text-[10px] text-[#7a6b4a] tracking-[0.5em] mt-1 uppercase">リベラベル</p>
+        </div>
+
+        <div className="space-y-4">
           <button 
             onClick={handleStartBattle}
-            className="w-full py-4 border-2 border-[#B5A773] bg-[#3E4A56] hover:bg-[#B5A773] hover:text-[#1A252F] transition-all flex items-center justify-center gap-3"
+            className="w-full py-4 border-2 border-[#7a6b4a] bg-[#0f1a0f] hover:bg-[#7a6b4a] hover:text-[#020502] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 font-bold tracking-wider"
           >
             <User size={20} />
-            <span>SINGLE MODE (修行)</span>
+            <span>一人で戦う</span>
           </button>
 
-          {/* MULTI MODE */}
           <button 
             onClick={handleStartBattle}
-            className="w-full py-4 border-2 border-[#5F6F7A] bg-[#3E4A56] hover:bg-[#5F6F7A] hover:text-[#1A252F] transition-all flex items-center justify-center gap-3"
+            className="w-full py-4 border-2 border-[#7a6b4a] bg-[#0f1a0f] hover:bg-[#7a6b4a] hover:text-[#020502] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 font-bold tracking-wider"
           >
             <Users size={20} />
-            <span>MULTI MODE (共闘)</span>
+            <span>誰かと戦う</span>
           </button>
 
-          {/* 遊び方 */}
           <button 
             onClick={() => setShowModal(true)}
-            className="w-full py-4 border-2 border-[#D0D9DF] hover:bg-[#D0D9DF] hover:text-[#1A252F] transition-all flex items-center justify-center gap-3"
+            className="w-full py-4 border-2 border-[#dcded8] hover:bg-[#dcded8] hover:text-[#020502] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 font-bold tracking-wider"
           >
             <BookOpen size={20} />
             <span>遊び方</span>
           </button>
         </div>
 
-        <p className="mt-12 text-[10px] text-center opacity-60">
+        <p className="mt-12 text-[10px] text-center opacity-40 italic tracking-widest">
           君のラベルで、固定観念を討伐せよ。
         </p>
       </div>
 
-      {/* Modal */}
+      {/* Modal - 背景を不透明な濃い色に固定 */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
-          <div className="bg-[#1A252F] border-4 border-[#D0D9DF] p-6 max-w-sm w-full relative">
-            <button onClick={() => setShowModal(false)} className="absolute top-2 right-2 p-1 bg-[#D0D9DF] text-[#1A252F]">
-              <X size={20} />
+        <div className="fixed inset-0 bg-white flex items-center justify-center p-6 z-50">
+          <div className="bg-[#0a120a] border-4 border-[#7a6b4a] p-8 max-w-sm w-full relative shadow-2xl">
+            <button onClick={() => setShowModal(false)} className="absolute top-2 right-2 p-1 text-[#7a6b4a] hover:text-[#c5a059]">
+              <X size={24} />
             </button>
-            <h2 className="text-xl font-bold mb-4 border-b-2 border-[#B5A773] pb-2 text-[#B5A773]">遊び方</h2>
-            <div className="text-sm space-y-4 opacity-90 leading-relaxed">
+            <h2 className="text-2xl font-bold mb-6 border-b-2 border-[#7a6b4a] pb-2 text-[#c5a059]">遊び方</h2>
+            <div className="text-sm space-y-4 leading-relaxed text-[#dcded8]">
               <p>1. 自分の「ラベル（特性）」を5つ入力します。</p>
               <p>2. モンスターが現れます。ラベルを使って攻撃しましょう。</p>
               <p>3. <strong>重要：</strong>解釈次第で「欠点」は「最強の武器」になります。</p>
               <p>4. オンラインで協力プレイも！</p>
-              <p className="text-xs pt-4 italic text-[#D0D9DF]/60">※解釈を放棄するとダメージを受けるので注意！</p>
+              <p className="text-xs pt-4 italic text-[#7a6b4a]">※解釈を放棄するとダメージを受けるので注意！</p>
             </div>
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-20px) scale(1.05); }
+        }
+      `}</style>
     </div>
   );
 }
