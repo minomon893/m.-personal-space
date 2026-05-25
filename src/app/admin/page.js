@@ -16,7 +16,8 @@ import {
   ChevronDown, 
   Coffee,
   Grid3X3,
-  Sparkles
+  Sparkles,
+  Lock
 } from "lucide-react";
 import Link from "next/link";
 
@@ -27,7 +28,8 @@ const tabThemes = {
   bingos: { primary: "#A9B2B9", bg: "#F1F3F5", text: "#636E7A" },
   feedbacks: { primary: "#A9B9A9", bg: "#F2F6F2", text: "#637A63" },
   poems: { primary: "#A9B2D4", bg: "#F2F4FD", text: "#636A8C" },
-  mille_stories: { primary: "#7D7474", bg: "#FFFFFF", text: "#4A4A4A" } // 各キャラの話（ホワイト・ストーンテーマ）
+  mille_stories: { primary: "#7D7474", bg: "#FFFFFF", text: "#4A4A4A" }, // 各キャラの話（ホワイト・ストーンテーマ）
+  menu_settings: { primary: "#A8A8A8", bg: "#F5F5F5", text: "#7D7474" }
 };
 
 export default function AdminPage() {
@@ -47,12 +49,23 @@ export default function AdminPage() {
   const theme = tabThemes[activeTab] || tabThemes.notices;
 
   const fetchItems = async () => {
+    setLoading(true);
     const table = activeTab;
+    
+    console.log("Fetching from table:", table);
     const { data, error } = await supabase
       .from(table)
       .select("*")
-      .order("created_at", { ascending: false });
-    if (!error) setItems(data || []);
+      .order(table === "menu_settings" ? "id" : "created_at", { ascending: table === "menu_settings" });
+      
+    if (error) {
+      console.error("Supabase Error:", error);
+      setItems([]);
+    } else {
+      console.log("Fetched Data:", data);
+      setItems(data || []);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -63,7 +76,7 @@ export default function AdminPage() {
     } else if (activeTab === "bingos") {
       setNoticeTag("official");
     } else if (activeTab === "mille_stories") {
-      setNoticeTag(""); // ユーザーがカテゴリを入力/確認できるように空にする
+      setNoticeTag("");
     } else {
       setNoticeTag(""); 
     }
@@ -72,6 +85,16 @@ export default function AdminPage() {
       fetchItems();
     }
   }, [isAuthenticated, activeTab]);
+
+  const toggleMenuStatus = async (item) => {
+    const { error } = await supabase
+      .from("menu_settings")
+      .update({ is_enabled: !item.is_enabled })
+      .eq("id", item.id);
+    
+    if (error) console.error("Update Error:", error);
+    else fetchItems();
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -84,7 +107,7 @@ export default function AdminPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (loading) return; // すでに処理中の場合は多重送信を防止してロック
+    if (loading) return; 
     setLoading(true);
     
     const table = activeTab;
@@ -115,7 +138,7 @@ export default function AdminPage() {
       payload = {
         title,
         content: body,
-        tag: noticeTag || "" // 死、自由、孤独、無意味のカテゴリを格納
+        tag: noticeTag || ""
       };
     } else {
       payload = { title, body };
@@ -189,7 +212,7 @@ export default function AdminPage() {
 
       <div className="max-w-2xl mx-auto">
         <header className="flex justify-between items-center mb-12">
-          <Link href="/picnic/garden" className="text-[9px] tracking-[0.3em] font-black text-[#B59090] opacity-60 flex items-center gap-2 hover:opacity-100 transition-all uppercase">
+          <Link href="/" className="text-[9px] tracking-[0.3em] font-black text-[#B59090] opacity-60 flex items-center gap-2 hover:opacity-100 transition-all uppercase">
             <ArrowLeft size={12} /> Exit Admin
           </Link>
           <div className="text-[9px] font-black tracking-[0.3em] opacity-30 uppercase italic">Picnic Admin</div>
@@ -202,7 +225,8 @@ export default function AdminPage() {
             { id: "bingos", icon: <Grid3X3 size={14} />, label: "Bingo" },
             { id: "mille_stories", icon: <Sparkles size={14} />, label: "Mille" }, 
             { id: "feedbacks", icon: <MessageSquareQuote size={14} />, label: "Feedback" },
-            { id: "poems", icon: <PenLine size={14} />, label: "Poems" }
+            { id: "poems", icon: <PenLine size={14} />, label: "Poems" },
+            { id: "menu_settings", icon: <Lock size={14} />, label: "Menu" }
           ].map((tab) => {
             const isTabActive = activeTab === tab.id;
             const tabTheme = tabThemes[tab.id];
@@ -221,7 +245,7 @@ export default function AdminPage() {
             );
           })}
         </div>
-
+      {activeTab !== "menu_settings" && (
         <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm p-8 sm:p-10 rounded-[3rem] border-2 border-white shadow-sm mb-20">
           <div className="mb-10">
             <h2 className="text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-2 mb-8" style={{ color: theme.primary }}>
@@ -283,63 +307,75 @@ export default function AdminPage() {
             {loading ? "Processing..." : "Save to Database"}
           </button>
         </form>
-
+      )}
         <section className="pb-20">
           <h2 className="text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-2 mb-8" style={{ color: theme.primary }}>
             <List size={16} /> Entry List
           </h2>
 
-          <div className="space-y-4">
-            {items.map((item) => (
-              <div key={item.id} className="bg-white/60 p-6 rounded-[2.5rem] border border-white flex justify-between items-start group hover:bg-white transition-all shadow-sm">
-                <div className="flex-1 pr-4">
-                  {(activeTab === "notices" || activeTab === "jimmys" || activeTab === "bingos" || activeTab === "mille_stories") ? (
-                    <div className="space-y-2">
-                      <button 
-                        onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                        className="flex gap-3 items-center w-full text-left"
-                      >
-                        <span className="text-[11px] font-bold text-[#7D7474] uppercase tracking-widest">{item.title}</span>
-                        {(item.tag || item.is_official) && (
-                          <span className="text-[8px] px-3 py-1 rounded-full font-black border border-[#F9EEEE]" style={{ backgroundColor: theme.bg, color: theme.primary }}>
-                            {item.tag || (item.is_official ? "official" : "user")}
-                          </span>
-                        )}
-                        <ChevronDown size={14} className={`ml-auto transition-transform opacity-30 ${expandedId === item.id ? 'rotate-180' : ''}`} />
-                      </button>
-                      <div className={`grid transition-all duration-300 ${expandedId === item.id ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
-                        <div className="overflow-hidden">
-                          <p className="text-[12px] leading-relaxed opacity-70 whitespace-pre-wrap border-t border-[#F9EEEE] pt-4 text-[#7D7474]">
-                            {activeTab === "bingos" ? item.grid?.join(" / ") : item.content}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : activeTab === "feedbacks" ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        {item.service_tag && (
-                          <span className="text-[8px] text-white px-2 py-0.5 rounded font-black uppercase tracking-tighter" style={{ backgroundColor: theme.primary }}>
-                            {item.service_tag}
-                          </span>
-                        )}
-                        <span className="text-[9px] font-bold opacity-30 uppercase tracking-[0.2em]">— {item.attribute}</span>
-                      </div>
-                      <p className="text-[12px] leading-relaxed italic opacity-80 whitespace-pre-wrap font-medium">"{item.content}"</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-[12px] leading-relaxed opacity-80 whitespace-pre-wrap font-medium">{item.body}</p>
-                      <span className="block text-[9px] font-bold opacity-30 uppercase tracking-[0.2em]">— {item.title}</span>
-                    </div>
+         <div className="space-y-4">
+  {loading ? (
+    <p className="text-[10px] opacity-50">Loading entries...</p>
+  ) : (
+    items.map((item) => (
+      <div key={item.id} className="bg-white/60 p-6 rounded-[2.5rem] border border-white flex justify-between items-start group hover:bg-white transition-all shadow-sm">
+        <div className="flex-1 pr-4">
+          {activeTab === "menu_settings" ? (
+            <div className="flex justify-between items-center w-full">
+              <span className="text-[11px] font-bold text-[#7D7474] uppercase tracking-widest">{item.key}</span>
+              <button 
+                onClick={() => toggleMenuStatus(item)} 
+                className={`px-4 py-1.5 rounded-full text-[8px] font-black transition-colors ${item.is_enabled ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+              >
+                {item.is_enabled ? "ENABLED" : "DISABLED"}
+              </button>
+            </div>
+          ) : (
+            (activeTab === "notices" || activeTab === "jimmys" || activeTab === "bingos" || activeTab === "mille_stories") ? (
+              <div className="space-y-2">
+                <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} className="flex gap-3 items-center w-full text-left">
+                  <span className="text-[11px] font-bold text-[#7D7474] uppercase tracking-widest">{item.title}</span>
+                  {(item.tag || item.is_official) && (
+                    <span className="text-[8px] px-3 py-1 rounded-full font-black border border-[#F9EEEE]" style={{ backgroundColor: theme.bg, color: theme.primary }}>
+                      {item.tag || (item.is_official ? "official" : "user")}
+                    </span>
                   )}
-                </div>
-                <button onClick={() => handleDelete(item.id)} className="p-2 text-stone-200 hover:text-red-400 transition-colors shrink-0">
-                  <Trash2 size={16} />
+                  <ChevronDown size={14} className={`ml-auto transition-transform opacity-30 ${expandedId === item.id ? 'rotate-180' : ''}`} />
                 </button>
+                <div className={`grid transition-all duration-300 ${expandedId === item.id ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className="overflow-hidden">
+                    <p className="text-[12px] leading-relaxed opacity-70 whitespace-pre-wrap border-t border-[#F9EEEE] pt-4 text-[#7D7474]">
+                      {activeTab === "bingos" ? item.grid?.join(" / ") : item.content}
+                    </p>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
+            ) : activeTab === "feedbacks" ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {item.service_tag && <span className="text-[8px] text-white px-2 py-0.5 rounded font-black uppercase" style={{ backgroundColor: theme.primary }}>{item.service_tag}</span>}
+                  <span className="text-[9px] font-bold opacity-30 uppercase tracking-[0.2em]">— {item.attribute}</span>
+                </div>
+                <p className="text-[12px] leading-relaxed italic opacity-80 whitespace-pre-wrap font-medium">"{item.content}"</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[12px] leading-relaxed opacity-80 whitespace-pre-wrap font-medium">{item.body}</p>
+                <span className="block text-[9px] font-bold opacity-30 uppercase tracking-[0.2em]">— {item.title}</span>
+              </div>
+            )
+          )}
+        </div>
+        
+        {activeTab !== "menu_settings" && (
+          <button onClick={() => handleDelete(item.id)} className="p-2 text-stone-200 hover:text-red-400 transition-colors shrink-0">
+            <Trash2 size={16} />
+          </button>
+        )}
+      </div>
+    ))
+  )}
+</div>
         </section>
       </div>
     </div>

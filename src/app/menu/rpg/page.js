@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X, BookOpen, User, Users } from "lucide-react";
+import { X, BookOpen, User, Users, ArrowLeft } from "lucide-react";
 
 export default function RpgMenuPage() {
   const [showModal, setShowModal] = useState(false);
@@ -22,6 +22,15 @@ export default function RpgMenuPage() {
   return (
     <div className="min-h-screen bg-[#020502] p-4 md:p-8 flex items-center justify-center font-serif text-[#dcded8] relative overflow-hidden">
       
+      {/* BACK TO MENU ボタン */}
+      <button 
+        onClick={() => router.push('/menu')}
+        className="absolute top-6 left-6 z-20 flex items-center gap-2 text-[#7a6b4a] hover:text-[#c5a059] transition-colors text-[10px] tracking-[0.2em] font-bold uppercase"
+      >
+        <ArrowLeft size={16} />
+        BACK TO MENU
+      </button>
+
       {/* 背景浮遊画像 */}
       <div 
         className="absolute inset-0 z-0 opacity-20 bg-cover bg-center animate-[float_15s_ease-in-out_infinite]"
