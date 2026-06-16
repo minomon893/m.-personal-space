@@ -13,15 +13,13 @@ export default function NotToDoPage() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [currentFeelings, setCurrentFeelings] = useState('');
 
+  // マウント時に一度だけ取得
   useEffect(() => {
-    setEntries(JSON.parse(localStorage.getItem('not_to_do_entries') || '[]'));
-    setTrophies(JSON.parse(localStorage.getItem('not_to_do_trophies') || '[]'));
+    const savedEntries = localStorage.getItem('not_to_do_entries');
+    const savedTrophies = localStorage.getItem('not_to_do_trophies');
+    if (savedEntries) setEntries(JSON.parse(savedEntries));
+    if (savedTrophies) setTrophies(JSON.parse(savedTrophies));
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('not_to_do_entries', JSON.stringify(entries));
-    localStorage.setItem('not_to_do_trophies', JSON.stringify(trophies));
-  }, [entries, trophies]);
 
   const exportData = () => {
     const data = JSON.stringify({ entries, trophies });
@@ -40,8 +38,14 @@ export default function NotToDoPage() {
     reader.onload = (event) => {
       try {
         const { entries: iE, trophies: iT } = JSON.parse(event.target.result);
-        if (iE) setEntries(iE);
-        if (iT) setTrophies(iT);
+        if (iE) {
+          setEntries(iE);
+          localStorage.setItem('not_to_do_entries', JSON.stringify(iE));
+        }
+        if (iT) {
+          setTrophies(iT);
+          localStorage.setItem('not_to_do_trophies', JSON.stringify(iT));
+        }
         alert('データを復元しました！');
       } catch (err) { alert('ファイルの読み込みに失敗しました。'); }
     };
@@ -61,26 +65,30 @@ export default function NotToDoPage() {
       nextActionType: '', 
       actionDetail: '' 
     };
-    setEntries([newEntry, ...entries]);
+    const updatedEntries = [newEntry, ...entries];
+    setEntries(updatedEntries);
+    localStorage.setItem('not_to_do_entries', JSON.stringify(updatedEntries));
     setNewAction('');
   };
 
   const handleUpdate = (id, updatedData) => {
     const updated = entries.map(e => e.id === id ? { ...e, ...updatedData, is_completed: true } : e);
     setEntries(updated);
+    localStorage.setItem('not_to_do_entries', JSON.stringify(updated));
     if ((updated.filter(e => e.is_completed).length) % 5 === 0) setShowCelebration(true);
   };
 
   const saveTrophy = () => {
     const newTrophy = { id: Date.now(), feelings: currentFeelings, created_at: new Date().toISOString() };
-    setTrophies([newTrophy, ...trophies]);
+    const updatedTrophies = [newTrophy, ...trophies];
+    setTrophies(updatedTrophies);
+    localStorage.setItem('not_to_do_trophies', JSON.stringify(updatedTrophies));
     setShowCelebration(false);
     setCurrentFeelings('');
   };
 
   return (
     <div className="min-h-screen bg-[#dccfb0] text-[#4a4030] font-mono relative overflow-hidden">
-      {/* 1. 背景アニメーション */}
       <div className="fixed inset-0 z-0 opacity-30 pointer-events-none">
         <div className="h-3/4 bg-gradient-to-b from-[#2c3e50] to-[#e67e22]" />
         <div className="h-1/4 bg-[#5d6d4e]" />
@@ -92,7 +100,6 @@ export default function NotToDoPage() {
         <motion.div animate={{ y: [0, -15, 0] }} transition={{ repeat: Infinity, duration: 0.8 }} className="absolute bottom-[20%] right-[5%] text-5xl rotate-[-10deg]">🏃‍♂️</motion.div>
       </div>
 
-      {/* 2. メインコンテンツ */}
       <div className="relative z-10 p-6 max-w-2xl mx-auto">
         <nav className="flex justify-between items-center mb-8">
           <Link href="/menu" className="p-2 bg-black/5 rounded-full"><ChevronLeft /></Link>
