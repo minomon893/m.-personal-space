@@ -91,37 +91,47 @@ export default function ProfilePage() {
   };
 
   const handleUpdate = async (id) => {
-    // ステート更新用の関数
     const updateLocalState = (prev) => 
       prev.map(log => log.id === id ? { ...log, ...editForm } : log);
     
-    // 画面上の表示を即座に更新（自分の投稿・お気に入りの両方）
     setMyLogs(updateLocalState);
     setFavLogs(updateLocalState);
     setEditingId(null);
 
-    // データベースを更新
     const { error } = await supabase.from('reports').update(editForm).eq('id', id);
     
     if (error) {
       alert("更新に失敗しました。");
-      fetchProfileData(); // 失敗した場合は最新データを再取得して元に戻す
+      fetchProfileData();
+    } else {
+      // データベースの書き込み成功後、最新状態を再取得して同期を完全なものにする
+      fetchProfileData();
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] text-[#334E68] p-6 pb-24 font-sans">
+    <div className="min-h-screen bg-[#F0F4F8] text-[#334E68] p-6 pb-24 font-sans selection:bg-[#BCCCDC]/30">
       <div className="max-w-md mx-auto">
+        {/* ヘッダーナビゲーション */}
         <div className="flex justify-between items-center mb-10 text-[11px] font-bold opacity-50 uppercase">
-          <Link href="/menu/metacognition" className="flex items-center gap-2 hover:opacity-100 transition-all"><ArrowLeft size={12}/> Back</Link>
+          <Link href="/menu/metacognition" className="flex items-center gap-2 hover:opacity-100 transition-all">
+            <ArrowLeft size={12}/> Back
+          </Link>
           <div className="flex gap-2">
-            <Link href="/menu/metacognition" className="p-2 bg-white border border-[#BCCCDC] rounded-full hover:shadow-md text-[#627D98]"><Rocket size={16}/></Link>
-            <Link href="/menu/metacognition/logs" className="p-2 bg-white border border-[#BCCCDC] rounded-full hover:shadow-md text-[#627D98]"><History size={16}/></Link>
+            <Link href="/menu/metacognition" className="p-2 bg-white border border-[#BCCCDC] rounded-full hover:shadow-md text-[#627D98] transition">
+              <Rocket size={16}/>
+            </Link>
+            <Link href="/menu/metacognition/logs" className="p-2 bg-white border border-[#BCCCDC] rounded-full hover:shadow-md text-[#627D98] transition">
+              <History size={16}/>
+            </Link>
           </div>
         </div>
 
+        {/* ランクインフォ */}
         <div className="text-center mb-10 relative">
-          <button onClick={() => setIsRankModalOpen(true)} className="absolute right-1/2 translate-x-12 top-0 p-2 text-[#627D98] opacity-30 hover:opacity-100"><Info size={16} /></button>
+          <button onClick={() => setIsRankModalOpen(true)} className="absolute right-1/2 translate-x-12 top-0 p-2 text-[#627D98] opacity-40 hover:opacity-100 transition">
+            <Info size={16} />
+          </button>
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4 border border-[#BCCCDC] shadow-sm relative">
             {currentRank.icon}
           </div>
@@ -129,15 +139,20 @@ export default function ProfilePage() {
           <p className="text-[10px] font-bold opacity-40 uppercase mt-1">{currentRank.sub}</p>
         </div>
 
+        {/* スタッツボックス */}
         <div className="grid grid-cols-3 gap-3 mb-12">
           <StatBox label="User ID" value={myMemberId || "---"} sub="あなたの番号" />
           <StatBox label="Reports" value={myLogs.length} sub="現在の報告数" />
           <StatBox label="Stocks" value={favLogs.length} sub="保存済み" />
         </div>
 
+        {/* メインコンテンツ */}
         <div className="space-y-12">
+          {/* 自分の投稿 */}
           <section>
-            <h2 className="text-[11px] font-bold flex items-center gap-2 text-[#486581] uppercase tracking-wider mb-6 border-b border-[#BCCCDC] pb-2"><PenLine size={14}/> My Submissions</h2>
+            <h2 className="text-[11px] font-bold flex items-center gap-2 text-[#486581] uppercase tracking-wider mb-6 border-b border-[#BCCCDC] pb-2">
+              <PenLine size={14}/> My Submissions
+            </h2>
             <div className="space-y-4">
               {myLogs.length > 0 ? myLogs.map(log => (
                 <ProfileCard 
@@ -148,7 +163,7 @@ export default function ProfilePage() {
                   editForm={editForm}
                   setEditForm={setEditForm}
                   onEdit={(e) => startEdit(e, log)}
-                  onDelete={(e) => {e.stopPropagation(); handleDelete(log.id)}}
+                  onDelete={(e) => handleDelete(log.id)}
                   onSave={() => handleUpdate(log.id)}
                   onCancel={() => setEditingId(null)}
                 />
@@ -160,28 +175,44 @@ export default function ProfilePage() {
             </div>
           </section>
 
+          {/* ストックしたレポート */}
           <section>
-            <h2 className="text-[11px] font-bold flex items-center gap-2 text-[#486581] uppercase tracking-wider mb-6 border-b border-[#BCCCDC] pb-2"><Bookmark size={14}/> Stocked Reports</h2>
+            <h2 className="text-[11px] font-bold flex items-center gap-2 text-[#486581] uppercase tracking-wider mb-6 border-b border-[#BCCCDC] pb-2">
+              <Bookmark size={14}/> Stocked Reports
+            </h2>
             <div className="space-y-4">
               {favLogs.length > 0 ? favLogs.map(log => (
-                <ProfileCard key={log.id} log={log} type="stock" onUnfav={(e) => {e.stopPropagation(); handleUnfavorite(log.id)}} />
+                <ProfileCard 
+                  key={log.id} 
+                  log={log} 
+                  type="stock" 
+                  onUnfav={(e) => handleUnfavorite(log.id)} 
+                />
               )) : (
-                <p className="text-[11px] opacity-30 text-center py-10">保存されたレポートはありません</p>
+                <p className="text-[11px] opacity-30 text-center py-10 italic">保存されたレポートはありません</p>
               )}
             </div>
           </section>
         </div>
 
+        {/* ランク詳細モーダル */}
         {isRankModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#243B53]/20 backdrop-blur-sm" onClick={() => setIsRankModalOpen(false)}>
-            <div className="bg-white w-full max-w-xs rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setIsRankModalOpen(false)} className="absolute top-4 right-4 text-[#BCCCDC] hover:text-[#486581]"><X size={20} /></button>
-              <div className="text-center mb-8"><h2 className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 mb-2">Development Rank</h2></div>
+            <div className="bg-white w-full max-w-xs rounded-3xl p-8 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setIsRankModalOpen(false)} className="absolute top-4 right-4 text-[#BCCCDC] hover:text-[#486581] transition">
+                <X size={20} />
+              </button>
+              <div className="text-center mb-8">
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 mb-2">Development Rank</h2>
+              </div>
               <div className="space-y-6">
                 {RANKS.slice().reverse().map((r) => (
-                  <div key={r.threshold} className={`flex items-center gap-4 ${maxReportCount >= r.threshold ? 'opacity-100' : 'opacity-20'}`}>
+                  <div key={r.threshold} className={`flex items-center gap-4 transition-opacity duration-300 ${maxReportCount >= r.threshold ? 'opacity-100' : 'opacity-25'}`}>
                     <div className="text-[10px] font-mono font-bold w-8">{r.threshold}+</div>
-                    <div><div className="text-[11px] font-bold text-[#243B53] uppercase">{r.title}</div><div className="text-[8px] font-bold opacity-50">{r.sub}</div></div>
+                    <div>
+                      <div className="text-[11px] font-bold text-[#243B53] uppercase">{r.title}</div>
+                      <div className="text-[8px] font-bold opacity-50">{r.sub}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -213,33 +244,51 @@ function ProfileCard({ log, type, onUnfav, isEditing, editForm, setEditForm, onE
   return (
     <div 
       onClick={handleToggle}
-      className={`bg-white border border-[#BCCCDC] rounded-2xl p-5 shadow-sm relative transition-all cursor-pointer hover:border-[#9FB3C8] ${isEditing ? "ring-2 ring-[#627D98]" : ""}`}
+      className={`bg-white border border-[#BCCCDC] rounded-2xl p-5 shadow-sm relative transition-all duration-200 cursor-pointer hover:border-[#9FB3C8] select-none ${isEditing ? "ring-2 ring-[#627D98] border-transparent" : ""}`}
     >
-      <div className="absolute top-5 right-5 flex gap-2 z-10">
+      {/* 操作ボタンエリア */}
+      <div className="absolute top-5 right-5 flex gap-2 z-20">
         {type === 'stock' ? (
-          <button onClick={onUnfav} className="active:scale-125 transition-transform"><Star size={18} className="fill-[#B4941F] text-[#B4941F]" /></button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onUnfav(e); }} 
+            className="active:scale-125 transition-transform p-1 hover:bg-[#F0F4F8] rounded-lg"
+          >
+            <Star size={18} className="fill-[#B4941F] text-[#B4941F]" />
+          </button>
         ) : isEditing ? (
-          <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-            <button onClick={onSave} className="text-[#486581] hover:scale-110"><Check size={18} /></button>
-            <button onClick={onCancel} className="text-[#BCCCDC] hover:scale-110"><X size={18} /></button>
+          <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+            <button onClick={(e) => { e.stopPropagation(); onSave(); }} className="text-[#486581] p-1.5 hover:bg-[#F0F4F8] rounded-lg transition">
+              <Check size={18} />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onCancel(); }} className="text-[#BCCCDC] p-1.5 hover:bg-[#F0F4F8] rounded-lg transition">
+              <X size={18} />
+            </button>
           </div>
         ) : (
-          <div className="flex gap-2">
-            <button onClick={onEdit} className="text-[#627D98] opacity-20 hover:opacity-100 transition-all"><Pencil size={16} /></button>
-            <button onClick={onDelete} className="text-red-400 opacity-20 hover:opacity-100 transition-all"><Trash2 size={16} /></button>
+          <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+            <button onClick={(e) => onEdit(e)} className="text-[#627D98] opacity-30 hover:opacity-100 p-1.5 hover:bg-[#F0F4F8] rounded-lg transition">
+              <Pencil size={15} />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(e); }} className="text-red-400 opacity-30 hover:opacity-100 p-1.5 hover:bg-red-50 rounded-lg transition">
+              <Trash2 size={15} />
+            </button>
           </div>
         )}
       </div>
       
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-[8px] font-mono bg-[#F0F4F8] text-[#627D98] px-2 py-0.5 rounded font-bold uppercase italic inline-block">Researcher NO.{log.no}</span>
+      {/* カードヘッダー */}
+      <div className="flex items-center gap-2 mb-4 pr-16">
+        <span className="text-[8px] font-mono bg-[#F0F4F8] text-[#627D98] px-2 py-0.5 rounded font-bold uppercase italic inline-block">
+          Researcher NO.{log.no}
+        </span>
         {!isEditing && (
-          <div className="opacity-20">
+          <div className="opacity-40 text-[#627D98]">
             {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </div>
         )}
       </div>
       
+      {/* カードボディ */}
       {isEditing ? (
         <div className="space-y-3" onClick={e => e.stopPropagation()}>
           <EditField label="Material" value={editForm.material} onChange={(v)=>setEditForm({...editForm, material:v})} />
@@ -255,9 +304,18 @@ function ProfileCard({ log, type, onUnfav, isEditing, editForm, setEditForm, onE
           
           {isExpanded && (
             <div className="space-y-3 pt-3 border-t border-[#F0F4F8] animate-in fade-in slide-in-from-top-1 duration-200">
-              <LogLine icon={<PlayCircle size={10}/>} label="Action" content={log.action} />
-              <LogLine icon={<TrendingUp size={10}/>} label="Result" content={log.result} />
-              {log.note && <LogLine icon={<FlaskConical size={10}/>} label="Bug Reporting" content={log.note} />}
+              <PlayCircle size={10}/> <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase tracking-tighter">Action</span>
+              <p className="text-[12px] text-[#334E68] leading-tight font-medium break-all pl-5">{log.action || "---"}</p>
+              
+              <TrendingUp size={10}/> <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase tracking-tighter">Result</span>
+              <p className="text-[12px] text-[#334E68] leading-tight font-medium break-all pl-5">{log.result || "---"}</p>
+              
+              {log.note && (
+                <>
+                  <FlaskConical size={10}/> <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase tracking-tighter">Bug Reporting</span>
+                  <p className="text-[12px] text-[#334E68] leading-tight font-medium break-all pl-5">{log.note}</p>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -271,8 +329,8 @@ function EditField({ label, value, onChange, isTextarea = false }) {
     <div className="flex flex-col gap-1">
       <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase ml-1">{label}</span>
       {isTextarea ? 
-        <textarea value={value} onChange={(e)=>onChange(e.target.value)} rows="2" className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[12px] outline-none focus:border-[#627D98]" /> :
-        <input type="text" value={value} onChange={(e)=>onChange(e.target.value)} className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[12px] outline-none focus:border-[#627D98]" />
+        <textarea value={value} onChange={(e)=>onChange(e.target.value)} rows="2" className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[12px] text-[#334E68] outline-none focus:border-[#627D98] resize-none" /> :
+        <input type="text" value={value} onChange={(e)=>onChange(e.target.value)} className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[12px] text-[#334E68] outline-none focus:border-[#627D98]" />
       }
     </div>
   );
@@ -282,7 +340,7 @@ function LogLine({ icon, label, content }) {
   return (
     <div className="grid grid-cols-[100px_1fr] gap-2 items-baseline">
       <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase tracking-tighter flex items-center gap-1">{icon} {label}</span>
-      <p className="text-[12px] text-[#334E68] leading-tight font-medium">{content || "---"}</p>
+      <p className="text-[12px] text-[#334E68] leading-tight font-medium break-all">{content || "---"}</p>
     </div>
   );
 }

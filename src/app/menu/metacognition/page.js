@@ -5,9 +5,8 @@ import Link from "next/link";
 import { 
   ArrowLeft, Rocket, PlusCircle, History, ChevronDown, 
   ChevronUp, Star, Settings, Target, PlayCircle, TrendingUp, FlaskConical, Clock, User,
-  Pencil, Trash2, Check, X, RefreshCw, Users, Sparkles, BookOpen
+  Trash2, Check, RefreshCw, Users, Sparkles, BookOpen
 } from "lucide-react";
-// 正しいパス: ../../../lib/supabase
 import { supabase } from "../../../lib/supabase"; 
 
 export default function MetacognitionPortal() {
@@ -16,10 +15,6 @@ export default function MetacognitionPortal() {
   const [favorites, setFavorites] = useState([]);
   const [logs, setLogs] = useState([]);
   const [myMemberId, setMyMemberId] = useState("");
-  
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ material: "", scene: "", action: "", result: "", note: "" });
-
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const fetchInitial = async () => {
@@ -92,32 +87,6 @@ export default function MetacognitionPortal() {
     if (!error) fetchInitial();
   };
 
-  const startEdit = (log) => {
-    setEditingId(log.id);
-    setEditForm({ material: log.material, scene: log.scene, action: log.action, result: log.result, note: log.note });
-    setExpandedId(log.id);
-  };
-
-  const handleUpdate = async (id) => {
-    // 1. データベースを更新
-    const { error } = await supabase.from('reports').update(editForm).eq('id', id);
-    
-    if (!error) {
-      // 2. 編集モードを閉じる
-      setEditingId(null);
-      
-      // 3. ローカルのステートを直接書き換えて、再読み込みなしで即時反映
-      setLogs(prevLogs => 
-        prevLogs.map(log => 
-          log.id === id ? { ...log, ...editForm } : log
-        )
-      );
-    } else {
-      alert("更新に失敗しました。");
-      fetchInitial(); // 失敗した場合はDBから最新を取り直す
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F0F4F8] text-[#334E68] font-sans p-6 pb-20">
       <div className="max-w-md mx-auto">
@@ -164,9 +133,6 @@ export default function MetacognitionPortal() {
               
               <div className="bg-[#F0F4F8] rounded-2xl p-4 border border-[#BCCCDC]/50">
                 <p className="font-bold text-[11px] mb-2 text-[#243B53]">具体的なトレーニング例：</p>
-                <p className="text-[11px] mb-3">
-                  感情を自分から切り離すための<strong>「操作スイッチ（トリガー）」</strong>を開発し、報告せよ。
-                </p>
                 <ul className="space-y-3 text-[11px] border-t border-[#BCCCDC]/50 pt-3">
                   <li className="flex flex-col gap-1">
                     <span className="font-bold text-[#243B53]">【例1：不安がいっぱいになった時】</span>
@@ -178,9 +144,6 @@ export default function MetacognitionPortal() {
                   </li>
                 </ul>
               </div>
-              <p className="text-center font-bold text-[#627D98] pt-1">
-                君の発見をみんなに共有しよう。 
-              </p>
             </div>
           </div>
         </section>
@@ -237,58 +200,37 @@ export default function MetacognitionPortal() {
           <h2 className="text-[10px] font-bold opacity-50 mb-3 uppercase flex items-center gap-2 px-2"><Clock size={10}/> Latest Reports</h2>
           {logs.map((log) => {
             const isMyPost = myMemberId && log.no === myMemberId;
-            const isEditing = editingId === log.id;
-
             return (
-              <div key={log.id} className={`bg-white border border-[#BCCCDC] rounded-2xl overflow-hidden shadow-sm transition-all ${isEditing ? "ring-2 ring-[#627D98]" : ""}`}>
+              <div key={log.id} className="bg-white border border-[#BCCCDC] rounded-2xl overflow-hidden shadow-sm transition-all">
                 <div className="p-6 relative">
                   <div className="absolute top-6 right-6 flex gap-3 z-10">
-                    {isMyPost && !isEditing && (
-                      <div className="flex gap-2">
-                        <button onClick={() => startEdit(log)} className="text-[#627D98] opacity-30 hover:opacity-100 transition-all"><Pencil size={15}/></button>
-                        <button onClick={() => handleDelete(log.id)} className="text-red-400 opacity-30 hover:opacity-100 transition-all"><Trash2 size={15}/></button>
-                      </div>
+                    {isMyPost && (
+                      <button onClick={() => handleDelete(log.id)} className="text-red-400 opacity-30 hover:opacity-100 transition-all"><Trash2 size={15}/></button>
                     )}
-                    {!isEditing && (
-                      <button onClick={() => toggleFavorite(log.id)}>
-                        <Star size={18} className={favorites.includes(log.id) ? "fill-[#B4941F] text-[#B4941F]" : "text-[#BCCCDC] opacity-30"} />
-                      </button>
-                    )}
+                    <button onClick={() => toggleFavorite(log.id)}>
+                      <Star size={18} className={favorites.includes(log.id) ? "fill-[#B4941F] text-[#B4941F]" : "text-[#BCCCDC] opacity-30"} />
+                    </button>
                   </div>
 
-                  <div className="cursor-pointer" onClick={() => !isEditing && setExpandedId(expandedId === log.id ? null : log.id)}>
+                  <div className="cursor-pointer" onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}>
                     <div className="flex items-center gap-3 mb-4">
                       <span className={`text-[9px] font-mono px-2 py-0.5 rounded border font-bold italic uppercase tracking-tighter ${isMyPost ? "bg-[#486581] text-white border-[#486581]" : "bg-[#F0F4F8] text-[#627D98] border-[#D9E2EC]"}`}>
                         Researcher NO.{log.no} {isMyPost && "(Me)"}
                       </span>
                     </div>
 
-                    {isEditing ? (
-                      <div className="space-y-4 animate-in fade-in" onClick={(e)=>e.stopPropagation()}>
-                        <EditField label="Material" value={editForm.material} onChange={(v)=>setEditForm({...editForm, material:v})} />
-                        <EditField label="Scene" value={editForm.scene} onChange={(v)=>setEditForm({...editForm, scene:v})} />
-                        <EditField label="Action" value={editForm.action} onChange={(v)=>setEditForm({...editForm, action:v})} isTextarea />
-                        <EditField label="Result" value={editForm.result} onChange={(v)=>setEditForm({...editForm, result:v})} />
-                        <EditField label="Bug Reporting" value={editForm.note} onChange={(v)=>setEditForm({...editForm, note:v})} />
-                        <div className="flex gap-2 pt-2">
-                          <button onClick={() => handleUpdate(log.id)} className="flex-1 bg-[#486581] text-white py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2"><Check size={14}/> Save</button>
-                          <button onClick={() => setEditingId(null)} className="flex-1 bg-[#F0F4F8] text-[#627D98] py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2"><X size={14}/> Cancel</button>
+                    <div className="space-y-4">
+                      <LogLine label="Material" content={log.material} />
+                      <LogLine label="Scene" content={log.scene} />
+                      {expandedId === log.id && (
+                        <div className="space-y-4 pt-4 border-t border-[#D9E2EC] animate-in fade-in slide-in-from-top-1 duration-300">
+                          <LogLine label="Action" content={log.action} />
+                          <LogLine label="Result" content={log.result} />
+                          <LogLine label="Bug Reporting" content={log.note} />
                         </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <LogLine label="Material" content={log.material} />
-                        <LogLine label="Scene" content={log.scene} />
-                        {expandedId === log.id && (
-                          <div className="space-y-4 pt-4 border-t border-[#D9E2EC] animate-in fade-in slide-in-from-top-1 duration-300">
-                            <LogLine label="Action" content={log.action} />
-                            <LogLine label="Result" content={log.result} />
-                            <LogLine label="Bug Reporting" content={log.note} />
-                          </div>
-                        )}
-                        <div className="mt-4 flex justify-center opacity-20">{expandedId === log.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</div>
-                      </div>
-                    )}
+                      )}
+                      <div className="mt-4 flex justify-center opacity-20">{expandedId === log.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -307,18 +249,6 @@ function FormField({ icon, label, placeholder, value, onChange, isTextarea = fal
       {isTextarea ? 
         <textarea value={value} onChange={(e)=>onChange(e.target.value)} rows="2" placeholder={placeholder} className="w-full bg-[#F0F4F8]/50 border border-[#D9E2EC] rounded-lg px-4 py-3 text-[13px] focus:outline-none focus:border-[#627D98]" /> :
         <input value={value} onChange={(e)=>onChange(e.target.value)} type="text" placeholder={placeholder} className="w-full bg-[#F0F4F8]/50 border border-[#D9E2EC] rounded-lg px-4 py-3 text-[13px] focus:outline-none focus:border-[#627D98]" />
-      }
-    </div>
-  );
-}
-
-function EditField({ label, value, onChange, isTextarea = false }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase ml-1">{label}</span>
-      {isTextarea ? 
-        <textarea value={value} onChange={(e)=>onChange(e.target.value)} rows="3" className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[13px] outline-none focus:border-[#627D98]" /> :
-        <input type="text" value={value} onChange={(e)=>onChange(e.target.value)} className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[13px] outline-none focus:border-[#627D98]" />
       }
     </div>
   );

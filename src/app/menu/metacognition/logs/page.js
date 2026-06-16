@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   ArrowLeft, History, Star, ChevronDown, ChevronUp, 
-  User, Rocket, Pencil, Trash2, Check, X 
+  User, Rocket, Trash2 
 } from "lucide-react";
 import { supabase } from "../../../../lib/supabase";
 
@@ -13,10 +13,6 @@ export default function AllLogsPage() {
   const [favorites, setFavorites] = useState([]);
   const [displayLogs, setDisplayLogs] = useState([]);
   const [myMemberId, setMyMemberId] = useState("");
-  
-  // 編集用ステート
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ material: "", scene: "", action: "", result: "", note: "" });
 
   const fetchData = async () => {
     const savedId = localStorage.getItem("my_member_id") || "";
@@ -45,47 +41,12 @@ export default function AllLogsPage() {
     localStorage.setItem("metacog_favorites", JSON.stringify(newFavs));
   };
 
-  // 削除機能
   const handleDelete = async (id) => {
     if (!confirm("この報告を削除しますか？")) return;
     const { error } = await supabase.from('reports').delete().eq('id', id);
     if (!error) {
       setDisplayLogs(displayLogs.filter(log => log.id !== id));
     }
-  };
-
-  // 編集開始
-  const startEdit = (log) => {
-    setEditingId(log.id);
-    setEditForm({ 
-      material: log.material, 
-      scene: log.scene, 
-      action: log.action, 
-      result: log.result, 
-      note: log.note 
-    });
-    setExpandedId(log.id); // 編集時は展開する
-  };
-
-  // 編集保存
-  const handleUpdate = async (id) => {
-    // 1. まずステートを先行して更新（楽観的UI更新）
-    // これにより、保存ボタンを押した瞬間に画面が書き換わります
-    const updatedLogs = displayLogs.map((log) => 
-      log.id === id ? { ...log, ...editForm } : log
-    );
-    setDisplayLogs(updatedLogs);
-    setEditingId(null);
-
-    // 2. 背後でSupabaseを更新
-    const { error } = await supabase.from('reports').update(editForm).eq('id', id);
-    
-    if (error) {
-      alert("更新に失敗しました。");
-      // 失敗した場合はデータを再取得して元に戻す
-      fetchData();
-    }
-    // 成功した場合は fetchData() を呼ばなくても既に state が新しいので即時反映されます
   };
 
   return (
@@ -107,10 +68,9 @@ export default function AllLogsPage() {
         <div className="space-y-6">
           {displayLogs.length > 0 ? displayLogs.map((log) => {
             const isMyPost = myMemberId && log.no === myMemberId;
-            const isEditing = editingId === log.id;
 
             return (
-              <div key={log.id} className={`bg-white border border-[#BCCCDC] rounded-2xl overflow-hidden shadow-sm transition-all ${isEditing ? "ring-2 ring-[#627D98]" : ""}`}>
+              <div key={log.id} className="bg-white border border-[#BCCCDC] rounded-2xl overflow-hidden shadow-sm transition-all">
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex flex-col">
@@ -124,49 +84,28 @@ export default function AllLogsPage() {
                     </div>
                     
                     <div className="flex gap-3">
-                      {isMyPost && !isEditing && (
-                        <div className="flex gap-2 mr-2">
-                          <button onClick={() => startEdit(log)} className="text-[#627D98] opacity-40 hover:opacity-100 transition-all"><Pencil size={16}/></button>
-                          <button onClick={() => handleDelete(log.id)} className="text-red-400 opacity-40 hover:opacity-100 transition-all"><Trash2 size={16}/></button>
-                        </div>
+                      {isMyPost && (
+                        <button onClick={() => handleDelete(log.id)} className="text-red-400 opacity-40 hover:opacity-100 transition-all"><Trash2 size={16}/></button>
                       )}
-                      {!isEditing && (
-                        <button onClick={() => toggleFavorite(log.id)}>
-                          <Star size={20} className={favorites.includes(log.id) ? "fill-[#B4941F] text-[#B4941F]" : "text-[#BCCCDC] opacity-30"} />
-                        </button>
-                      )}
+                      <button onClick={() => toggleFavorite(log.id)}>
+                        <Star size={20} className={favorites.includes(log.id) ? "fill-[#B4941F] text-[#B4941F]" : "text-[#BCCCDC] opacity-30"} />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="space-y-4" onClick={() => !isEditing && setExpandedId(expandedId === log.id ? null : log.id)}>
-                    {isEditing ? (
-                      /* 編集フォーム表示 */
-                      <div className="space-y-4 animate-in fade-in duration-300" onClick={(e) => e.stopPropagation()}>
-                        <EditField label="Material" value={editForm.material} onChange={(v) => setEditForm({...editForm, material: v})} />
-                        <EditField label="Scene" value={editForm.scene} onChange={(v) => setEditForm({...editForm, scene: v})} />
-                        <EditField label="Action" value={editForm.action} onChange={(v) => setEditForm({...editForm, action: v})} isTextarea />
-                        <EditField label="Result" value={editForm.result} onChange={(v) => setEditForm({...editForm, result: v})} />
-                        <EditField label="Note" value={editForm.note} onChange={(v) => setEditForm({...editForm, note: v})} />
-                        <div className="flex gap-2 pt-2">
-                          <button onClick={() => handleUpdate(log.id)} className="flex-1 bg-[#486581] text-white py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2"><Check size={14}/> Save</button>
-                          <button onClick={() => setEditingId(null)} className="flex-1 bg-[#F0F4F8] text-[#627D98] py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2"><X size={14}/> Cancel</button>
-                        </div>
+                  <div className="cursor-pointer space-y-4" onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}>
+                    <LogLine label="Material" content={log.material} />
+                    <LogLine label="Scene" content={log.scene} />
+                    {expandedId === log.id && (
+                      <div className="space-y-4 pt-4 border-t border-[#F0F4F8] animate-in fade-in slide-in-from-top-1 duration-200">
+                        <LogLine label="Action" content={log.action} />
+                        <LogLine label="Result" content={log.result} />
+                        <LogLine label="Note" content={log.note} />
                       </div>
-                    ) : (
-                      /* 通常表示 */
-                      <>
-                        <LogLine label="Material" content={log.material} />
-                        <LogLine label="Scene" content={log.scene} />
-                        {expandedId === log.id && (
-                          <div className="space-y-4 pt-4 border-t border-[#D9E2EC] animate-in fade-in slide-in-from-top-1">
-                            <LogLine label="Action" content={log.action} />
-                            <LogLine label="Result" content={log.result} />
-                            <LogLine label="Note" content={log.note} />
-                          </div>
-                        )}
-                        <div className="mt-4 flex justify-center opacity-20">{expandedId === log.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</div>
-                      </>
                     )}
+                    <div className="flex justify-center opacity-20 pt-2">
+                      {expandedId === log.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -184,30 +123,7 @@ function LogLine({ label, content }) {
   return (
     <div className="grid grid-cols-[85px_1fr] gap-3 items-baseline">
       <span className="text-[9px] font-bold text-[#627D98] opacity-50 uppercase">{label}</span>
-      <p className="text-[13px] leading-relaxed text-[#334E68]">{content || "---"}</p>
-    </div>
-  );
-}
-
-function EditField({ label, value, onChange, isTextarea = false }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[8px] font-bold text-[#627D98] opacity-50 uppercase ml-1">{label}</span>
-      {isTextarea ? (
-        <textarea 
-          value={value} 
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[13px] outline-none focus:border-[#627D98]"
-          rows={3}
-        />
-      ) : (
-        <input 
-          type="text" 
-          value={value} 
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-[#F0F4F8] border border-[#BCCCDC] rounded-lg p-2 text-[13px] outline-none focus:border-[#627D98]"
-        />
-      )}
+      <p className="text-[13px] leading-relaxed text-[#334E68] break-all">{content || "---"}</p>
     </div>
   );
 }

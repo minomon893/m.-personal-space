@@ -70,18 +70,13 @@ export default function BingoPage() {
   const [activeInputIdx, setActiveInputIdx] = useState(0);
 
   const currentBingo = bingos[selectedIdx];
-
-  // 修正：is_officialフラグを厳密にチェック
-  const isOfficial = 
-    currentBingo?.id.toString().startsWith('official-') || 
-    currentBingo?.is_official === true;
+  const isOfficial = currentBingo?.id.toString().startsWith('official-') || currentBingo?.is_official === true;
 
   const fetchData = useCallback(async () => {
     const { data: bData } = await supabase.from('bingos').select('*').order('created_at', { ascending: false });
     if (bData) {
       setBingos([...OFFICIAL_BINGOS, ...bData]);
     }
-
     const { data: fData } = await supabase.from('favorites').select('content');
     if (fData) {
       setFavorites(fData.map(f => f.content));
@@ -96,7 +91,6 @@ export default function BingoPage() {
         const { data } = await supabase.from('progress').select('checked, updated_at').eq('bingo_id', currentBingo.id).single();
         const currentProgress = data?.checked || Array(9).fill(false);
         setProgress(currentProgress);
-
         if (currentProgress.every(v => v) && data?.updated_at) {
           const lastUpdate = new Date(data.updated_at).getTime();
           const now = new Date().getTime();
@@ -222,6 +216,26 @@ export default function BingoPage() {
 
   return (
     <main className={`min-h-screen bg-gradient-to-b ${theme.colors} transition-colors duration-[2000ms] flex flex-col items-center overflow-hidden font-sans relative`}>
+      {/* 花の降る背景アニメーション */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[...Array(10)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ top: -50, left: `${Math.random() * 100}%` }}
+            animate={{ top: "110%", rotate: 360 }}
+            transition={{
+              duration: 10 + Math.random() * 10,
+              repeat: Infinity,
+              delay: Math.random() * 10,
+              ease: "linear"
+            }}
+            className="absolute text-2xl opacity-30"
+          >
+            🌸
+          </motion.div>
+        ))}
+      </div>
+
       <div className="absolute inset-0 pointer-events-none opacity-[0.12] mix-blend-multiply" 
            style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/natural-paper.png')" }} />
 
@@ -279,7 +293,6 @@ export default function BingoPage() {
                       className={favorites.includes(text) ? "fill-red-400 text-red-400" : "text-stone-300 opacity-60"} 
                     />
                   </button>
-                  {/* 中央（インデックス4）も含め、DBのtextをそのまま表示 */}
                   <span className="relative z-10 font-medium px-1 pointer-events-none">{text}</span>
                 </motion.div>
               ))}
@@ -319,7 +332,6 @@ export default function BingoPage() {
             <Plus size={12} /> New
           </button>
           
-          {/* 公式データ以外の場合のみ、EditとDeleteボタンを表示 */}
           {!isOfficial && (
             <>
               <button onClick={openEdit} className="flex items-center gap-2 text-[10px] text-stone-400 hover:text-stone-600 transition-colors tracking-[0.2em] uppercase">
@@ -433,32 +445,26 @@ export default function BingoPage() {
                       小さな行動を3×3に並べたビンゴです。<br/><br/>
                       その日の気分や状態に合わせて選びます。
                     </p>
-                    
                     <div className="space-y-2">
                       <p className="font-bold border-b border-stone-100 pb-1">1. 日々ンゴを選ぶ</p>
                       <p>その時の状態に近いものを選びます。</p>
                     </div>
-
                     <div className="space-y-2">
                       <p className="font-bold border-b border-stone-100 pb-1">2. マスを押す</p>
                       <p>マスを押すと、その行動が記録されます。</p>
                     </div>
-
                     <div className="space-y-2">
                       <p className="font-bold border-b border-stone-100 pb-1">3. 一列そろう</p>
                       <p>縦・横・斜めで一列そろうと、<br/>小さな演出が表示されます。</p>
                     </div>
-
                     <div className="space-y-2">
                       <p className="font-bold border-b border-stone-100 pb-1">4. 全マス埋まる</p>
                       <p>9マスすべて埋まると、<br/>ご褒美を入力する画面が表示されます。<br/><br/>入力後、その日々ンゴは一時的にロックされます。</p>
                     </div>
-
                     <div className="space-y-2">
                       <p className="font-bold border-b border-stone-100 pb-1">お気に入り</p>
                       <p>マス右上の♡で保存できます。作成時に利用可能です。</p>
                     </div>
-
                     <div className="space-y-2">
                       <p className="font-bold border-b border-stone-100 pb-1">オリジナル日々ンゴ</p>
                       <p>自分で作成・編集・削除が可能です。</p>

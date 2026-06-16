@@ -96,9 +96,9 @@ export default function WebPage() {
           </section>
 
           {/* SOFT NOTICE */}
-          <div className="flex gap-3 bg-white/10 p-5 rounded-2xl border border-white/15 text-[#5F6F7A]/80 backdrop-blur-sm">
-            <AlertCircle size={14} className="shrink-0 mt-0.5 opacity-60" />
-            <p className="text-[11px] leading-relaxed opacity-60">
+          <div className="flex gap-3 bg-white/10 p-5 rounded-2xl border border-white/15 text-white/60 backdrop-blur-sm">
+            <AlertCircle size={14} className="shrink-0 mt-0.5 text-white/40" />
+            <p className="text-[11px] text-white/40 leading-relaxed">
               ボタンを押すと、このアプリの外側（ブラウザ）へ新しくページを開いて移動します。少しだけ景色の違う場所へ向かいますが、いつでも戻ってこられますので、どうぞのんびりとお気をつけて。
             </p>
           </div>

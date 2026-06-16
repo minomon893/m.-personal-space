@@ -77,7 +77,7 @@ const PAIRS_DATA: PairData[] = [
       { speaker: "minimum", text: "私なんてただのゴミです……大きな挑戦なんて滅相もない。一生日陰で縮こまって生きていきます。" },
       { speaker: "maximum", text: "実績？そんなもん後からついてくるわ！俺こそが世界の中心、ひれ伏せ！もっと俺を称えろ！" }
     ],
-   narration: "実力があるのに責任から逃げ回る「社会のウジ虫（卑屈）」と、中身がゼロのくせに態度だけは王様の「ハリボテ風船（虚栄）」。自分の正当な能力を冷徹に自覚し、それにふさわしい誇りと責任を背負うのが『矜持』です。いつまで認知を歪ませているのですか？"
+    narration: "実力があるのに責任から逃げ回る「社会のウジ虫（卑屈）」と、中身がゼロのくせに態度だけは王様の「ハリボテ風船（虚栄）」。自分の正当な能力を冷徹に自覚し、それにふさわしい誇りと責任を背負うのが『矜持』です。いつまで認知を歪ませているのですか？"
   },
   {
     id: 6,
@@ -85,7 +85,7 @@ const PAIRS_DATA: PairData[] = [
     title: "適切な野心 (Right Ambition)",
     dialogue: [
       { speaker: "minimum", text: "評価されること自体を完全に放棄した。頑張るだけ無駄。評価シートは全部白紙で出すわ。" },
-      { speaker: "maximum", text: "あいつを蹴落としてでも出世してやる！上司へのおべっかも同僚の足引っ張りも、使える手段は全部使う！" }
+      { speaker: "maximum", text: "あいつを蹴落としてでも出世してやらあ！上司へのおべっかも同僚の足引っ張りも、使える手段は全部使う！" }
     ],
     narration: "生きている意味が見当たらない「向上心ゼロの泥人形」と、他者を踏み台にすることしか頭にない「権力欲の亡者」。他人の評価に一喜一憂せず、程よいモチベーションで己の道を地道に歩む『適切な野心』。これが欠けているから心がいつまでも荒むのです。"
   },
@@ -219,13 +219,10 @@ export default function MmMidGame() {
   const [eventStep, setEventStep] = useState<"dialogue0" | "dialogue1" | "narration" | "complete">("dialogue0");
 
   const generateRandomPairs = () => {
-    // 全体のユニークなpairIdを取得してシャッフル
     const allPairIds = Array.from(new Set(CARDS_POOL.map((c) => c.pairId)));
     const shuffledPairIds = [...allPairIds].sort(() => Math.random() - 0.5);
-    // ランダムに3つのペアIDを抽出
     const selectedPairIds = shuffledPairIds.slice(0, 3);
     
-    // 選ばれたIDのそれぞれから、minimumとmaximumを厳密に1枚ずつ抽出する
     const filteredCards: Omit<GameCard, "id">[] = [];
     selectedPairIds.forEach((pid) => {
       const minCard = CARDS_POOL.find((c) => c.pairId === pid && c.type === "minimum");
@@ -234,7 +231,6 @@ export default function MmMidGame() {
       if (maxCard) filteredCards.push(maxCard);
     });
     
-    // 完全に揃った6枚をシャッフルして配置
     const gameBoardCards = filteredCards
       .map((c, i) => ({ ...c, id: `card-${i}-${Math.random()}` }))
       .sort(() => Math.random() - 0.5);
@@ -283,7 +279,7 @@ export default function MmMidGame() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-zinc-100 flex flex-col items-center justify-center p-6 font-mono selection:bg-yellow-400 selection:text-black relative">
+    <div className="min-h-screen bg-slate-900 text-zinc-100 flex flex-col items-center justify-center p-6 font-sans antialiased selection:bg-yellow-400 selection:text-black relative">
       
       {/* 左上：メニューに戻るボタン */}
       <div className="absolute top-6 left-6 z-40">
@@ -315,7 +311,7 @@ export default function MmMidGame() {
       </div>
 
       {/* ヘッダーエリア */}
-      <header className="text-center mb-8 max-w-xl z-20 relative">
+      <header className="text-center mb-6 max-w-xl z-20 relative">
         <div className="inline-flex items-center space-x-2 text-xs bg-yellow-400/10 border-2 border-yellow-400 px-3 py-1 rounded-full text-yellow-400 font-bold mb-3 tracking-widest uppercase shadow-[2px_2px_0px_rgba(0,0,0,1)]">
           <Swords className="w-3.5 h-3.5" />
           <span>COGNITIVE TUNING RPG v1.2</span>
@@ -323,10 +319,36 @@ export default function MmMidGame() {
         <h1 className="text-4xl font-black tracking-tighter text-yellow-400 drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] mb-2">
           MAXIMUM <span className="text-pink-500 font-black">VS</span> MINIMUM
         </h1>
-        <p className="text-xs text-slate-300 leading-relaxed font-sans font-semibold">
+        <p className="text-xs text-slate-300 leading-relaxed font-semibold">
           脳内に巣食う11種の「過剰（MAX）」と「不足（MIN）」の極端バカ共をマッチングさせ、アリストテレスが提唱した至高の黄金比『中庸（メソテース）』へと調和させる精神矯正ボード。
         </p>
       </header>
+
+      {/* 【上部へ移動】吹き出しウィンドウエリア */}
+      <div className="h-28 max-w-2xl w-full flex items-center justify-center border-4 border-slate-700 bg-slate-950 rounded-xl p-4 shadow-[4px_4px_0px_rgba(0,0,0,1)] mb-6 z-20 relative">
+        <AnimatePresence mode="wait">
+          {hoveredCard ? (
+            <motion.div
+              key={hoveredCard.id}
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex items-start space-x-3 w-full"
+            >
+              <div className={`font-black px-2 py-1 border-2 text-[10px] rounded shrink-0 tracking-tighter shadow-[2px_2px_0px_rgba(0,0,0,1)] ${hoveredCard.type === "maximum" ? "bg-rose-950 border-rose-500 text-rose-400" : "bg-sky-950 border-sky-500 text-sky-400"}`}>
+                {hoveredCard.type === "maximum" ? "過剰の歪み" : "不足の歪み"}
+              </div>
+              <div className="text-xs text-slate-200 w-full leading-relaxed font-semibold">
+                <TypewriterText text={hoveredCard.hoverText} speed={10} />
+              </div>
+            </motion.div>
+          ) : (
+            <p className="text-xs text-slate-400 text-center leading-relaxed font-semibold">
+              カードを選択してペアを暴き、深層心理に潜む歪んだ本音を調和させてください。
+            </p>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* メインゲーム盤面 */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-3xl w-full mb-8 z-20 relative">
@@ -346,30 +368,24 @@ export default function MmMidGame() {
                 animate={{ rotateY: isSelected || isMatched ? 180 : 0 }}
                 transition={{ duration: 0.4 }}
               >
-                {/* カード表面：紅白レトロポップデザイン */}
+                {/* カード表面：シックなアンティーク調デザイン */}
                 <div
-                  className="absolute inset-0 bg-rose-600 border-4 border-white rounded-xl flex flex-col items-center justify-center cursor-pointer backface-hidden group-hover:scale-[1.02] transition-all shadow-[4px_4px_0px_rgba(0,0,0,1)] overflow-hidden"
+                  className="absolute inset-0 bg-slate-800 border-4 border-slate-950 rounded-xl flex flex-col items-center justify-center cursor-pointer backface-hidden group-hover:scale-[1.02] transition-all shadow-[4px_4px_0px_rgba(0,0,0,1)] overflow-hidden"
                   onClick={() => handleCardClick(card)}
                 >
-                  {/* 赤いドットパターン背景 */}
-                  <div 
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                      backgroundImage: "radial-gradient(#ffffff 20%, transparent 20%)",
-                      backgroundSize: "10px 10px",
-                    }}
-                  />
+                  {/* 高級感のある極細ゴールド外枠 */}
+                  <div className="absolute inset-1.5 border border-amber-500/30 rounded-lg pointer-events-none" />
                   
-                  {/* 中央の紅白装飾 */}
-                  <div className="relative w-16 h-16 bg-white rotate-45 flex items-center justify-center shadow-lg border-2 border-rose-200">
-                    <div className="w-10 h-10 bg-rose-600 flex items-center justify-center -rotate-45">
-                       <div className="w-4 h-4 bg-white rounded-full animate-pulse" />
+                  {/* 中央のシックなダイヤエンブレム */}
+                  <div className="relative w-12 h-12 border border-amber-500/40 rotate-45 flex items-center justify-center bg-slate-900/60 shadow-lg">
+                    <div className="w-6 h-6 border border-amber-500/20 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-amber-500/50 rounded-full animate-pulse" />
                     </div>
                   </div>
 
-                  {/* 上下の白い帯ライン */}
-                  <div className="absolute top-0 w-full h-2 bg-white/40" />
-                  <div className="absolute bottom-0 w-full h-2 bg-white/40" />
+                  {/* 繊細な装飾ライン */}
+                  <div className="absolute top-3 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+                  <div className="absolute bottom-3 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
                 </div>
 
                 {/* カード裏面：バグキャラ顕現状態 */}
@@ -394,32 +410,6 @@ export default function MmMidGame() {
             </div>
           );
         })}
-      </div>
-
-      {/* 吹き出しウィンドウエリア */}
-      <div className="h-28 max-w-2xl w-full flex items-center justify-center border-4 border-slate-700 bg-slate-950 rounded-xl p-4 shadow-[4px_4px_0px_rgba(0,0,0,1)] z-20 relative">
-        <AnimatePresence mode="wait">
-          {hoveredCard ? (
-            <motion.div
-              key={hoveredCard.id}
-              initial={{ opacity: 0, y: 3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="flex items-start space-x-3 w-full"
-            >
-              <div className={`font-black px-2 py-1 border-2 text-[10px] rounded shrink-0 tracking-tighter shadow-[2px_2px_0px_rgba(0,0,0,1)] ${hoveredCard.type === "maximum" ? "bg-rose-950 border-rose-500 text-rose-400" : "bg-sky-950 border-sky-500 text-sky-400"}`}>
-                {hoveredCard.type === "maximum" ? "過剰の歪み" : "不足の歪み"}
-              </div>
-              <div className="text-xs text-slate-200 w-full leading-relaxed font-sans font-semibold">
-                <TypewriterText text={hoveredCard.hoverText} speed={10} />
-              </div>
-            </motion.div>
-          ) : (
-            <p className="text-xs text-slate-400 text-center leading-relaxed font-sans font-semibold">
-              カードを選択してペアを暴き、深層心理に潜む歪んだ本音を調和させてください。
-            </p>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* 遊び方説明モーダル */}
@@ -449,7 +439,7 @@ export default function MmMidGame() {
                 <h2 className="text-xl font-black tracking-wider">中庸大冒険システムガイド</h2>
               </div>
 
-              <div className="space-y-4 text-xs text-slate-200 leading-relaxed font-sans font-semibold">
+              <div className="space-y-4 text-xs text-slate-200 leading-relaxed font-semibold">
                 <p>
                   人間の認知は常に、極端なバグである<strong className="text-rose-400">「やりすぎる過剰（最大）」</strong>か、あるいは<strong className="text-sky-400">「逃げ出す不足（最小）」</strong>の罠にハマり、自滅ループを繰り返すように設計されています。
                 </p>
@@ -457,12 +447,12 @@ export default function MmMidGame() {
                   古代ギリシャの哲学者アリストテレスは、最も強靭で美しい生き方として、その両極端を排除するのではなく、互いに衝突させて最適な調和点を導き出す<strong className="text-yellow-400 font-bold">『中庸（Virtue）』</strong>の概念を定義しました。
                 </p>
                 
-                <div className="bg-slate-950 border-2 border-slate-800 p-4 rounded-xl font-mono space-y-2.5 text-slate-300 shadow-inner">
+                <div className="bg-slate-950 border-2 border-slate-800 p-4 rounded-xl space-y-2.5 text-slate-300 shadow-inner">
                   <div className="font-bold text-pink-400 flex items-center space-x-1">
                     <ShieldAlert className="w-4 h-4" />
                     <span>【タスク・シミュレーション】</span>
                   </div>
-                  <div className="text-[11px] leading-relaxed font-sans font-semibold">
+                  <div className="text-[11px] leading-relaxed font-semibold">
                     1. 盤面のカードをめくり、同じテーマを宿す<span className="text-rose-400">💥OVER</span>と<span className="text-sky-400">💧LACK</span>を探し出してください。<br />
                     2. 完全なペアを引き合わせた瞬間、脳内での和解イベント（認知矯正プロセス）が強制起動します。<br />
                     3. 両極端なバグ共が醜いツンデレ対話を行った後、真ん中にある美しい「正解」が導き出されます。
@@ -488,7 +478,7 @@ export default function MmMidGame() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 font-mono"
+            className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4"
           >
             <div className="max-w-2xl w-full flex flex-col space-y-6 z-10">
               <div className="text-center">
@@ -504,7 +494,7 @@ export default function MmMidGame() {
                 {(eventStep === "dialogue0" || eventStep === "dialogue1" || eventStep === "narration" || eventStep === "complete") && (
                   <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-start space-x-3">
                     <div className="bg-sky-600 border-2 border-sky-300 text-white font-black px-2.5 py-1 rounded text-[10px] shrink-0 shadow-[2px_2px_0px_rgba(0,0,0,1)]">💧 LACK</div>
-                    <div className="bg-slate-950 border-2 border-sky-500/30 p-3 rounded-xl rounded-tl-none text-xs max-w-md text-slate-200 leading-relaxed shadow-md font-sans font-semibold">
+                    <div className="bg-slate-950 border-2 border-sky-500/30 p-3 rounded-xl rounded-tl-none text-xs max-w-md text-slate-200 leading-relaxed shadow-md font-semibold">
                       <TypewriterText
                         text={activeEventPair.dialogue[0].text}
                         speed={18}
@@ -519,7 +509,7 @@ export default function MmMidGame() {
                 {/* 会話ステップ2：マキシマム */}
                 {(eventStep === "dialogue1" || eventStep === "narration" || eventStep === "complete") && (
                   <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-start space-x-3 justify-end">
-                    <div className="bg-slate-950 border-2 border-rose-500/30 p-3 rounded-xl rounded-tr-none text-left text-xs max-w-md text-slate-200 leading-relaxed shadow-md font-sans font-semibold">
+                    <div className="bg-slate-950 border-2 border-rose-500/30 p-3 rounded-xl rounded-tr-none text-left text-xs max-w-md text-slate-200 leading-relaxed shadow-md font-semibold">
                       <TypewriterText
                         text={activeEventPair.dialogue[1].text}
                         speed={18}
@@ -547,7 +537,7 @@ export default function MmMidGame() {
                       <div className="absolute -top-3.5 left-4 bg-slate-700 px-2 py-0.5 text-[8px] font-black text-slate-200 uppercase tracking-widest rounded border-2 border-slate-500">
                         SYSTEM JUDGEMENT
                       </div>
-                      <p className="text-cyan-400 font-semibold leading-relaxed text-xs md:text-sm font-sans">
+                      <p className="text-cyan-400 font-semibold leading-relaxed text-xs md:text-sm">
                         <TypewriterText
                           text={activeEventPair.narration}
                           speed={15}
@@ -592,7 +582,7 @@ export default function MmMidGame() {
             <Trophy className="w-6 h-6" />
           </div>
           <p className="text-emerald-400 font-black text-base mb-2 tracking-wide">🎉 STAGE CLEAR: 精神の調和完了</p>
-          <p className="text-slate-300 text-xs mb-5 font-sans font-semibold leading-relaxed">
+          <p className="text-slate-300 text-xs mb-5 font-semibold leading-relaxed">
             展開された極端なバグ思考の相殺に成功しました。脳内のノイズは完全に一掃され、フラットな認知領域が確保されました。
           </p>
           <button

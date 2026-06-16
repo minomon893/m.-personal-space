@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, BookOpen, X, Trash2, Edit2, ChevronLeft, Trophy } from 'lucide-react';
-import { supabase } from "../../../lib/supabase";
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, BookOpen, X, ChevronLeft, Trophy, Download, Upload, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NotToDoPage() {
@@ -14,58 +13,74 @@ export default function NotToDoPage() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [currentFeelings, setCurrentFeelings] = useState('');
 
-  useEffect(() => { fetchInitialData(); }, []);
+  useEffect(() => {
+    setEntries(JSON.parse(localStorage.getItem('not_to_do_entries') || '[]'));
+    setTrophies(JSON.parse(localStorage.getItem('not_to_do_trophies') || '[]'));
+  }, []);
 
-  async function fetchInitialData() {
-    const { data: logs } = await supabase.from('not_to_do_logs').select('*').order('created_at', { ascending: false });
-    const { data: savedTrophies } = await supabase.from('not_to_do_trophies').select('*').order('created_at', { ascending: false });
-    
-    if (logs) setEntries(logs);
-    if (savedTrophies) setTrophies(savedTrophies);
-  }
+  useEffect(() => {
+    localStorage.setItem('not_to_do_entries', JSON.stringify(entries));
+    localStorage.setItem('not_to_do_trophies', JSON.stringify(trophies));
+  }, [entries, trophies]);
 
-  async function handleAddAction(e) {
-    if (e) e.preventDefault();
+  const exportData = () => {
+    const data = JSON.stringify({ entries, trophies });
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nottodo_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+  };
+
+  const importData = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const { entries: iE, trophies: iT } = JSON.parse(event.target.result);
+        if (iE) setEntries(iE);
+        if (iT) setTrophies(iT);
+        alert('データを復元しました！');
+      } catch (err) { alert('ファイルの読み込みに失敗しました。'); }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleAddAction = (e) => {
+    e.preventDefault();
     if (!newAction.trim()) return;
-    const { data } = await supabase.from('not_to_do_logs').insert([{ action: newAction, is_completed: false }]).select().single();
-    if (data) { setEntries([data, ...entries]); setNewAction(''); }
-  }
+    const newEntry = { 
+      id: Date.now(), 
+      action: newAction, 
+      is_completed: false, 
+      created_at: new Date().toISOString(), 
+      reflection: '', 
+      tags: [], 
+      nextActionType: '', 
+      actionDetail: '' 
+    };
+    setEntries([newEntry, ...entries]);
+    setNewAction('');
+  };
 
-  async function handleUpdate(id, reflection, tags, nextActions) {
-    const { data, error } = await supabase
-      .from('not_to_do_logs')
-      .update({ reflection, tags, nextActions, is_completed: true })
-      .eq('id', id)
-      .select()
-      .single();
+  const handleUpdate = (id, updatedData) => {
+    const updated = entries.map(e => e.id === id ? { ...e, ...updatedData, is_completed: true } : e);
+    setEntries(updated);
+    if ((updated.filter(e => e.is_completed).length) % 5 === 0) setShowCelebration(true);
+  };
 
-    if (!error && data) {
-      const updatedEntries = entries.map(e => e.id === id ? data : e);
-      setEntries(updatedEntries);
-      
-      // 5回ごとのチェック（全完了数をもとに判定）
-      if ((updatedEntries.filter(e => e.is_completed).length) % 5 === 0) {
-        setShowCelebration(true);
-      }
-    }
-  }
-
-  async function saveTrophy() {
-    await supabase.from('not_to_do_trophies').insert({ feelings: currentFeelings });
+  const saveTrophy = () => {
+    const newTrophy = { id: Date.now(), feelings: currentFeelings, created_at: new Date().toISOString() };
+    setTrophies([newTrophy, ...trophies]);
     setShowCelebration(false);
     setCurrentFeelings('');
-    const { data: savedTrophies } = await supabase.from('not_to_do_trophies').select('*').order('created_at', { ascending: false });
-    if (savedTrophies) setTrophies(savedTrophies);
-  }
-
-  const completedCount = entries.filter(e => e.is_completed).length;
-  // 修正箇所：5個達成時に「残り5」に戻るように計算
-  const progress = completedCount % 5;
-  const displayCount = progress;
-  const remaining = displayCount === 0 ? 5 : 5 - displayCount;
+  };
 
   return (
     <div className="min-h-screen bg-[#dccfb0] text-[#4a4030] font-mono relative overflow-hidden">
+      {/* 1. 背景アニメーション */}
       <div className="fixed inset-0 z-0 opacity-30 pointer-events-none">
         <div className="h-3/4 bg-gradient-to-b from-[#2c3e50] to-[#e67e22]" />
         <div className="h-1/4 bg-[#5d6d4e]" />
@@ -77,6 +92,7 @@ export default function NotToDoPage() {
         <motion.div animate={{ y: [0, -15, 0] }} transition={{ repeat: Infinity, duration: 0.8 }} className="absolute bottom-[20%] right-[5%] text-5xl rotate-[-10deg]">🏃‍♂️</motion.div>
       </div>
 
+      {/* 2. メインコンテンツ */}
       <div className="relative z-10 p-6 max-w-2xl mx-auto">
         <nav className="flex justify-between items-center mb-8">
           <Link href="/menu" className="p-2 bg-black/5 rounded-full"><ChevronLeft /></Link>
@@ -85,117 +101,84 @@ export default function NotToDoPage() {
 
         <header className="mb-8">
           <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-2">Not to do list</h1>
-          <p className="text-xs opacity-60">違和感を実験し、自分らしさの輪郭を削り出すための記録場所。</p>
-        </header>
-
-        <section className="bg-white/30 p-4 rounded-xl border border-white/50 mb-8">
-          <p className="text-[10px] uppercase opacity-50 mb-2">
-            次のトロフィーまで：{remaining} レポート
-          </p>
-          <div className="w-full h-2 bg-black/10 rounded-full overflow-hidden">
-            <div className="h-full bg-[#e67e22]/60 rounded-full transition-all duration-500" style={{ width: `${displayCount * 20}%` }} />
+          <p className="text-xs opacity-60 mb-4">違和感を実験し、自分らしさの輪郭を削り出すための記録場所。</p>
+          <div className="flex gap-2">
+            <button onClick={exportData} className="flex items-center gap-1 text-[10px] bg-black/10 px-3 py-1 rounded-full"><Download size={12}/> Export</button>
+            <label className="flex items-center gap-1 text-[10px] bg-black/10 px-3 py-1 rounded-full cursor-pointer">
+              <Upload size={12}/> Import
+              <input type="file" accept=".json" onChange={importData} className="hidden" />
+            </label>
           </div>
-        </section>
+        </header>
 
         <form onSubmit={handleAddAction} className="flex gap-2 mb-8">
           <input value={newAction} onChange={(e) => setNewAction(e.target.value)} placeholder="例）派手な服を着てみる" className="flex-1 bg-white/50 rounded-lg p-3 outline-none border border-white" />
           <button type="submit" className="bg-[#4a4030] text-white px-6 rounded-lg font-bold"><Plus /></button>
         </form>
 
-        <div className="space-y-4 mb-12">
-          {entries.map(e => <LogItem key={e.id} entry={e} onUpdate={handleUpdate} onDelete={async (id) => { await supabase.from('not_to_do_logs').delete().eq('id', id); setEntries(entries.filter(i => i.id !== id)); }} />)}
-        </div>
-
-        {trophies.length > 0 && (
-          <section className="mt-12 mb-12">
-            <h2 className="font-bold opacity-60 text-sm mb-4 flex items-center gap-2">
-              <Trophy size={16} /> COLLECTED TROPHIES ({trophies.length})
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-6 snap-x scrollbar-hide">
-              {trophies.map((t, i) => (
-                <div key={t.id} className="min-w-[240px] snap-start bg-[#4a4030]/10 p-6 rounded-3xl border border-white/50 flex flex-col justify-between">
-                  <div>
-                    <Trophy className="text-[#e67e22] mb-4" size={32} />
-                    <p className="text-xs opacity-50 mb-2 uppercase tracking-widest">Round {trophies.length - i}</p>
-                    <p className="italic text-lg font-bold">"{t.feelings}"</p>
-                  </div>
-                  <p className="text-[10px] opacity-40 mt-6">
-                    {new Date(t.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <motion.div layout className="space-y-4 mb-12">
+          <AnimatePresence mode="popLayout">
+            {entries.map(e => <LogItem key={e.id} entry={e} onUpdate={handleUpdate} />)}
+          </AnimatePresence>
+        </motion.div>
       </div>
 
       <CelebrationModal show={showCelebration} setShow={setShowCelebration} saveTrophy={saveTrophy} currentFeelings={currentFeelings} setCurrentFeelings={setCurrentFeelings} />
       <InfoModal show={showInfo} setShow={setShowInfo} />
-      
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 }
 
-function LogItem({ entry, onUpdate, onDelete }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+function LogItem({ entry, onUpdate }) {
+  const [isRecording, setIsRecording] = useState(false);
   const [refl, setRefl] = useState(entry.reflection || '');
   const [tags, setTags] = useState(entry.tags || []);
-  const [next, setNext] = useState(entry.nextActions || []);
-
-  useEffect(() => {
-    setRefl(entry.reflection || '');
-    setTags(entry.tags || []);
-    setNext(entry.nextActions || []);
-  }, [entry]);
+  const [nextType, setNextType] = useState(entry.nextActionType || '');
+  const [detail, setDetail] = useState(entry.actionDetail || '');
 
   const tagsList = ['違和感', '無理感', '恥ずかしさ', '新しい発見', 'ざわつき'];
   const options = ["ハードルを下げる", "今は時期じゃない", "誰かに聞く", "満足！"];
 
   return (
-    <div className="bg-white/60 p-5 rounded-2xl border border-white cursor-pointer" onClick={() => !isEditing && entry.is_completed && setIsExpanded(!isExpanded)}>
-      <div className="flex justify-between items-center">
-        <h3 className={`font-bold ${entry.is_completed ? '' : 'opacity-60'}`}>{entry.action}</h3>
-        <div className="flex gap-2 opacity-50" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => onDelete(entry.id)}><Trash2 size={16} /></button>
-          <button onClick={() => setIsEditing(!isEditing)}><Edit2 size={16} /></button>
-        </div>
-      </div>
-
-      {isEditing ? (
-        <div className="mt-4 pt-4 border-t border-black/10" onClick={(e) => e.stopPropagation()}>
-          <div className="flex flex-wrap gap-1 mb-3">
-            {tagsList.map(t => <button key={t} onClick={() => setTags(prev => prev.includes(t) ? prev.filter(i => i !== t) : [...prev, t])} className={`text-[9px] px-2 py-1 rounded-full border ${tags.includes(t) ? 'bg-[#e67e22] text-white' : 'border-black/20'}`}>{t}</button>)}
+    <div className="bg-white/60 p-5 rounded-2xl border border-white shadow-sm">
+      {isRecording ? (
+        <div>
+          <h3 className="font-bold text-lg mb-3">{entry.action}</h3>
+          <div className="text-[10px] font-bold opacity-50 mb-2">当てはまる感情</div>
+          <div className="flex flex-wrap gap-1 mb-4">
+            {tagsList.map(t => (
+              <button key={t} onClick={() => setTags(p => p.includes(t) ? p.filter(i => i !== t) : [...p, t])} className={`text-[9px] px-2 py-1 rounded-full border transition-colors ${tags.includes(t) ? 'bg-[#e67e22] text-white border-[#e67e22]' : 'border-black/20'}`}>{t}</button>
+            ))}
           </div>
-          <textarea value={refl} onChange={(e) => setRefl(e.target.value)} className="w-full p-2 bg-white/50 rounded-lg text-sm mb-3" placeholder="心はどう動いた？" />
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            {options.map(o => <button key={o} onClick={() => setNext(prev => prev.includes(o) ? prev.filter(i => i !== o) : [...prev, o])} className={`p-2 text-[9px] rounded-lg border ${next.includes(o) ? 'bg-[#e67e22] text-white' : 'border-black/20'}`}>{o}</button>)}
+          <textarea value={refl} onChange={(e) => setRefl(e.target.value)} className="w-full p-2 bg-white/50 rounded-lg text-sm mb-4 outline-none" placeholder="心はどう動いた？" />
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            {options.map(o => (
+              <button key={o} onClick={() => setNextType(o)} className={`p-2 text-[9px] rounded-lg border transition-colors ${nextType === o ? 'bg-[#e67e22] text-white border-[#e67e22]' : 'border-black/20'}`}>{o}</button>
+            ))}
           </div>
-          <button onClick={() => { onUpdate(entry.id, refl, tags, next); setIsEditing(false); }} className="w-full bg-[#4a4030] text-white py-2 rounded-lg text-xs font-bold">SUBMIT</button>
+          <textarea value={detail} onChange={(e) => setDetail(e.target.value)} className="w-full p-2 bg-white/50 rounded-lg text-sm mb-4 outline-none" placeholder="具体的にどうしたか記録しよう" />
+          <button onClick={() => { onUpdate(entry.id, { reflection: refl, tags, nextActionType: nextType, actionDetail: detail }); setIsRecording(false); }} className="w-full bg-[#4a4030] text-white py-2 rounded-lg text-xs font-bold">SAVE</button>
         </div>
       ) : entry.is_completed ? (
-        isExpanded ? (
-          <div className="mt-4 pt-4 border-t border-black/10">
-            <div className="flex gap-1 mb-2">
-              {tags.map(t => <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#e67e22]/20 text-[#4a4030]">{t}</span>)}
-            </div>
-            <p className="mb-2 opacity-80 whitespace-pre-wrap text-sm">{entry.reflection}</p>
-            <div className="text-[10px] opacity-60">次の一歩: {entry.nextActions?.join(', ')}</div>
+        <div>
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-bold text-base">{entry.action}</h3>
+            <span className="text-[10px] opacity-40">{new Date(entry.created_at).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}</span>
           </div>
-        ) : (
-          <div className="mt-3 text-xs opacity-70 flex flex-col gap-1">
-            <div className="flex gap-1">{entry.tags?.map(t => <span key={t} className="bg-[#e67e22]/10 px-1 rounded">{t}</span>)}</div>
-            <p className="truncate">{entry.reflection || "記録なし"}</p>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {entry.tags.map(t => <span key={t} className="bg-[#e67e22]/20 text-[#e67e22] px-2 py-0.5 rounded-full text-[9px] font-bold">{t}</span>)}
           </div>
-        )
+          <p className="text-sm opacity-80 bg-black/5 p-3 rounded-lg italic">"{entry.reflection}"</p>
+          <div className="mt-3 text-[11px] font-bold text-[#4a4030]/60 flex items-center justify-between">
+            <div>🌱 {entry.nextActionType}： <span className="font-normal opacity-70">{entry.actionDetail}</span></div>
+            <button onClick={() => setIsRecording(true)} className="p-1 opacity-50 hover:opacity-100"><Pencil size={14} /></button>
+          </div>
+        </div>
       ) : (
-        <button onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className="mt-4 w-full py-2 border border-dashed border-[#4a4030]/30 rounded-lg text-xs opacity-50 text-center hover:opacity-100 transition-opacity">
-          実践結果を記録する
-        </button>
+        <div>
+          <h3 className="font-bold text-base">{entry.action}</h3>
+          <button onClick={() => setIsRecording(true)} className="mt-3 w-full py-2 border border-dashed border-[#4a4030]/30 rounded-lg text-xs font-bold">🎯 記録する</button>
+        </div>
       )}
     </div>
   );
@@ -207,8 +190,7 @@ function CelebrationModal({ show, setShow, saveTrophy, currentFeelings, setCurre
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
       <div className="bg-[#dccfb0] p-8 rounded-3xl max-w-sm w-full text-center">
         <Trophy size={60} className="mx-auto text-[#e67e22] mb-4" />
-        <h2 className="font-black mb-4">ROUND CLEAR!</h2>
-        <textarea value={currentFeelings} onChange={(e) => setCurrentFeelings(e.target.value)} placeholder="今の気持ちを刻む" className="w-full p-3 rounded-lg mb-4" />
+        <textarea value={currentFeelings} onChange={(e) => setCurrentFeelings(e.target.value)} className="w-full p-3 rounded-lg mb-4" placeholder="今の気持ちを刻む" />
         <button onClick={saveTrophy} className="w-full py-3 bg-[#e67e22] text-white rounded-xl font-bold">COLLECT</button>
       </div>
     </div>
@@ -222,16 +204,7 @@ function InfoModal({ show, setShow }) {
       <div className="bg-[#dccfb0] p-8 rounded-3xl max-w-lg w-full relative">
         <button onClick={() => setShow(false)} className="absolute top-4 right-4"><X /></button>
         <h3 className="font-bold mb-4">How to use</h3>
-        <div className="text-sm leading-relaxed opacity-70 space-y-4">
-          <p>「自分らしさ」を見つけるのは難しいものですが、「これじゃない！」という違和感は、体が教えてくれる最も信頼できるシグナルです。</p>
-          <p>このリストは、あえて「自分らしくない選択」をすることで、その裏側に隠れているあなたの本当に大切にしたい価値観を浮かび上がらせるための実験室です。</p>
-          <ul className="list-disc pl-4 space-y-1">
-            <li><strong>らしくない選択:</strong> 普段なら選ばない行動をあえて取ってみる。</li>
-            <li><strong>違和感を観察:</strong> 「恥ずかしさ」や「無理感」を心のシグナルとして記録する。</li>
-            <li><strong>シグナルを貯める:</strong> 5つの記録でトロフィーを獲得し、自分の心地よい境界線を見つける。</li>
-          </ul>
-          <p className="italic pt-2">「これではない」という選択肢を減らしていくことで、心は少しずつ軽くなっていきます。</p>
-        </div>
+        <p className="text-sm opacity-70 leading-relaxed">違和感を実験し、自分らしさの輪郭を削り出すための記録場所です。</p>
       </div>
     </div>
   );
