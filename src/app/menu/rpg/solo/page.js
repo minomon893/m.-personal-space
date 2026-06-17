@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -13,7 +13,8 @@ const MONSTER_CONFIG = {
   golem: { name: "完璧主義ゴーレム", context: "テスト勉強全然出来てない！どうする？", initial: "不完全なものは許さん。私の強固な壁を越えてみろ。" },
 };
 
-export default function SoloBattle() {
+// コンポーネントの中身をここに移動
+function SoloBattleContent() {
   const searchParams = useSearchParams();
   const monsterKey = searchParams.get("monster") || "witch";
   const monster = MONSTER_CONFIG[monsterKey] || MONSTER_CONFIG.witch;
@@ -158,7 +159,6 @@ export default function SoloBattle() {
           <div className="text-[#8b5cf6]">PLAYER: {playerHp}</div>
         </div>
         
-        {/* モンスター表示枠：内側のComponent枠と外側のdiv枠が重ならないよう border を削除 */}
         <div className="relative w-full flex items-center justify-center min-h-[200px] mb-6">
           <MonsterDisplay monsterKey={monsterKey} isShaking={isShaking} />
           {damageBadge && (
@@ -186,5 +186,14 @@ export default function SoloBattle() {
         )}
       </div>
     </div>
+  );
+}
+
+// ここでSuspenseで囲んでエクスポートするのが解決の鍵です
+export default function SoloBattle() {
+  return (
+    <Suspense fallback={<div className="text-white text-center mt-10">Loading Battle...</div>}>
+      <SoloBattleContent />
+    </Suspense>
   );
 }
