@@ -50,7 +50,7 @@ const OFFICIAL_BINGOS = [
     title: "朝のゆとり日々ンゴ",
     is_official: true,
     grid: [
-      "起きる時にうにゃーーと伸びをしてみる", "朝ごはんにスープを飲む", "パンのにおいを嗅ぐ",
+      "起きる時にうにゃーーと伸びをしてみる", "朝ごはにスープを飲む", "パンのにおいを嗅ぐ",
       "歯磨き後の歯を舌でなぞってみる", "朝風呂してみる", "目を瞑って太陽の方を向いてみる",
       "Tシャツを素べく畳んでみる", "いらないものを一つ捨てる", "使ってなかったものを使ってみる"
     ]
@@ -68,8 +68,12 @@ const OFFICIAL_BINGOS = [
 ];
 
 export default function BingoPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const [theme, setTheme] = useState(getSeasonTheme());
   const [bingos, setBingos] = useState(OFFICIAL_BINGOS);
+  const [loading, setLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [progress, setProgress] = useState(Array(9).fill(false));
   const [favorites, setFavorites] = useState([]); 
@@ -96,7 +100,10 @@ export default function BingoPage() {
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setUserId(user.id);
 
     const { data: bData } = await supabase.from('bingos').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
@@ -107,6 +114,7 @@ export default function BingoPage() {
     if (fData) {
       setFavorites(fData.map(f => f.content));
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -114,17 +122,13 @@ export default function BingoPage() {
   useEffect(() => {
     if (currentBingo && userId) {
       const fetchProgress = async () => {
-        const { data } = await supabase.from('progress').select('checked, updated_at').eq('bingo_id', currentBingo.id).eq('user_id', userId).single();
+        const { data } = await supabase.from('progress').select('checked, updated_at').eq('bingo_id', currentBingo.id).eq('user_id', userId).maybeSingle();
         const currentProgress = data?.checked || Array(9).fill(false);
         setProgress(currentProgress);
         if (currentProgress.every(v => v) && data?.updated_at) {
           const lastUpdate = new Date(data.updated_at).getTime();
           const now = new Date().getTime();
-          if (now - lastUpdate < 24 * 60 * 60 * 1000) {
-            setIsLocked(true);
-          } else {
-            setIsLocked(false);
-          }
+          setIsLocked(now - lastUpdate < 24 * 60 * 60 * 1000);
         } else {
           setIsLocked(false);
         }
@@ -188,8 +192,7 @@ export default function BingoPage() {
       }).eq('id', editingId).eq('user_id', userId).select().single();
 
       if (data) {
-        const updatedBingos = bingos.map(b => b.id === editingId ? data : b);
-        setBingos(updatedBingos);
+        setBingos(prev => prev.map(b => b.id === editingId ? data : b));
       }
     } else {
       const { data } = await supabase.from('bingos').insert({
@@ -200,7 +203,7 @@ export default function BingoPage() {
       }).select().single();
 
       if (data) {
-        setBingos([...OFFICIAL_BINGOS, data, ...bingos.filter(b => !b.id.toString().startsWith('official-'))]);
+        setBingos(prev => [...OFFICIAL_BINGOS, data, ...prev.filter(b => !b.is_official)]);
         setSelectedIdx(OFFICIAL_BINGOS.length);
       }
     }
@@ -245,7 +248,7 @@ export default function BingoPage() {
   return (
     <main className={`min-h-screen bg-gradient-to-b ${theme.colors} transition-colors duration-[2000ms] flex flex-col items-center overflow-hidden font-sans relative`}>
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(10)].map((_, i) => (
+        {mounted && [...Array(10)].map((_, i) => (
           <motion.div
             key={`${selectedIdx}-${i}`}
             initial={{ top: -50, left: `${Math.random() * 100}%` }}
@@ -264,7 +267,7 @@ export default function BingoPage() {
       </div>
 
       <div className="absolute inset-0 pointer-events-none opacity-[0.12] mix-blend-multiply" 
-           style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/natural-paper.png')" }} />
+            style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/natural-paper.png')" }} />
 
       <div className="w-full flex justify-between items-center px-6 pt-8 z-50">
         <Link href="/menu" className="p-3 bg-white/40 backdrop-blur-md rounded-full border border-white/60 text-stone-500 hover:bg-white transition-all shadow-sm">
@@ -293,7 +296,7 @@ export default function BingoPage() {
 
       <div className="flex-1 w-full max-w-sm px-6 pt-4 pb-20 z-10 flex flex-col items-center justify-center">
         <AnimatePresence mode="wait">
-          {currentBingo && (
+          {!loading && currentBingo && (
             <motion.div 
               key={currentBingo.id}
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}
@@ -459,7 +462,7 @@ export default function BingoPage() {
           </div>
         )}
       </AnimatePresence>
-      {/* ... 以降のモーダルコンポーネントは変更なしのため省略 ... */}
+
       <AnimatePresence>
         {showIntro && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-stone-900/10 backdrop-blur-md">
