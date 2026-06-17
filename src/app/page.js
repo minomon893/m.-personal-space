@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 
 export default function HomePage() {
   const [visitorCount, setVisitorCount] = useState(0);
@@ -118,7 +118,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#E6E1CF] p-8 text-[#5F6F7A] flex flex-col items-center font-[var(--font-sans)] relative">
       {/* GUIDE BUTTON */}
-      <div className="absolute top-6 right-6 z-40">
+      <div className="absolute top-6 right-6 z-40 hidden">
         <button
           onClick={() => {
             setIsGuideOpen(true);
@@ -144,7 +144,7 @@ export default function HomePage() {
 
       {/* GUIDE MODAL */}
       {isGuideOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#5F6F7A]/20 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#5F6F7A]/20 backdrop-blur-sm animate-in fade-in duration-300 hidden">
           <div
             className="bg-[#F2F0E9] w-full max-w-sm max-h-[85vh] overflow-hidden rounded-[2.5rem] shadow-2xl border border-white relative flex flex-col transition-all duration-500"
             onClick={(e) => e.stopPropagation()}
@@ -270,15 +270,16 @@ export default function HomePage() {
           </div>
         </Link>
 
-        <Link href="/booking" className="block group">
-          <div className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center hover:bg-[#52606A] hover:-translate-y-[1px] transition-all cursor-pointer">
+        {/* カウンセリング（ロックされた状態） */}
+        <div className="block cursor-not-allowed">
+          <div className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center opacity-40 grayscale">
             <div className="text-left flex-1">
               <span className="block text-xs font-bold opacity-60 mb-1 uppercase tracking-wider">Counseling</span>
               <span className="text-[13px]">カウンセリング予約</span>
             </div>
-            <span className="opacity-60 group-hover:translate-x-1 transition-all">→</span>
+            <Lock size={16} className="opacity-60" />
           </div>
-        </Link>
+        </div>
 
         <Link href="/diary" className="block group pb-2">
           <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
@@ -290,8 +291,8 @@ export default function HomePage() {
           </div>
         </Link>
 
-        {/* 振り分けを適用したピクニックボタン */}
-        <Link href={picnicPath} className="block pt-4 group">
+        {/* 振り分けを適用したピクニックボタン（非表示） */}
+        <Link href={picnicPath} className="hidden block pt-4 group">
           <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
               <div className="flex items-center gap-2 mb-1">

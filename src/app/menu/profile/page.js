@@ -5,6 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, Eye, Edit3, Heart, Target, Sparkles, Trophy, Download } from "lucide-react";
 import { toPng } from 'html-to-image';
 
+// localStorage用の固定キー
+const STORAGE_KEY = "my_profile_data_v1";
+
 export default function HighContrastProfilePage() {
   const [isEditing, setIsEditing] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -42,28 +45,38 @@ export default function HighContrastProfilePage() {
     freeSpace: ""
   };
 
-  const [data, setData] = useState(initialData);
-
-  // 初回読み込み
-  useEffect(() => {
-    const savedData = localStorage.getItem("my_profile_data");
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        // 初期構造とマージして、キー不足によるエラーを防ぐ
-        setData(prev => ({ ...prev, ...parsed }));
-      } catch (e) {
-        console.error("Failed to load profile data", e);
+  // 読み込みを安定させるための初期化
+  const [data, setData] = useState(() => {
+    if (typeof window !== "undefined") {
+      const savedData = localStorage.getItem(STORAGE_KEY);
+      if (savedData) {
+        try {
+          return { ...initialData, ...JSON.parse(savedData) };
+        } catch (e) {
+          console.error("Failed to load profile data", e);
+        }
       }
     }
-  }, []);
+    return initialData;
+  });
 
   // データ変更時に保存
   useEffect(() => {
-    if (data !== initialData) {
-      localStorage.setItem("my_profile_data", JSON.stringify(data));
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
+
+  const handleToggleEditing = () => {
+    if (isEditing) {
+      const now = new Date();
+      const today = {
+        y: now.getFullYear().toString(),
+        m: (now.getMonth() + 1).toString().padStart(2, '0'),
+        d: now.getDate().toString().padStart(2, '0')
+      };
+      setData(prev => ({ ...prev, date: today }));
+    }
+    setIsEditing(!isEditing);
+  };
 
   const handleDownloadFull = async () => {
     if (!printRef.current) return;
@@ -125,18 +138,17 @@ export default function HighContrastProfilePage() {
           </Link>
           
           <div className="flex gap-2">
-            {/* Viewモードの時だけ表示 */}
             {!isEditing && (
               <button onClick={handleDownloadFull} disabled={isGenerating} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white border-2 border-[#222222] text-[#222222] px-4 py-2.5 rounded-full shadow-lg disabled:opacity-50">
                 <Download size={14} /> {isGenerating ? '...' : 'SAVE IMAGE'}
               </button>
             )}
             
-            <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#222222] text-[#FFFFFF] px-6 py-2.5 rounded-full shadow-xl">
+            <button onClick={handleToggleEditing} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#222222] text-[#FFFFFF] px-6 py-2.5 rounded-full shadow-xl">
               {isEditing ? (
-                <><Eye size={14} /> Switch to View Mode</>
+                <><Eye size={14} /> 編集をおわる</>
               ) : (
-                <><Edit3 size={14} /> Switch to Edit Mode</>
+                <><Edit3 size={14} /> 編集する</>
               )}
             </button>
           </div>
@@ -373,7 +385,6 @@ function RadarChart({ data }) {
   const center = size / 2;
   const radius = 85;
 
-  // 数値を丸めるヘルパー関数
   const fix = (num) => Number(num.toFixed(4));
 
   const points = data.map((item, i) => {

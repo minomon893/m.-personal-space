@@ -42,7 +42,6 @@ export default function ContactPage() {
       
       {/* HEADER */}
       <header className="w-full max-w-md flex justify-between items-center mt-6 mb-16">
-        {/* テキストを Back to Top に変更し、トップページへの遷移を維持しました */}
         <Link href="/" className="text-[11px] font-bold opacity-60 uppercase flex items-center gap-2 hover:opacity-100 transition-all">
           <ArrowLeft size={14}/> Back to Top
         </Link>
@@ -59,14 +58,17 @@ export default function ContactPage() {
             </h2>
             <div className="bg-[#B5A773]/10 p-5 rounded-[2rem] border border-[#B5A773]/20 mx-2 text-left">
               <p className="text-[11px] leading-relaxed">
-                お仕事のご依頼、サイトへの感想、メッセージはこちらから。<br /><br />
+                お仕事のご依頼、サイトへの感想、メッセージはこちらから。
+              </p>
+              {/* 全ての案内をhidden化 */}
+              <div className="hidden">
                 <span className="text-[#8e8154] font-bold inline-flex items-center gap-1.5">
                   <CheckCircle size={10} /> お悩み相談について
                 </span><br />
                 具体的なカウンセリングをご希望の方は
                 <Link href="/booking" className="underline underline-offset-2 hover:text-[#B5A773] font-bold"> 予約ページ </Link>
                 より承っております。
-              </p>
+              </div>
             </div>
           </div>
 

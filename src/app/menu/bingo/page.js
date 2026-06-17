@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../../lib/supabase";
 import { 
@@ -25,9 +25,26 @@ const getSeasonTheme = () => {
   return { name: "winter", colors: "from-[#EDF0F2] to-[#D9E1E8]", accent: "#7A8A99", text: "#535D66", glow: "rgba(122, 138, 153, 0.4)" };
 };
 
+const BINGO_EMOJIS = {
+  "official-0": ["🌿", "☁️", "🍀"],
+  "official-1": ["☀️", "🍞", "☕", "🌤️"],
+  "official-2": ["🌙", "✨", "🕯️", "💤"],
+  "default": ["🫧", "🕊️", "🍃","✉️"]
+};
+
 const BINGO_MESSAGES = ["いい感じです。", "一列そろいましたね。", "いい調子です。"];
 
 const OFFICIAL_BINGOS = [
+  {
+    id: "official-0",
+    title: "日々ンゴ",
+    is_official: true,
+    grid: [
+      "起きる", "朝ごはん", "歩く",
+      "できることから", "お風呂入る", "髪ちゃんと乾かす",
+      "夜ごはん", "明日すること確認", "寝る"
+    ]
+  },
   {
     id: "official-1",
     title: "朝のゆとり日々ンゴ",
@@ -62,6 +79,7 @@ export default function BingoPage() {
   const [bingoEffect, setBingoEffect] = useState(false);
   const [messageIdx, setMessageIdx] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+  const [userId, setUserId] = useState(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -72,12 +90,20 @@ export default function BingoPage() {
   const currentBingo = bingos[selectedIdx];
   const isOfficial = currentBingo?.id.toString().startsWith('official-') || currentBingo?.is_official === true;
 
+  const currentEmojis = useMemo(() => {
+    return BINGO_EMOJIS[currentBingo?.id] || BINGO_EMOJIS["default"];
+  }, [currentBingo]);
+
   const fetchData = useCallback(async () => {
-    const { data: bData } = await supabase.from('bingos').select('*').order('created_at', { ascending: false });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setUserId(user.id);
+
+    const { data: bData } = await supabase.from('bingos').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
     if (bData) {
       setBingos([...OFFICIAL_BINGOS, ...bData]);
     }
-    const { data: fData } = await supabase.from('favorites').select('content');
+    const { data: fData } = await supabase.from('favorites-bingo').select('content').eq('user_id', user.id);
     if (fData) {
       setFavorites(fData.map(f => f.content));
     }
@@ -86,9 +112,9 @@ export default function BingoPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
-    if (currentBingo) {
+    if (currentBingo && userId) {
       const fetchProgress = async () => {
-        const { data } = await supabase.from('progress').select('checked, updated_at').eq('bingo_id', currentBingo.id).single();
+        const { data } = await supabase.from('progress').select('checked, updated_at').eq('bingo_id', currentBingo.id).eq('user_id', userId).single();
         const currentProgress = data?.checked || Array(9).fill(false);
         setProgress(currentProgress);
         if (currentProgress.every(v => v) && data?.updated_at) {
@@ -105,7 +131,7 @@ export default function BingoPage() {
       };
       fetchProgress();
     }
-  }, [currentBingo]);
+  }, [currentBingo, userId]);
 
   const checkBingoCount = (p) => {
     const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
@@ -113,7 +139,7 @@ export default function BingoPage() {
   };
 
   const toggleCell = async (i) => {
-    if (isLocked) return;
+    if (isLocked || !userId) return;
     const newProgress = [...progress];
     const prevCount = checkBingoCount(progress);
     newProgress[i] = !newProgress[i];
@@ -132,33 +158,34 @@ export default function BingoPage() {
     }
 
     await supabase.from('progress').upsert({
+      user_id: userId,
       bingo_id: currentBingo.id,
       checked: newProgress,
-      updated_at: new Date()
+      updated_at: new Date().toISOString()
     });
   };
 
   const toggleFavorite = async (e, text) => { 
     e.stopPropagation();
+    if (!userId) return;
     const isFav = favorites.includes(text);
     if (isFav) {
       setFavorites(favorites.filter(f => f !== text));
-      await supabase.from('favorites').delete().eq('content', text);
+      await supabase.from('favorites-bingo').delete().eq('user_id', userId).eq('content', text);
     } else {
       setFavorites([...favorites, text]);
-      await supabase.from('favorites').insert({ content: text });
+      await supabase.from('favorites-bingo').insert({ user_id: userId, content: text });
     }
   };
 
   const handleSaveBingo = async () => {
-    const isGridComplete = newGrid.every(val => val.trim().length > 0);
-    if (!newTitle.trim() || !isGridComplete) return;
+    if (!userId || !newTitle.trim() || !newGrid.every(val => val.trim().length > 0)) return;
 
     if (editingId) {
       const { data } = await supabase.from('bingos').update({
         title: newTitle.trim(),
         grid: newGrid.map(v => v.trim())
-      }).eq('id', editingId).select().single();
+      }).eq('id', editingId).eq('user_id', userId).select().single();
 
       if (data) {
         const updatedBingos = bingos.map(b => b.id === editingId ? data : b);
@@ -166,6 +193,7 @@ export default function BingoPage() {
       }
     } else {
       const { data } = await supabase.from('bingos').insert({
+        user_id: userId,
         title: newTitle.trim(),
         grid: newGrid.map(v => v.trim()),
         is_official: false 
@@ -180,10 +208,10 @@ export default function BingoPage() {
   };
 
   const handleDeleteBingo = async () => {
-    if (isOfficial || !currentBingo) return;
+    if (isOfficial || !currentBingo || !userId) return;
     if (confirm("この日々ンゴを削除してもよろしいですか？")) {
-      await supabase.from('bingos').delete().eq('id', currentBingo.id);
-      await supabase.from('progress').delete().eq('bingo_id', currentBingo.id);
+      await supabase.from('bingos').delete().eq('id', currentBingo.id).eq('user_id', userId);
+      await supabase.from('progress').delete().eq('bingo_id', currentBingo.id).eq('user_id', userId);
       const newBingos = bingos.filter(b => b.id !== currentBingo.id);
       setBingos(newBingos);
       setSelectedIdx(0);
@@ -216,11 +244,10 @@ export default function BingoPage() {
 
   return (
     <main className={`min-h-screen bg-gradient-to-b ${theme.colors} transition-colors duration-[2000ms] flex flex-col items-center overflow-hidden font-sans relative`}>
-      {/* 花の降る背景アニメーション */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[...Array(10)].map((_, i) => (
           <motion.div
-            key={i}
+            key={`${selectedIdx}-${i}`}
             initial={{ top: -50, left: `${Math.random() * 100}%` }}
             animate={{ top: "110%", rotate: 360 }}
             transition={{
@@ -231,7 +258,7 @@ export default function BingoPage() {
             }}
             className="absolute text-2xl opacity-30"
           >
-            🌸
+            {currentEmojis[i % currentEmojis.length]}
           </motion.div>
         ))}
       </div>
@@ -249,13 +276,13 @@ export default function BingoPage() {
       </div>
 
       <div className="w-full z-40 pt-4 pb-4 px-6 text-center">
-          <h1 className="text-xl font-light tracking-[0.4em] opacity-80 mb-6" style={{ color: theme.text }}>日々ンゴ</h1>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x max-w-md mx-auto">
+          <h1 className="w-full text-center text-xl font-light tracking-[0.4em] opacity-80 mb-6" style={{ color: theme.text }}>日々ンゴ</h1>
+          <div className="flex justify-center gap-3 overflow-x-auto no-scrollbar pb-2 snap-x max-w-md mx-auto">
             {bingos.map((b, i) => (
               <motion.button
                 key={b.id}
                 onClick={() => setSelectedIdx(i)}
-                className={`min-w-[110px] px-4 py-2.5 rounded-2xl border text-left transition-all duration-500 snap-center
+                className={`min-w-[110px] px-4 py-2.5 rounded-2xl border transition-all duration-500 snap-center text-center
                   ${selectedIdx === i ? `bg-white shadow-lg border-white scale-105` : 'bg-white/20 border-transparent opacity-40 scale-95'}`}
               >
                 <p className="text-[10px] font-bold truncate opacity-80" style={{ color: theme.text }}>{b.title}</p>
@@ -290,7 +317,7 @@ export default function BingoPage() {
                   >
                     <Heart 
                       size={14} 
-                      className={favorites.includes(text) ? "fill-red-400 text-red-400" : "text-stone-300 opacity-60"} 
+                      className={favorites.includes(text) ? "fill-red-300 text-red-400" : "text-stone-300 opacity-60"} 
                     />
                   </button>
                   <span className="relative z-10 font-medium px-1 pointer-events-none">{text}</span>
@@ -346,9 +373,9 @@ export default function BingoPage() {
           <button 
             disabled={isLocked}
             onClick={async () => {
-             if (isLocked) return;
+             if (isLocked || !userId) return;
              if (confirm("進捗をリセットしますか？")) {
-               await supabase.from('progress').delete().eq('bingo_id', currentBingo.id);
+               await supabase.from('progress').delete().eq('bingo_id', currentBingo.id).eq('user_id', userId);
                setProgress(Array(9).fill(false));
              }
             }} 
@@ -375,7 +402,7 @@ export default function BingoPage() {
                   type="text" 
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="ビンゴのタイトル"
+                  placeholder="ビンゴのタイトルを入力"
                   className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-[12px] mb-4 outline-none"
                 />
 
@@ -419,11 +446,11 @@ export default function BingoPage() {
                   </div>
                 </div>
 
-                <button 
+                 <button 
                   onClick={handleSaveBingo}
                   disabled={!canSave}
                   className="w-full py-4 rounded-2xl text-white text-[12px] font-bold tracking-widest shadow-lg transition-all active:scale-95 disabled:bg-stone-200"
-                  style={{ backgroundColor: !canSave ? '#e5e7eb' : theme.accent }}
+                  style={{ backgroundColor: !canSave ? '#e5e7eb' : '#FADDE1' }} 
                 >
                   {editingId ? "更新する" : "保存してはじめる"}
                 </button>
@@ -432,7 +459,7 @@ export default function BingoPage() {
           </div>
         )}
       </AnimatePresence>
-
+      {/* ... 以降のモーダルコンポーネントは変更なしのため省略 ... */}
       <AnimatePresence>
         {showIntro && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-stone-900/10 backdrop-blur-md">

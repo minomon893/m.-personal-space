@@ -8,6 +8,8 @@ import {
   User,
   Lock,
   BookOpen,
+  Sun,
+  HomeIcon,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -67,8 +69,8 @@ export default function MenuPage() {
 
           {/* BASIC (Morning area) */}
           <section>
-            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase">
-              Basic
+            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase flex items-center gap-2">
+              <HomeIcon size={10} /> Basic
             </h2>
             <Link href="/menu/notices">
               <button
@@ -94,18 +96,22 @@ export default function MenuPage() {
             </h2>
 
             <div className="grid gap-4">
-              <Link href={isEnabled('rpg') ? "/menu/rpg" : "#"}>
-                <MenuButton title="REbeLABEL" subtitle="性格解釈RPG" isDisabled={!isEnabled('rpg')} />
-              </Link>
+              <div className="hidden">
+                <Link href={isEnabled('rpg') ? "/menu/rpg" : "#"}>
+                  <MenuButton title="REbeLABEL" subtitle="性格解釈RPG" isDisabled={!isEnabled('rpg')} />
+                </Link>
+              </div>
               <Link href={isEnabled('bot') ? "/menu/bot" : "#"}>
                 <MenuButton title="やわらかことぼっとくん" subtitle="アサーティブ変換ツール" isDisabled={!isEnabled('bot')} />
               </Link>
               <Link href={isEnabled('bingo') ? "/menu/bingo" : "#"}>
                 <MenuButton title="日々ンゴ" subtitle="感覚を観測する" isDisabled={!isEnabled('bingo')} />
               </Link>
-              <Link href={isEnabled('metacognition') ? "/menu/metacognition" : "#"}>
-                <MenuButton title="メタ認知トリガー開発部" subtitle="交流型脱フュージョントレーニング" isDisabled={!isEnabled('metacognition')} />
-              </Link>
+              <div className="hidden">
+                <Link href={isEnabled('metacognition') ? "/menu/metacognition" : "#"}>
+                  <MenuButton title="メタ認知トリガー開発部" subtitle="交流型脱フュージョントレーニング" isDisabled={!isEnabled('metacognition')} />
+                </Link>
+              </div>
               <Link href={isEnabled('support') ? "/menu/support" : "#"}>
                 <MenuButton title="福祉サービス案内" subtitle="緊急・DV・生活困窮の窓口" isDisabled={!isEnabled('support')} />
               </Link>
@@ -122,12 +128,16 @@ export default function MenuPage() {
               <Link href={isEnabled('profile') ? "/menu/profile" : "#"}>
                 <MenuButton title="プロフィール帳" subtitle="自分を整理" isDisabled={!isEnabled('profile')} />
               </Link>
-              <Link href={isEnabled('cards') ? "/menu/cards" : "#"}>
-                <MenuButton title="MAXIMUM vs MINIMUM" subtitle="中庸選択トレーニング" isDisabled={!isEnabled('cards')} />
-              </Link>
-              <Link href={isEnabled('nottodolist') ? "/menu/nottodolist" : "#"}>
-                <MenuButton title="Not to do list" subtitle="違和感を記録する" isDisabled={!isEnabled('nottodolist')} />
-              </Link>
+              <div className="hidden">
+                <Link href={isEnabled('cards') ? "/menu/cards" : "#"}>
+                  <MenuButton title="MAXIMUM vs MINIMUM" subtitle="中庸選択トレーニング" isDisabled={!isEnabled('cards')} />
+                </Link>
+              </div>
+              <div className="hidden">
+                <Link href={isEnabled('nottodolist') ? "/menu/nottodolist" : "#"}>
+                  <MenuButton title="Not to do list" subtitle="違和感を記録する" isDisabled={!isEnabled('nottodolist')} />
+                </Link>
+              </div>
               <Link href={isEnabled('external') ? "/menu/external" : "#"}>
                 <MenuButton 
                   title="外部ソース" 
@@ -148,15 +158,19 @@ export default function MenuPage() {
               <Link href={isEnabled('poem') ? "/menu/poem" : "#"}>
                 <MenuButton title="Free a poem" subtitle="今日のおまもり" isDisabled={!isEnabled('poem')} />
               </Link>
-              <Link href={isEnabled('ezine') ? "/menu/ezine" : "#"}>
-                <MenuButton title="Ezine" subtitle="Support / ¥500~" highlight isDisabled={!isEnabled('ezine')} />
-              </Link>
+              <div className="hidden">
+                <Link href={isEnabled('ezine') ? "/menu/ezine" : "#"}>
+                  <MenuButton title="Ezine" subtitle="Support / ¥500~" highlight isDisabled={!isEnabled('ezine')} />
+                </Link>
+              </div>
               <Link href={isEnabled('stickers') ? "/menu/stickers" : "#"}>
                 <MenuButton title="LINE Stamp" subtitle="もっちりとした人シリーズ" isDisabled={!isEnabled('stickers')} />
               </Link>
-              <Link href={isEnabled('web') ? "/menu/web" : "#"}>
-                <MenuButton title="Web site" subtitle="フリー素材 / 話し合いタイプ診断 / AI作曲ツール" isDisabled={!isEnabled('web')} />
-              </Link>
+              <div className="hidden">
+                <Link href={isEnabled('web') ? "/menu/web" : "#"}>
+                  <MenuButton title="Web site" subtitle="フリー素材 / 話し合いタイプ診断 / AI作曲ツール" isDisabled={!isEnabled('web')} />
+                </Link>
+              </div>
             </div>
           </section>
         </div>
@@ -196,7 +210,7 @@ function MenuButton({ title, subtitle, isSmall = false, highlight = false, isDis
           {subtitle && (
             <span
               className={`text-[10px] tracking-wide ${
-                highlight ? "text-[#B5A773]" : "opacity-50"
+                highlight ? "text-[#B5A773] font-bold" : "opacity-50"
               } `}
             >
               {subtitle}

@@ -11,15 +11,15 @@ export default function AboutPage() {
       {/* HEADER */}
       <header className="w-full max-w-md flex justify-between items-center mt-6 mb-16">
         <Link href="/" className="text-[11px] font-bold opacity-60 uppercase flex items-center gap-2 hover:opacity-100 transition-all">
-          <ArrowLeft size={14}/> Back to Home
+          <ArrowLeft size={14}/> Back to Top
         </Link>
         <span className="text-[10px] tracking-[0.3em] font-bold opacity-30 uppercase">About</span>
       </header>
 
-      <main className="w-full max-w-md space-y-16 mb-20">
+      <main className="w-full max-w-md mb-20">
         
         {/* CONCEPT SECTION */}
-        <section className="text-center space-y-6">
+        <section className="text-center space-y-6 mb-24">
           <div className="w-24 h-24 bg-white/40 rounded-full mx-auto flex items-center justify-center border border-white/40 shadow-sm">
             <span className="text-2xl italic text-[#B5A773]">m.</span>
           </div>
@@ -29,41 +29,41 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* PHILOSOPHY SECTION */}
-        <section className="space-y-8">
-          <div className="bg-white/45 p-8 rounded-[2.5rem] border border-white/40 shadow-sm space-y-6">
-            <h2 className="text-[11px] font-bold tracking-[0.2em] text-[#B5A773] uppercase border-b border-[#B5A773]/20 pb-2 inline-block">Philosophy</h2>
-            <div className="space-y-5 text-[13px] leading-relaxed opacity-90">
-              <p className="text-[14px] font-bold tracking-wider text-[#4A5568]">
-                「答えは、あなたの中にある」
-              </p>
-              <p>
-                カウンセリングにおいて私が最も大切にしているのは、解決策はクライアント自身が既に持っているということ。その自己理解を深めるお手伝いをすることが私の役割です。<br /><br />
-                深い自己理解にはまず<span className="font-bold underline decoration-[#B5A773]/40 decoration-2">「自己受容」</span>が欠かせません。そのままの自分に価値があると思える土台があってこそ、人は真の変化へと一歩を踏み出せます。
-              </p>
-              <p className="border-l-2 border-[#B5A773]/30 pl-4">
-                自己理解には時間がかかりますが、日々の問題は絶えず追いかけてきます。だからこそ、即効性のある<span className="font-bold">「行動変容」</span>の技術にも力を入れています。
-              </p>
-              <p>
-                「全ての成長は楽しくあるべき」という信念のもと、飽きずに取り組める自己理解ツールの開発とデザインを活動の主題にしています。
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Tag text="ABA" />
-              <Tag text="ACT" />
-              <Tag text="Narrative Therapy" />
-              <Tag text="Psychoanalysis" />
-              <Tag text="ADHD"/> 
-              <Tag text="ASD"/> 
-              <Tag text="Anxiety"/>
-              <Tag text="Depression"/>
-            </div>
+        {/* ROADMAP SECTION (斜め配置) */}
+        <section className="space-y-12">
+          <h2 className="text-[10px] font-bold tracking-[0.2em] text-[#B5A773] uppercase text-center opacity-60">Roadmap</h2>
+          
+          <div className="space-y-12">
+            <RoadmapItem 
+              year="2003/04" 
+              text="４人兄弟の３番手として福岡に生まれる。<br />中学生時代のモットーは『自惚れたらおわり』" 
+              align="left" 
+            />
+            <RoadmapItem 
+              year="2022/04" 
+              text="自分のしたいことが分からず受験が無理過ぎることに気付く。<br />なんやかんやでカナダへ留学。" 
+              align="right" 
+            />
+            <RoadmapItem 
+              year="2023/10" 
+              text="しっかり鬱を発症。<br />半年休学し、治療の中で自己分析・心理学の面白さに気付く。" 
+              align="left" 
+            />
+            <RoadmapItem 
+              year="Recent" 
+              text="メンタル心理カウンセラー資格を取得。<br />バイトをクビになり時間ができたのでYoutuberになる。" 
+              align="right" 
+            />
+            <RoadmapItem 
+              year="Diagnosis" 
+              text="「流石にADHD過ぎる」って思い診察に行ったら、<br />鬱・社交不安・全般性不安と判明。<br />ADHDはグレーゾーン。" 
+              align="left" 
+            />
           </div>
         </section>
 
         {/* YOUTUBE SECTION */}
-        <section className="space-y-4">
+        <section className="space-y-4 mt-24">
           <h2 className="text-[10px] font-bold opacity-50 tracking-[0.2em] uppercase text-center">Watching / YouTube</h2>
           <a 
             href="https://www.youtube.com/@33cjimmy" 
@@ -94,10 +94,18 @@ export default function AboutPage() {
   );
 }
 
-function Tag({ text }) {
+function RoadmapItem({ year, text, align }) {
   return (
-    <div className="inline-flex items-center bg-white/30 border border-white/50 px-3 py-1.5 rounded-full shadow-xs">
-      <span className="text-[10px] font-medium opacity-80 whitespace-nowrap">{text}</span>
+    <div className={`flex ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
+      <div className={`w-[75%] ${align === 'right' ? 'text-right' : 'text-left'}`}>
+        <span className="block text-[10px] font-bold text-[#B5A773] uppercase tracking-widest mb-1">
+          {year}
+        </span>
+        <p 
+          className="text-[13px] leading-relaxed opacity-90 font-medium"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      </div>
     </div>
   );
 }

@@ -10,7 +10,6 @@ export default function TermsPage() {
         
         {/* ヘッダー */}
         <nav className="mb-12">
-          {/* aタグに切り替え、確実にトップページ(src/app/page.js)へ遷移するようにしました */}
           <a href="/" className="text-[11px] font-bold opacity-60 uppercase flex items-center gap-2 hover:opacity-100 transition-all">
             <ArrowLeft size={14}/> Back to Top
           </a>
@@ -33,49 +32,39 @@ export default function TermsPage() {
             <h2 className="font-bold text-[#4A5568]">第1条（本サービスの性質）</h2>
             <p className="opacity-80">
               1. 本サービスは、心理学の知見に基づいた自己理解および行動変容の支援を目的とするものであり、医療行為ではありません。<br />
-              2. 精神疾患の治療、診断を目的としたご利用はできません。現在通院中の方は、主治医の許可を得た上でご利用ください。
+              2. 精神疾患の治療、診断を目的としたご利用はできません。現在通院中の方は、主治医の判断を優先してください。
             </p>
           </section>
 
           {/* 第2条 */}
           <section className="space-y-4">
-            <h2 className="font-bold text-[#4A5568]">第2条（契約の成立）</h2>
+            <h2 className="font-bold text-[#4A5568]">第2条（利用について）</h2>
             <p className="opacity-80">
-              ユーザーが当方指定の方法（公式LINE等）で申し込みを行い、当方が規定する料金の支払いが完了した時点で、本サービスの利用契約が成立するものとします。
+              本サービスは、当方の発信するコンテンツを通じて、どなたでも自由に利用できるものとします。
             </p>
           </section>
 
           {/* 第3条 */}
           <section className="space-y-4">
-            <h2 className="font-bold text-[#4A5568]">第3条（キャンセル・返金規定）</h2>
+            <h2 className="font-bold text-[#4A5568]">第3条（禁止事項）</h2>
             <p className="opacity-80">
-              1. 提供するサービスの性質上（デジタルコンテンツおよび予約枠の確保）、決済完了後のユーザー都合によるキャンセルおよび返金には一切応じられません。<br />
-              2. リアルタイムセッションの予約変更は、実施の24時間前までにご連絡ください。それ以降の変更・欠席は、サービスを提供したものとみなし、返金はいたしません。
+              ユーザーは本サービスの利用にあたり、以下の行為を行ってはなりません。<br />
+              ・提供されたコンテンツ（文章、図表、データ等）の無断転載、二次配布、商用利用<br />
+              ・当方または第三者に対する誹謗中傷や公序良俗に反する行為
             </p>
           </section>
 
           {/* 第4条 */}
           <section className="space-y-4">
-            <h2 className="font-bold text-[#4A5568]">第4条（禁止事項）</h2>
-            <p className="opacity-80">
-              ユーザーは本サービスの利用にあたり、以下の行為を行ってはなりません。<br />
-              ・提供されたPDFガイド等の無断転載、二次配布、商用利用<br />
-              ・相談内容、セッション音声、動画の録音・録画およびSNS等への公開<br />
-              ・当方または第三者に対する誹謗中傷や公序良俗に反する行為
-            </p>
-          </section>
-
-          {/* 第5条 */}
-          <section className="space-y-4">
-            <h2 className="font-bold text-[#4A5568]">第5条（免責事項）</h2>
+            <h2 className="font-bold text-[#4A5568]">第4条（免責事項）</h2>
             <p className="opacity-80">
               本サービスの効果には個人差があります。本サービスを利用したことによる結果、および行動の最終的な決定については、ユーザー自身の責任において行うものとし、当方は一切の責任を負いません。
             </p>
           </section>
 
-          {/* 第6条（個人情報の取扱い） */}
+          {/* 第5条（個人情報の取扱い） */}
           <section className="space-y-4">
-            <h2 className="font-bold text-[#4A5568]">第6条（個人情報の取扱い）</h2>
+            <h2 className="font-bold text-[#4A5568]">第5条（個人情報の取扱い）</h2>
             <p className="opacity-80">
               1. 取得した個人情報（氏名、メールアドレス、相談内容等）は、本サービスの提供および本人への連絡以外の目的で使用することはありません。<br />
               2. 法令に基づく開示要請があった場合を除き、第三者に個人情報を開示することはありません。
