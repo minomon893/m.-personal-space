@@ -16,54 +16,23 @@ export default function AboutPage() {
         <span className="text-[10px] tracking-[0.3em] font-bold opacity-30 uppercase">About</span>
       </header>
 
-      <main className="w-full max-w-md mb-20">
+      <main className="w-full max-w-md">
         
         {/* CONCEPT SECTION */}
-        <section className="text-center space-y-6 mb-24">
+        <section className="text-center space-y-8 mb-20">
           <div className="w-24 h-24 bg-white/40 rounded-full mx-auto flex items-center justify-center border border-white/40 shadow-sm">
             <span className="text-2xl italic text-[#B5A773]">m.</span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-4">
             <h1 className="text-xl tracking-tight font-medium">地味で愛しいソロ生活 in カナダ</h1>
-            <p className="text-[10px] tracking-[0.4em] opacity-50 uppercase mt-1">Psychology × Play × Design</p>
-          </div>
-        </section>
-
-        {/* ROADMAP SECTION (斜め配置) */}
-        <section className="space-y-12">
-          <h2 className="text-[10px] font-bold tracking-[0.2em] text-[#B5A773] uppercase text-center opacity-60">Roadmap</h2>
-          
-          <div className="space-y-12">
-            <RoadmapItem 
-              year="2003/04" 
-              text="４人兄弟の３番手として福岡に生まれる。<br />中学生時代のモットーは『自惚れたらおわり』" 
-              align="left" 
-            />
-            <RoadmapItem 
-              year="2022/04" 
-              text="自分のしたいことが分からず受験が無理過ぎることに気付く。<br />なんやかんやでカナダへ留学。" 
-              align="right" 
-            />
-            <RoadmapItem 
-              year="2023/10" 
-              text="しっかり鬱を発症。<br />半年休学し、治療の中で自己分析・心理学の面白さに気付く。" 
-              align="left" 
-            />
-            <RoadmapItem 
-              year="Recent" 
-              text="メンタル心理カウンセラー資格を取得。<br />バイトをクビになり時間ができたのでYoutuberになる。" 
-              align="right" 
-            />
-            <RoadmapItem 
-              year="Diagnosis" 
-              text="「流石にADHD過ぎる」って思い診察に行ったら、<br />鬱・社交不安・全般性不安と判明。<br />ADHDはグレーゾーン。" 
-              align="left" 
-            />
+            <p className="text-[11px] leading-relaxed opacity-70 max-w-xs mx-auto">
+              心理学と日常の観察を通して、自分らしく心地よい暮らしをデザインしています。カナダでのソロライフの断片を、YouTubeで共有しています。
+            </p>
           </div>
         </section>
 
         {/* YOUTUBE SECTION */}
-        <section className="space-y-4 mt-24">
+        <section className="space-y-4">
           <h2 className="text-[10px] font-bold opacity-50 tracking-[0.2em] uppercase text-center">Watching / YouTube</h2>
           <a 
             href="https://www.youtube.com/@33cjimmy" 
@@ -86,26 +55,10 @@ export default function AboutPage() {
 
       </main>
 
-      <footer className="mt-auto pb-10 text-[9px] tracking-[0.4em] opacity-40 italic">
+      <footer className="mt-auto pt-20 pb-10 text-[9px] tracking-[0.4em] opacity-40 italic">
         m. personal space &copy; 2026
       </footer>
 
-    </div>
-  );
-}
-
-function RoadmapItem({ year, text, align }) {
-  return (
-    <div className={`flex ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
-      <div className={`w-[75%] ${align === 'right' ? 'text-right' : 'text-left'}`}>
-        <span className="block text-[10px] font-bold text-[#B5A773] uppercase tracking-widest mb-1">
-          {year}
-        </span>
-        <p 
-          className="text-[13px] leading-relaxed opacity-90 font-medium"
-          dangerouslySetInnerHTML={{ __html: text }}
-        />
-      </div>
     </div>
   );
 }
