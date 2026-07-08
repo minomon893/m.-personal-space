@@ -54,11 +54,11 @@ export default function PoemPage() {
         if (data && data.length > 0) {
           setDbPoems(data);
         } else {
-          setDbPoems(originalPoems.map(p => ({ body: p.text, title: p.author })));
+          setDbPoems(originalPoems); // 変更箇所：変換せずそのまま代入
         }
       } catch (err) {
         console.error("Error fetching poems:", err.message);
-        setDbPoems(originalPoems.map(p => ({ body: p.text, title: p.author })));
+        setDbPoems(originalPoems); // 変更箇所：変換せずそのまま代入
       }
     };
     fetchPoems();
@@ -90,7 +90,7 @@ export default function PoemPage() {
           <ArrowLeft size={12} /> Back to Menu
         </Link>
 
-        {/* 【追加】導入メッセージ */}
+        {/* 導入メッセージ */}
         <header className="mb-12 text-center space-y-3">
           <h1 className="text-[13px] font-bold tracking-[0.2em] opacity-80">Free a poem</h1>
           <p className="text-[11px] leading-relaxed opacity-50 font-light tracking-wide">

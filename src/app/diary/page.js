@@ -193,7 +193,7 @@ export default function DiaryPage() {
     <div className="min-h-screen bg-[#E7ECF1] p-8 text-[#4F5F6A] font-sans relative">
       <div className="max-w-md mx-auto">
         <Link className="text-[10px] tracking-[0.2em] opacity-60 flex items-center gap-2 mb-6 hover:opacity-100 transition-opacity" href="/">
-          <ArrowLeft size={12}/> BACK TO MENU
+          <ArrowLeft size={12}/> BACK TO TOP
         </Link>
 
         <header className="mb-10 flex justify-between items-start">

@@ -67,28 +67,6 @@ export default function MenuPage() {
 
         <div className="space-y-14">
 
-          {/* BASIC (Morning area) */}
-          <section>
-            <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase flex items-center gap-2">
-              <HomeIcon size={10} /> Basic
-            </h2>
-            <Link href="/menu/notices">
-              <button
-                className="relative w-full py-6 px-7 bg-white/60 border border-white/40 rounded-2xl hover:bg-white/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 text-left shadow-sm shadow-black/[0.02] active:scale-[0.98]"
-              >
-                <span className="text-[15px] font-bold block mb-0.5 tracking-wide">お知らせ</span>
-                <span className="text-[10px] opacity-40 uppercase tracking-wider">News & Updates</span>
-
-                {hasNewNotice && (
-                  <span className="absolute top-6 right-8 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute h-full w-full rounded-full bg-[#B5A773] opacity-40 duration-1000"></span>
-                    <span className="relative h-2.5 w-2.5 rounded-full bg-[#B5A773]"></span>
-                  </span>
-                )}
-              </button>
-            </Link>
-          </section>
-
           {/* PROBLEM SOLVING (Mid-day area) */}
           <section>
             <h2 className="text-[10px] tracking-[0.2em] font-bold opacity-40 mb-5 border-b border-[#5F6F7A]/20 pb-1 uppercase flex items-center gap-2">

@@ -17,7 +17,7 @@ export default function ExternalSourcesPage() {
       icon: <Sparkles size={16} className="text-[#5F6F7A]" />,
       title: "16Personalities",
       description:
-        "性格タイプの傾向を理解するための診断ツール。",
+        "人間の性格を１６のタイプに分類。",
       url: "https://www.16personalities.com/ja/性格診断テスト",
       label: "性格診断"
     },
@@ -26,7 +26,7 @@ export default function ExternalSourcesPage() {
       icon: <Compass size={16} className="text-[#5F6F7A]" />,
       title: "マイナビ 適職診断",
       description:
-        "キャリアの方向性を知るための診断ツール。",
+        "やりたいことと出来ることからキャリアの方向性を探る。",
       url: "https://job.mynavi.jp/27/pc/forward/forwardLowerGradeMatch/index",
       label: "キャリア"
     },
@@ -35,7 +35,7 @@ export default function ExternalSourcesPage() {
       icon: <Sparkles size={16} className="text-[#5F6F7A]" />,
       title: "よんぴた（４タイプ判定）",
       description:
-        "欲求傾向を分類する心理モデル。",
+        "書籍『人生の法則』を元にした欲求タイプ分類。",
       url: "https://yonpita.streamlit.app/",
       label: "心理"
     },

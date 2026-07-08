@@ -55,11 +55,11 @@ export default function NoticesPage() {
       <div className="max-w-md mx-auto">
         
         <Link
-          href="/menu"
+          href="/"
           className="text-[10px] tracking-[0.3em] font-bold opacity-40 uppercase flex items-center gap-2 mb-12 hover:opacity-100 transition-all group"
         >
           <ArrowLeft size={12} className="group-hover:-translate-x-1 transition-transform" /> 
-          Back to Menu
+          Back to Top
         </Link>
 
         <header className="mb-16">

@@ -1,30 +1,52 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Smile } from "lucide-react";
 import Image from "next/image";
 
 export default function LineStickersPage() {
+  // 確認済みのスタンプIDを保持するステート
+  const [viewedIds, setViewedIds] = useState([]);
+
   const stickers = [
     {
+      id: "sticker3", // ロジック用に識別子を追加
       title: "もっちりとした人 第３弾",
       url: "https://store.line.me/stickershop/product/33714167/ja",
       image: "/images/sticker3.png",
       isNew: true
     },
     {
+      id: "sticker2",
       title: "もっちりとした人 第２弾",
       url: "https://store.line.me/stickershop/product/27267753/ja",
       image: "/images/sticker2.png",
       isNew: false
     },
     {
+      id: "sticker1",
       title: "もっちりとした人 第１弾",
       url: "https://store.line.me/stickershop/product/27257978/ja",
       image: "/images/sticker1.png",
       isNew: false
     }
   ];
+
+  // ローカルストレージから確認済みデータを復元
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("viewed_line_stickers") || "[]");
+    setViewedIds(saved);
+  }, []);
+
+  // クリックした際に確認済みIDとして保存する関数
+  const handleStickerClick = (id) => {
+    if (!viewedIds.includes(id)) {
+      const updated = [...viewedIds, id];
+      setViewedIds(updated);
+      localStorage.setItem("viewed_line_stickers", JSON.stringify(updated));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#DED9C4] p-6 font-sans text-[#525B64]">
@@ -56,13 +78,15 @@ export default function LineStickersPage() {
               href={sticker.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => handleStickerClick(sticker.id)} // クリックイベントをアタッチ
               className="block bg-white/40 border border-white/30 rounded-[2rem] overflow-hidden hover:bg-white/60 transition-all shadow-sm group"
             >
 
               {/* IMAGE - 背景を bg-white に変更 */}
               <div className="aspect-video bg-white flex items-center justify-center p-6 relative">
                 
-                {sticker.isNew && (
+                {/* 元々isNewがtrue、かつまだクリックされていない場合のみNEWを表示 */}
+                {sticker.isNew && !viewedIds.includes(sticker.id) && (
                   <span className="absolute top-4 right-4 bg-[#A89D78] text-white text-[8px] px-2 py-0.5 rounded font-bold tracking-widest">
                     NEW
                   </span>

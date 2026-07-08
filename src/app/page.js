@@ -13,6 +13,9 @@ export default function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   // 加入状態によってリンク先を変えるためのステート（初期値は紹介ページ）
   const [picnicPath, setPicnicPath] = useState("/picnic");
+  
+  // --- 追加：お知らせの未読状態管理ステート ---
+  const [hasNewNotice, setHasNewNotice] = useState(false);
 
   // クライアントコンポーネント内でSupabaseを初期化
   const supabase = createBrowserClient(
@@ -99,7 +102,27 @@ export default function HomePage() {
         console.error("Counter Error:", err);
       }
     }
+
+    // --- 追加：お知らせの未読チェック関数 ---
+    async function checkNewNotices() {
+      try {
+        const { data, error } = await supabase
+          .from("notices")
+          .select("id")
+          .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          const readNotices = JSON.parse(localStorage.getItem("metacog_read_notices") || "[]");
+          const hasUnread = data.some(notice => !readNotices.includes(notice.id));
+          setHasNewNotice(hasUnread);
+        }
+      } catch (err) {
+        console.error("Notice Check Error:", err);
+      }
+    }
+
     handleVisitorCount();
+    checkNewNotices(); // お知らせチェックの実行
   }, [supabase]);
 
   const handleClosePrompt = () => {
@@ -259,19 +282,50 @@ export default function HomePage() {
       </header>
 
       {/* MAIN */}
-      <main className="w-full max-w-xs space-y-4 mb-24 relative z-10">
+      <main className="w-full max-w-xs space-y-4 mb-12 relative z-10">
+        {/* 1番上：お知らせ（未読状態バッジ対応） */}
+        <Link href="/menu/notices" className="block group">
+          <div className="relative w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
+            <div className="text-left flex-1">
+              <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">News</span>
+              <span className="text-[13px] opacity-80">お知らせ</span>
+            </div>
+            <span className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all mr-1">→</span>
+
+            {/* 未読お知らせがある場合に通知ドットを表示 */}
+            {hasNewNotice && (
+              <span className="absolute top-7 right-12 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute h-full w-full rounded-full bg-[#B5A773] opacity-40 duration-1000"></span>
+                <span className="relative h-2.5 w-2.5 rounded-full bg-[#B5A773]"></span>
+              </span>
+            )}
+          </div>
+        </Link>
+
+        {/* 2番目：コンディション記録（くすみブルー仕様、クリック可能） */}
+        <Link href="/diary" className="block group pb-2">
+          <div className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center hover:bg-[#4a5761] hover:-translate-y-[1px] transition-all cursor-pointer">
+            <div className="text-left flex-1">
+              <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">Diary</span>
+              <span className="text-[13px] opacity-90">コンディション記録</span>
+            </div>
+            <span className="opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
+          </div>
+        </Link>
+
+        {/* 3番目：メインメニュー */}
         <Link href="/menu" className="block group">
           <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
               <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">Main Menu</span>
-              <span className="text-[13px] opacity-80">メインメニュー / Ezine</span>
+              <span className="text-[13px] opacity-80">メインメニュー</span>
             </div>
             <span className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
           </div>
         </Link>
 
-        {/* カウンセリング（ロックされた状態） */}
-        <div className="block cursor-not-allowed">
+        {/* カウンセリング（非表示・コードは維持） */}
+        <div className="hidden block cursor-not-allowed">
           <div className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center opacity-40 grayscale">
             <div className="text-left flex-1">
               <span className="block text-xs font-bold opacity-60 mb-1 uppercase tracking-wider">Counseling</span>
@@ -281,17 +335,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <Link href="/diary" className="block group pb-2">
-          <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
-            <div className="text-left flex-1">
-              <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">Diary</span>
-              <span className="text-[13px] opacity-80">コンディション記録 / 日記</span>
-            </div>
-            <span className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-          </div>
-        </Link>
-
-        {/* 振り分けを適用したピクニックボタン（非表示） */}
+        {/* メンバーシップ限定の空間（元から非表示） */}
         <Link href={picnicPath} className="hidden block pt-4 group">
           <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
