@@ -56,7 +56,7 @@ export default function SupportPage() {
           Back to Menu
         </Link>
 
-        {/* HEADER */}
+       {/* HEADER */}
         <header className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#5F6F7A]/10 text-[10px] tracking-widest font-bold mb-4">
             <AlertCircle size={12} />
@@ -68,7 +68,7 @@ export default function SupportPage() {
           </h1>
 
           <p className="text-[11px] leading-relaxed opacity-70">
-            ひとりで抱え込まず、専門の相談窓口につながってください。
+            一人で抱え込まなくても大丈夫。
           </p>
         </header>
 

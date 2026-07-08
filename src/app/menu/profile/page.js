@@ -134,7 +134,7 @@ export default function HighContrastProfilePage() {
         {/* Navigation */}
         <div className="flex justify-between items-center mb-6 px-2 gap-4">
           <Link href="/menu" className="flex items-center gap-2 text-[10px] md:text-[11px] font-black tracking-widest uppercase text-[#4A4A4A]">
-            <ArrowLeft size={14} strokeWidth={3} /> <span className="hidden sm:inline">Return to Menu</span>
+            <ArrowLeft size={14} strokeWidth={3} /> <span className="hidden sm:inline">Back to Menu</span>
           </Link>
           
           <div className="flex gap-2">

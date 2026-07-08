@@ -278,27 +278,19 @@ export default function HomePage() {
         <h1 className="text-4xl italic mb-3">
           m. <span className="text-[#B5A773] font-light">personal space</span>
         </h1>
-        <p className="text-[10px] tracking-[0.4em] opacity-60 uppercase">地味で愛しいソロ生活</p>
+        <p className="text-[10px] tracking-[0.4em] opacity-60 uppercase">自分の本音を大切にするためのスペースです。</p>
       </header>
 
       {/* MAIN */}
       <main className="w-full max-w-xs space-y-4 mb-12 relative z-10">
-        {/* 1番上：お知らせ（未読状態バッジ対応） */}
+        {/* 1番上：お知らせ（未読状態：枠線を強調） */}
         <Link href="/menu/notices" className="block group">
-          <div className="relative w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-white/40 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
+          <div className={`relative w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer ${hasNewNotice ? "border-[#B5A773] shadow-[0_0_10px_rgba(181,167,115,0.3)]" : "border-white/40"}`}>
             <div className="text-left flex-1">
               <span className="block text-xs font-bold text-[#B5A773] mb-1 uppercase tracking-wider">News</span>
               <span className="text-[13px] opacity-80">お知らせ</span>
             </div>
             <span className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all mr-1">→</span>
-
-            {/* 未読お知らせがある場合に通知ドットを表示 */}
-            {hasNewNotice && (
-              <span className="absolute top-7 right-12 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute h-full w-full rounded-full bg-[#B5A773] opacity-40 duration-1000"></span>
-                <span className="relative h-2.5 w-2.5 rounded-full bg-[#B5A773]"></span>
-              </span>
-            )}
           </div>
         </Link>
 

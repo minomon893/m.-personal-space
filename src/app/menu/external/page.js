@@ -70,7 +70,7 @@ export default function ExternalSourcesPage() {
           <ArrowLeft size={12} /> Back to Menu
         </Link>
 
-        <header className="mb-12">
+        <header className="mb-12 text-center">
           <h1 className="text-xl font-bold tracking-[0.2em] mb-3 italic">
             External Sources
           </h1>

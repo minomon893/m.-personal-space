@@ -82,9 +82,11 @@ export default function MenuPage() {
               <Link href={isEnabled('bot') ? "/menu/bot" : "#"}>
                 <MenuButton title="やわらかことぼっとくん" subtitle="アサーティブ変換ツール" isDisabled={!isEnabled('bot')} />
               </Link>
-              <Link href={isEnabled('bingo') ? "/menu/bingo" : "#"}>
-                <MenuButton title="日々ンゴ" subtitle="感覚を観測する" isDisabled={!isEnabled('bingo')} />
+              <div className="hidden">
+              <Link href={isEnabled('cards') ? "/menu/cards" : "#"}>
+                <MenuButton title="MAXIMUM vs MINIMUM" subtitle="中庸選択トレーニング" isDisabled={!isEnabled('cards')} />
               </Link>
+              </div>
               <div className="hidden">
                 <Link href={isEnabled('metacognition') ? "/menu/metacognition" : "#"}>
                   <MenuButton title="メタ認知トリガー開発部" subtitle="交流型脱フュージョントレーニング" isDisabled={!isEnabled('metacognition')} />
@@ -106,11 +108,9 @@ export default function MenuPage() {
               <Link href={isEnabled('profile') ? "/menu/profile" : "#"}>
                 <MenuButton title="プロフィール帳" subtitle="自分を整理" isDisabled={!isEnabled('profile')} />
               </Link>
-              <div className="hidden">
-                <Link href={isEnabled('cards') ? "/menu/cards" : "#"}>
-                  <MenuButton title="MAXIMUM vs MINIMUM" subtitle="中庸選択トレーニング" isDisabled={!isEnabled('cards')} />
-                </Link>
-              </div>
+              <Link href={isEnabled('bingo') ? "/menu/bingo" : "#"}>
+                <MenuButton title="日々ンゴ" subtitle="感覚を観測する" isDisabled={!isEnabled('bingo')} />
+              </Link>
               <div className="hidden">
                 <Link href={isEnabled('nottodolist') ? "/menu/nottodolist" : "#"}>
                   <MenuButton title="Not to do list" subtitle="違和感を記録する" isDisabled={!isEnabled('nottodolist')} />
