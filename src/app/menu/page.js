@@ -100,7 +100,7 @@ export default function MenuPage() {
         </div>
 
         <footer className="mt-28 mb-12 text-center text-white/20 text-[9px] tracking-[0.4em] uppercase">
-  <Link href="/admin-secret-nnt-508" className="hover:text-white transition-colors">
+  <Link href="/admin" className="hover:text-white transition-colors">
     &copy; 2026 m.
   </Link> 
   <span> personal space</span>

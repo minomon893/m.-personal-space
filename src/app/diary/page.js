@@ -71,7 +71,7 @@ export default function DiaryPage() {
     reader.readAsText(file);
   };
 
-  // 全期間平均
+  // 期間平均計算
   const getAverage = (days) => {
     if (!logs.length) return 0;
     const now = Date.now();
@@ -83,15 +83,35 @@ export default function DiaryPage() {
   };
 
   /**
-   * グラフデータの計算 (リアルタイム反映ロジック)
+   * グラフデータの計算
    */
   const graphData = useMemo(() => {
     if (!graphPeriod) return [];
 
-    const year = viewDate.getFullYear();
-    const month = viewDate.getMonth();
+    if (graphPeriod === "weekly") {
+      const dayOfWeek = viewDate.getDay(); 
+      const startOfWeek = new Date(viewDate);
+      startOfWeek.setDate(viewDate.getDate() - dayOfWeek);
+      
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        const targetKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        
+        const dayLogs = logs.filter(l => {
+          const date = new Date(l.id);
+          const logKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          return logKey === targetKey;
+        });
 
-    if (graphPeriod === "month") {
+        const avg = dayLogs.length ? dayLogs.reduce((sum, log) => sum + log.score, 0) / dayLogs.length : 0;
+        return { label: `${d.getMonth() + 1}/${d.getDate()}`, score: avg, hasData: dayLogs.length > 0, dateKey: targetKey };
+      });
+    }
+
+    if (graphPeriod === "monthly") {
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       
       return Array.from({ length: daysInMonth }, (_, i) => {
@@ -104,33 +124,8 @@ export default function DiaryPage() {
           return logKey === targetKey;
         });
 
-        const avg = dayLogs.length 
-          ? dayLogs.reduce((sum, log) => sum + log.score, 0) / dayLogs.length 
-          : 0;
-
+        const avg = dayLogs.length ? dayLogs.reduce((sum, log) => sum + log.score, 0) / dayLogs.length : 0;
         return { label: `${day}`, score: avg, hasData: dayLogs.length > 0, dateKey: targetKey };
-      });
-    }
-
-    if (graphPeriod === "year") {
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      
-      return months.map((m, i) => {
-        const monthLogs = logs.filter(l => {
-          const d = new Date(l.id);
-          return d.getFullYear() === year && d.getMonth() === i;
-        });
-
-        const avg = monthLogs.length 
-          ? monthLogs.reduce((sum, log) => sum + log.score, 0) / monthLogs.length 
-          : 0;
-
-        return { 
-          label: m, 
-          score: avg, 
-          hasData: monthLogs.length > 0, 
-          firstLogIdInMonth: monthLogs.length > 0 ? monthLogs[monthLogs.length - 1].id : null 
-        };
       });
     }
     return [];
@@ -139,9 +134,21 @@ export default function DiaryPage() {
   // 期間移動
   const movePeriod = (step) => {
     const next = new Date(viewDate);
-    if (graphPeriod === "month") next.setMonth(next.getMonth() + step);
-    if (graphPeriod === "year") next.setFullYear(next.getFullYear() + step);
+    if (graphPeriod === "weekly") next.setDate(next.getDate() + (step * 7));
+    if (graphPeriod === "monthly") next.setMonth(next.getMonth() + step);
     setViewDate(next);
+  };
+
+  // 週表示用の日付生成ロジック（◯/◯ ～ ◯/◯ 表示へ変更）
+  const getWeekRange = () => {
+    const dayOfWeek = viewDate.getDay();
+    const startOfWeek = new Date(viewDate);
+    startOfWeek.setDate(viewDate.getDate() - dayOfWeek);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+    return `${startOfWeek.getMonth() + 1}/${startOfWeek.getDate()} ～ ${endOfWeek.getMonth() + 1}/${endOfWeek.getDate()}`;
   };
 
   // 保存
@@ -170,15 +177,9 @@ export default function DiaryPage() {
     setShowLogs(true);
     
     setTimeout(() => {
-      let targetElement = null;
-
-      if (graphPeriod === "month") {
-        const [y, m, d] = data.dateKey.split("-");
-        const formattedDate = `${parseInt(y)}/${parseInt(m)}/${parseInt(d)}`;
-        targetElement = logRefs.current[formattedDate];
-      } else if (graphPeriod === "year") {
-        targetElement = document.getElementById(`log-${data.firstLogIdInMonth}`);
-      }
+      const [y, m, d] = data.dateKey.split("-");
+      const formattedDate = `${parseInt(y)}/${parseInt(m)}/${parseInt(d)}`;
+      const targetElement = logRefs.current[formattedDate];
 
       if (targetElement) {
         targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -204,7 +205,6 @@ export default function DiaryPage() {
             <div className="h-[1px] w-12 bg-[#4F5F6A] opacity-20 mt-2" />
           </div>
           
-          {/* 追加：Diary画像表示ボタン */}
           <button 
             onClick={() => setShowDiaryImage(true)}
             className="p-3 bg-white/60 rounded-2xl border border-white shadow-sm hover:bg-white transition-colors hover:scale-105 active:scale-95"
@@ -216,19 +216,19 @@ export default function DiaryPage() {
         {/* STATS BUTTONS */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <button
-            onClick={() => { setGraphPeriod(graphPeriod === "month" ? null : "month"); setViewDate(new Date()); }}
-            className={`p-5 rounded-3xl border transition-all ${graphPeriod === "month" ? "bg-[#B5A773] border-[#B5A773] text-white shadow-md scale-[1.02]" : "bg-white/60 border-white/40"}`}
+            onClick={() => { setGraphPeriod(graphPeriod === "weekly" ? null : "weekly"); setViewDate(new Date()); }}
+            className={`p-5 rounded-3xl border transition-all ${graphPeriod === "weekly" ? "bg-[#B5A773] border-[#B5A773] text-white shadow-md scale-[1.02]" : "bg-white/60 border-white/40"}`}
           >
-            <p className={`text-[9px] uppercase tracking-widest mb-1 font-bold ${graphPeriod === "month" ? "text-white/70" : "opacity-50"}`}>Monthly</p>
-            <span className="text-2xl font-light">{getAverage(30)}%</span>
+            <p className={`text-[9px] uppercase tracking-widest mb-1 font-bold ${graphPeriod === "weekly" ? "text-white/70" : "opacity-50"}`}>Weekly</p>
+            <span className="text-2xl font-light">{getAverage(7)}%</span>
           </button>
 
           <button
-            onClick={() => { setGraphPeriod(graphPeriod === "year" ? null : "year"); setViewDate(new Date()); }}
-            className={`p-5 rounded-3xl border transition-all ${graphPeriod === "year" ? "bg-[#B5A773] border-[#B5A773] text-white shadow-md scale-[1.02]" : "bg-white/60 border-white/40"}`}
+            onClick={() => { setGraphPeriod(graphPeriod === "monthly" ? null : "monthly"); setViewDate(new Date()); }}
+            className={`p-5 rounded-3xl border transition-all ${graphPeriod === "monthly" ? "bg-[#B5A773] border-[#B5A773] text-white shadow-md scale-[1.02]" : "bg-white/60 border-white/40"}`}
           >
-            <p className={`text-[9px] uppercase tracking-widest mb-1 font-bold ${graphPeriod === "year" ? "text-white/70" : "opacity-50"}`}>Yearly</p>
-            <span className="text-2xl font-light">{getAverage(365)}%</span>
+            <p className={`text-[9px] uppercase tracking-widest mb-1 font-bold ${graphPeriod === "monthly" ? "text-white/70" : "opacity-50"}`}>Monthly</p>
+            <span className="text-2xl font-light">{getAverage(30)}%</span>
           </button>
         </div>
 
@@ -239,7 +239,9 @@ export default function DiaryPage() {
               <button onClick={() => movePeriod(-1)} className="p-2 hover:bg-black/5 rounded-full transition-colors"><ChevronLeft size={18} /></button>
               <div className="text-center">
                 <p className="text-[11px] font-bold tracking-[0.1em] text-[#4F5F6A]">
-                  {graphPeriod === "month" ? `${viewDate.getFullYear()} / ${viewDate.getMonth() + 1}` : `${viewDate.getFullYear()}`}
+                  {graphPeriod === "weekly" 
+                    ? getWeekRange()
+                    : `${viewDate.getFullYear()}年 ${viewDate.getMonth() + 1}月`}
                 </p>
               </div>
               <button onClick={() => movePeriod(1)} className="p-2 hover:bg-black/5 rounded-full transition-colors"><ChevronRight size={18} /></button>
