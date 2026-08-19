@@ -59,6 +59,12 @@ export default function MenuPage() {
               <Link href="/menu/bot">
                 <MenuButton title="やわらかことぼっとくん" subtitle="アサーティブ変換ツール" />
               </Link>
+              <Link href="/menu/bingo">
+                <MenuButton title="日々ンゴ" subtitle="感覚を観測する" />
+              </Link>
+              <Link href="/menu/nottodolist">
+                <MenuButton title="Not to do list" subtitle="やらないことの管理" />
+              </Link>
               <Link href="/menu/support">
                 <MenuButton title="福祉サービス案内" subtitle="緊急・DV・生活困窮の窓口" />
               </Link>
@@ -74,8 +80,8 @@ export default function MenuPage() {
               <Link href="/menu/profile">
                 <MenuButton title="プロフィール帳" subtitle="自分を整理" />
               </Link>
-              <Link href="/menu/bingo">
-                <MenuButton title="日々ンゴ" subtitle="感覚を観測する" />
+              <Link href="/menu/cards">
+                <MenuButton title="MAXIMIN神経衰弱" subtitle="思考のバランス調整" />
               </Link>
               <Link href="/menu/external">
                 <MenuButton title="外部ソース" subtitle="MBTI / 適職診断 / 4ぴた / つらチェック / セクシュアリティ診断" />
@@ -92,6 +98,12 @@ export default function MenuPage() {
               <Link href="/menu/poem">
                 <MenuButton title="Free a poem" subtitle="今日のおまもり" />
               </Link>
+              <Link href="/menu/ezine">
+                <MenuButton title="Ezine" subtitle="メールマガジン" />
+              </Link>
+              <Link hidden href="/menu/web">
+                <MenuButton title="オリジナルサイト" subtitle="特設ウェブサイト" />
+              </Link>
               <Link href="/menu/stickers">
                 <MenuButton title="LINE Stamp" subtitle="もっちりとした人シリーズ" />
               </Link>
@@ -100,11 +112,11 @@ export default function MenuPage() {
         </div>
 
         <footer className="mt-28 mb-12 text-center text-white/20 text-[9px] tracking-[0.4em] uppercase">
-  <Link href="/admin" className="hover:text-white transition-colors">
-    &copy; 2026 m.
-  </Link> 
-  <span> personal space</span>
-</footer>
+          <Link href="/admin" className="hover:text-white transition-colors">
+            &copy; 2026 m.
+          </Link> 
+          <span> personal space</span>
+        </footer>
       </div>
     </div>
   );

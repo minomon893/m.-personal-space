@@ -329,7 +329,7 @@ export default function HomePage() {
 
         {/* メンバーシップ限定の空間（元から非表示） */}
         <Link href={picnicPath} className="hidden block pt-4 group">
-          <div className="w-full py-7 px-8 bg-white/45 rounded-[2.5rem] border border-[#B5A773]/30 shadow-sm flex justify-between items-center hover:bg-white/70 hover:-translate-y-[1px] transition-all cursor-pointer">
+          <div className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center hover:bg-[#4a5761] hover:-translate-y-[1px] transition-all cursor-pointer">
             <div className="text-left flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <span className="block text-xs font-bold text-[#B5A773] tracking-wider">m. picnic space</span>

@@ -34,9 +34,9 @@ const BINGO_EMOJIS = {
 const BINGO_MESSAGES = ["いい感じです。", "一列そろいましたね。", "いい調子です。"];
 
 const OFFICIAL_BINGOS = [
-  { id: "official-0", title: "日々ンゴ", is_official: true, grid: ["起きる", "朝ごはん", "歩く", "できることから", "お風呂入る", "髪ちゃんと乾かす", "夜ごはん", "明日すること確認", "寝る"] },
-  { id: "official-1", title: "朝のゆとり日々ンゴ", is_official: true, grid: ["起きる時にうにゃーーと伸びをしてみる", "朝ごはにスープを飲む", "パンのにおいを嗅ぐ", "歯磨き後の歯を舌でなぞってみる", "朝風呂してみる", "目を瞑って太陽の方を向いてみる", "Tシャツを素べく畳んでみる", "いらないものを一つ捨てる", "使ってなかったものを使ってみる"] },
-  { id: "official-2", title: "夜の癒やし日々ンゴ", is_official: true, grid: ["スマホで雨音を流しながら眠る", "歌詞を見ながら一曲聴いてみる", "いい香りのアイテムをゲットする", "お気に入りの曲を一曲流す間だけ家事", "余洗いをちゃんとしてみる", "誰かにボイスメッセージを送ってみる", "自分の好きな食材の旬を調べる", "挨拶したことない人に挨拶してみる", "目を瞑って太陽の方を向いてみる"] }
+  { id: "official-0", title: "日々ンゴ", is_official: true, grid: ["起きる", "朝ごはん", "歩く", "できることから", "お風呂に入る", "髪ちゃんと乾かす", "夜ごはん", "明日すること確認", "寝る"] },
+  { id: "official-1", title: "朝のゆとり日々ンゴ", is_official: true, grid: ["起きる時にうにゃーーと伸びをする", "朝ごはんにスープを飲む", "パンのにおいを嗅ぐ", "歯磨き後の歯を舌でなぞる", "朝シャワー", "目を瞑って太陽の方を見る", "触り心地で服を選ぶ", "BGMをかける", "窓を開ける。"] },
+  { id: "official-2", title: "夜の癒やし日々ンゴ", is_official: true, grid: ["湯船につかる", "歌詞を見ながら１曲を聴いてみる", "いい香りのアイテムを使用する", "目の前にあるものをスケッチする", "余洗いをちゃんとしてみる", "誰かにボイスメッセージを送る", "夜散歩", "ベッドの上でストレッチをする", "セルフハグ＆よしよし"] }
 ];
 
 export default function BingoPage() {
@@ -49,6 +49,7 @@ export default function BingoPage() {
   const [showIntro, setShowIntro] = useState(false);
   const [showReward, setShowReward] = useState(false);
   const [rewardText, setRewardText] = useState("");
+  const [savedReward, setSavedReward] = useState("");
   const [bingoEffect, setBingoEffect] = useState(false);
   const [messageIdx, setMessageIdx] = useState(0);
 
@@ -57,6 +58,9 @@ export default function BingoPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newGrid, setNewGrid] = useState(Array(9).fill(""));
   const [activeInputIdx, setActiveInputIdx] = useState(0);
+
+  const [lockoutTime, setLockoutTime] = useState(null);
+  const [timeLeft, setTimeLeft] = useState("");
 
   const canSave = useMemo(() => {
     return newTitle.trim().length > 0 && newGrid.every(v => v.trim().length > 0);
@@ -81,7 +85,47 @@ export default function BingoPage() {
     } else {
       setProgress(Array(9).fill(false));
     }
+
+    const lockData = localStorage.getItem(`lock-${currentBingo.id}`);
+    if (lockData) {
+      setLockoutTime(parseInt(lockData, 10));
+    } else {
+      setLockoutTime(null);
+    }
+
+    const rewardData = localStorage.getItem(`reward-${currentBingo.id}`);
+    if (rewardData) {
+      setSavedReward(rewardData);
+    } else {
+      setSavedReward("");
+    }
   }, [currentBingo]);
+
+  useEffect(() => {
+    if (!lockoutTime) return;
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = lockoutTime - now;
+
+      if (diff <= 0) {
+        setLockoutTime(null);
+        setTimeLeft("");
+        localStorage.removeItem(`lock-${currentBingo?.id}`);
+        localStorage.removeItem(`reward-${currentBingo?.id}`);
+        setSavedReward("");
+      } else {
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(`${h}時間 ${m}分 ${s}秒`);
+      }
+    };
+
+    updateTimer();
+    const timerId = setInterval(updateTimer, 1000);
+    return () => clearInterval(timerId);
+  }, [lockoutTime, currentBingo?.id]);
 
   const checkBingoCount = (p) => {
     const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
@@ -89,6 +133,8 @@ export default function BingoPage() {
   };
 
   const toggleCell = (i) => {
+    if (lockoutTime && lockoutTime > Date.now()) return;
+
     const newProgress = [...progress];
     const prevCount = checkBingoCount(progress);
     newProgress[i] = !newProgress[i];
@@ -135,6 +181,8 @@ export default function BingoPage() {
     setBingos(updated);
     localStorage.setItem('user-bingos', JSON.stringify(updated.filter(b => !b.is_official)));
     localStorage.removeItem(`progress-${currentBingo.id}`);
+    localStorage.removeItem(`lock-${currentBingo.id}`);
+    localStorage.removeItem(`reward-${currentBingo.id}`);
     setSelectedIdx(0);
   };
 
@@ -183,8 +231,24 @@ export default function BingoPage() {
         <AnimatePresence mode="wait">
           {currentBingo && (
             <motion.div key={currentBingo.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }} className="w-full aspect-square grid grid-cols-3 gap-4 relative">
+              
+              {lockoutTime && lockoutTime > Date.now() && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-white/40 backdrop-blur-md">
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white/95 p-10 w-full max-w-sm rounded-[3rem] shadow-2xl border border-stone-100 text-center flex flex-col items-center">
+                    <Lock className="text-stone-400 mb-4" size={32} />
+                    <p className="text-sm font-bold tracking-widest mb-2" style={{ color: theme.text }}>今日は充分頑張りました。</p>
+                    {savedReward && (
+                      <p className="text-[11px] text-stone-500 font-medium mb-4 bg-stone-50 px-4 py-2 rounded-xl border border-stone-100">
+                        ご褒美：{savedReward}
+                      </p>
+                    )}
+                    <p className="text-stone-400 text-[12px] font-mono tracking-wider">次のプレイまで: {timeLeft}</p>
+                  </motion.div>
+                </div>
+              )}
+
               {currentBingo.grid.map((text, i) => (
-                <motion.div key={i} whileTap={{ scale: 0.94 }} onClick={() => toggleCell(i)} className={`relative p-3 text-[11px] flex items-center justify-center text-center border transition-all duration-700 rounded-[2rem] cursor-pointer ${progress[i] ? `bg-black/[0.05] border-transparent text-stone-300 shadow-inner` : `bg-white/80 border-white shadow-xl text-stone-600`}`}>
+                <motion.div key={i} whileTap={(!lockoutTime || lockoutTime <= Date.now()) ? { scale: 0.94 } : {}} onClick={() => toggleCell(i)} className={`relative p-3 text-[11px] flex items-center justify-center text-center border transition-all duration-700 rounded-[2rem] cursor-pointer ${progress[i] ? `bg-black/[0.05] border-transparent text-stone-300 shadow-inner` : `bg-white/80 border-white shadow-xl text-stone-600`}`}>
                   <button onClick={(e) => toggleFavorite(e, text)} className="absolute top-3 right-3 z-20"><Heart size={14} className={favorites.includes(text) ? "fill-red-300 text-red-400" : "text-stone-300 opacity-60"} /></button>
                   <span className="relative z-10 font-medium px-1">{text}</span>
                 </motion.div>
@@ -351,10 +415,17 @@ export default function BingoPage() {
               />
               <button 
                 onClick={() => { 
+                  const trimmedReward = rewardText.trim() || "ご褒美なし";
                   setShowReward(false); 
+                  setSavedReward(trimmedReward);
                   setRewardText(""); 
+                  localStorage.setItem(`reward-${currentBingo.id}`, trimmedReward);
                   localStorage.removeItem(`progress-${currentBingo.id}`);
                   setProgress(Array(9).fill(false));
+                  
+                  const unlockAt = Date.now() + 24 * 60 * 60 * 1000;
+                  localStorage.setItem(`lock-${currentBingo.id}`, unlockAt.toString());
+                  setLockoutTime(unlockAt);
                 }}
                 className="w-full py-4 rounded-2xl text-white text-[12px] font-bold shadow-lg"
                 style={{ backgroundColor: theme.accent }}
