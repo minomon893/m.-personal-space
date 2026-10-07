@@ -2,128 +2,79 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { createBrowserClient } from "@supabase/ssr";
-import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function HomePage() {
-  const [visitorCount, setVisitorCount] = useState(0);
+  const [streakDays, setStreakDays] = useState(1);
+  const [totalVisits, setTotalVisits] = useState(1);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   // ガイドのスライド番号 (0: テキスト, 1: 画像)
   const [currentSlide, setCurrentSlide] = useState(0);
-  // 加入状態によってリンク先を変えるためのステート（初期値は紹介ページ）
-  const [picnicPath, setPicnicPath] = useState("/picnic");
   
-  // --- 追加：お知らせの未読状態管理ステート ---
+  // お知らせの未読状態管理ステート
   const [hasNewNotice, setHasNewNotice] = useState(false);
 
-  // クライアントコンポーネント内でSupabaseを初期化
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-
   useEffect(() => {
-    async function handleVisitorCount() {
-      // 日本時間の今日の日付 (YYYY-MM-DD)
-      const today = new Intl.DateTimeFormat("ja-JP", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        timeZone: "Asia/Tokyo",
-      })
-        .format(new Date())
-        .replace(/\//g, "-");
+    // --- 1. 日本時間の今日の日付 (YYYY-MM-DD) を取得 ---
+    const today = new Intl.DateTimeFormat("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Tokyo",
+    })
+      .format(new Date())
+      .replace(/\//g, "-");
 
-      const storageKey = `has_counted_home_${today}`;
-      const guestIdKey = "visitor_guest_id";
-      const hidePromptKey = `hide_install_prompt_${today}`;
+    const hidePromptKey = `hide_install_prompt_${today}`;
 
-      // インストールプロンプトの表示制御
-      if (!localStorage.getItem(hidePromptKey)) {
-        setShowInstallPrompt(true);
-      }
-
-      try {
-        // 1. デバイス固有の guest_id を取得または生成
-        let guestId = localStorage.getItem(guestIdKey);
-        if (!guestId) {
-          guestId = Math.random().toString(36).substring(2, 15);
-          localStorage.setItem(guestIdKey, guestId);
-        }
-
-        // 2. 今日まだカウントされていなければDBに登録
-        if (!localStorage.getItem(storageKey)) {
-          // ログインしている場合は user_id を取得
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-
-          const { error: upsertError } = await supabase
-            .from("daily_access_logs")
-            .upsert(
-              { 
-                guest_id: guestId, 
-                accessed_at: today, 
-                user_id: user?.id || null // ログインしてればID、してなければnull
-              },
-              { onConflict: "guest_id, accessed_at" }
-            );
-          
-          if (!upsertError) {
-            localStorage.setItem(storageKey, "true");
-          }
-        }
-
-        // 3. 今日の全訪問者数（デバイス数）を取得
-        const { count, error } = await supabase
-          .from("daily_access_logs")
-          .select("*", { count: "exact", head: true })
-          .eq("accessed_at", today);
-
-        if (!error && count !== null) {
-          setVisitorCount(count);
-        }
-
-        // --- 修正箇所：ピクニック加入状態とセットアップ完了のチェック ---
-        const { data: { session } } = await supabase.auth.getSession();
-        const isSetupDone = localStorage.getItem("picnic_setup_done") === "true";
-
-        // セッションがあり、かつブラウザにセットアップ済みの記録がある場合は直接Gardenへ
-        if (session?.user && isSetupDone) {
-          setPicnicPath("/picnic/garden");
-        } else {
-          // それ以外（未ログインまたは初回ブラウザ）は紹介ページへ
-          setPicnicPath("/picnic");
-        }
-        // --------------------------------------------------------
-
-      } catch (err) {
-        console.error("Counter Error:", err);
-      }
+    // インストールプロンプトの表示制御
+    if (!localStorage.getItem(hidePromptKey)) {
+      setShowInstallPrompt(true);
     }
 
-    // --- 追加：お知らせの未読チェック関数 ---
-    async function checkNewNotices() {
-      try {
-        const { data, error } = await supabase
-          .from("notices")
-          .select("id")
-          .order("created_at", { ascending: false });
+    // --- 2. 個人アクセスデータ（連続日数 & 通算訪問数）の記録処理 ---
+    const lastVisitDate = localStorage.getItem("user_last_visit_date");
+    const currentStreak = parseInt(localStorage.getItem("user_visit_streak") || "0", 10);
+    const currentTotal = parseInt(localStorage.getItem("user_total_visits") || "0", 10);
 
-        if (!error && data) {
-          const readNotices = JSON.parse(localStorage.getItem("metacog_read_notices") || "[]");
-          const hasUnread = data.some(notice => !readNotices.includes(notice.id));
-          setHasNewNotice(hasUnread);
-        }
-      } catch (err) {
-        console.error("Notice Check Error:", err);
+    if (!lastVisitDate) {
+      // 初回訪問時
+      setStreakDays(1);
+      setTotalVisits(1);
+      localStorage.setItem("user_last_visit_date", today);
+      localStorage.setItem("user_visit_streak", "1");
+      localStorage.setItem("user_total_visits", "1");
+    } else if (lastVisitDate !== today) {
+      // 日付が変わってからの訪問時
+      const lastDate = new Date(lastVisitDate);
+      const currentDate = new Date(today);
+      const diffTime = currentDate.getTime() - lastDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      let newStreak = 1;
+      if (diffDays === 1) {
+        // 昨日訪れていれば連続日数を+1
+        newStreak = currentStreak + 1;
+      } else {
+        // 2日以上あいていればリセットして1日目に
+        newStreak = 1;
       }
-    }
 
-    handleVisitorCount();
-    checkNewNotices(); // お知らせチェックの実行
-  }, [supabase]);
+      const newTotal = currentTotal + 1;
+
+      setStreakDays(newStreak);
+      setTotalVisits(newTotal);
+
+      localStorage.setItem("user_last_visit_date", today);
+      localStorage.setItem("user_visit_streak", newStreak.toString());
+      localStorage.setItem("user_total_visits", newTotal.toString());
+    } else {
+      // 今日すでに訪問済みの場合（値を表示のみセット）
+      setStreakDays(currentStreak || 1);
+      setTotalVisits(currentTotal || 1);
+    }
+  }, []);
 
   const handleClosePrompt = () => {
     const today = new Intl.DateTimeFormat("ja-JP", {
@@ -272,8 +223,9 @@ export default function HomePage() {
 
       {/* HEADER */}
       <header className="w-full max-w-md text-center mt-12 mb-12">
-        <div className="inline-block px-4 py-1.5 bg-white/40 rounded-full text-[9px] tracking-[0.25em] mb-6 border border-white/30 shadow-sm">
-          TODAY&apos;S VISITOR: <span className="font-bold ml-1 text-[#B5A773]">{visitorCount}</span>
+        {/* 個人記録バッジ（連続訪問数 & 通算訪問数） */}
+        <div className="inline-block px-4 py-1.5 bg-white/40 rounded-full text-[9px] tracking-[0.2em] mb-6 border border-white/30 shadow-sm">
+          STREAK: <span className="font-bold text-[#B5A773] mr-1">🔥 {streakDays}日目</span>
         </div>
         <h1 className="text-4xl italic mb-3">
           m. <span className="text-[#B5A773] font-light">personal space</span>
