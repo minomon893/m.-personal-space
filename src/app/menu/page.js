@@ -8,23 +8,28 @@ import {
   User,
   BookOpen,
 } from "lucide-react";
-import { supabase } from "../../lib/supabase";
 
 export default function MenuPage() {
   const [hasNewNotice, setHasNewNotice] = useState(false);
 
   useEffect(() => {
-    // お知らせのチェックのみ残します
     const checkNewNotices = async () => {
-      const { data, error } = await supabase
-        .from('notices')
-        .select('id')
-        .order('created_at', { ascending: false });
+      try {
+        const res = await fetch("/api/notices");
+        if (!res.ok) return;
 
-      if (!error && data) {
-        const readNotices = JSON.parse(localStorage.getItem("metacog_read_notices") || "[]");
-        const hasUnread = data.some(notice => !readNotices.includes(notice.id));
-        setHasNewNotice(hasUnread);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const readNotices = JSON.parse(
+            localStorage.getItem("metacog_read_notices") || "[]"
+          );
+          const hasUnread = data.some(
+            (notice) => !readNotices.includes(notice.id)
+          );
+          setHasNewNotice(hasUnread);
+        }
+      } catch (e) {
+        // エラー時は静かにスキップ
       }
     };
 
@@ -57,13 +62,13 @@ export default function MenuPage() {
             </h2>
             <div className="grid gap-4">
               <Link href="/menu/bot">
-                <MenuButton title="やわらかことぼっとくん" subtitle="アサーティブ変換ツール" />
+                <MenuButton title="やわらかことぼっとくん" subtitle="コミュニケーション革命" />
               </Link>
               <Link href="/menu/bingo">
-                <MenuButton title="日々ンゴ" subtitle="感覚を観測する" />
+                <MenuButton title="日々ンゴ" subtitle="ちゃっかりしっかりご褒美を" />
               </Link>
               <Link href="/menu/nottodolist">
-                <MenuButton title="Not to do list" subtitle="やらないことの管理" />
+                <MenuButton title="Not to do list" subtitle="嫌な気持ちの駆け込み寺" />
               </Link>
               <Link href="/menu/support">
                 <MenuButton title="福祉サービス案内" subtitle="緊急・DV・生活困窮の窓口" />
@@ -78,10 +83,10 @@ export default function MenuPage() {
             </h2>
             <div className="grid gap-4">
               <Link href="/menu/profile">
-                <MenuButton title="プロフィール帳" subtitle="自分を整理" />
+                <MenuButton title="プロフィール帳" subtitle="アイスブレイクにも是非" />
               </Link>
-              <Link href="/menu/cards">
-                <MenuButton title="MAXIMIN神経衰弱" subtitle="思考のバランス調整" />
+              <Link href="/menu/metacognition">
+                <MenuButton title="メタ認知ラボ" subtitle="ハートは友達" />
               </Link>
               <Link href="/menu/external">
                 <MenuButton title="外部ソース" subtitle="MBTI / 適職診断 / 4ぴた / つらチェック / セクシュアリティ診断" />
@@ -99,10 +104,7 @@ export default function MenuPage() {
                 <MenuButton title="Free a poem" subtitle="今日のおまもり" />
               </Link>
               <Link href="/menu/ezine">
-                <MenuButton title="Ezine" subtitle="メールマガジン" />
-              </Link>
-              <Link hidden href="/menu/web">
-                <MenuButton title="オリジナルサイト" subtitle="特設ウェブサイト" />
+                <MenuButton title="Ezine" subtitle="手作り小冊子"  />
               </Link>
               <Link href="/menu/stickers">
                 <MenuButton title="LINE Stamp" subtitle="もっちりとした人シリーズ" />
@@ -122,7 +124,6 @@ export default function MenuPage() {
   );
 }
 
-// 判定ロジックが不要になったため、コンポーネントもシンプルにしました
 function MenuButton({ title, subtitle, isSmall = false, highlight = false }) {
   return (
     <div className={`w-full ${isSmall ? "py-4" : "py-6"} px-7 border rounded-2xl transition-all duration-300 text-left relative overflow-hidden shadow-sm shadow-black/[0.01] bg-white/60 border-white/40 hover:bg-white/80 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]`}>

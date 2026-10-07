@@ -123,7 +123,7 @@ export default function ExternalSourcesPage() {
         </div>
 
         <footer className="mt-20 mb-10 text-center opacity-30 text-[9px] tracking-widest uppercase">
-          &copy; 2026 Minori Yofu
+          &copy; 2026 m.personal space
         </footer>
 
       </div>

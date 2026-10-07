@@ -28,6 +28,7 @@ const BINGO_EMOJIS = {
   "official-0": ["🌿", "☁️", "🍀"],
   "official-1": ["☀️", "🍞", "☕", "🌤️"],
   "official-2": ["🌙", "✨", "🕯️", "💤"],
+  "official-3": ["🍵", "🧸", "🌱", "💭"],
   "default": ["🫧", "🕊️", "🍃","✉️"]
 };
 
@@ -36,7 +37,8 @@ const BINGO_MESSAGES = ["いい感じです。", "一列そろいましたね。
 const OFFICIAL_BINGOS = [
   { id: "official-0", title: "日々ンゴ", is_official: true, grid: ["起きる", "朝ごはん", "歩く", "できることから", "お風呂に入る", "髪ちゃんと乾かす", "夜ごはん", "明日すること確認", "寝る"] },
   { id: "official-1", title: "朝のゆとり日々ンゴ", is_official: true, grid: ["起きる時にうにゃーーと伸びをする", "朝ごはんにスープを飲む", "パンのにおいを嗅ぐ", "歯磨き後の歯を舌でなぞる", "朝シャワー", "目を瞑って太陽の方を見る", "触り心地で服を選ぶ", "BGMをかける", "窓を開ける。"] },
-  { id: "official-2", title: "夜の癒やし日々ンゴ", is_official: true, grid: ["湯船につかる", "歌詞を見ながら１曲を聴いてみる", "いい香りのアイテムを使用する", "目の前にあるものをスケッチする", "余洗いをちゃんとしてみる", "誰かにボイスメッセージを送る", "夜散歩", "ベッドの上でストレッチをする", "セルフハグ＆よしよし"] }
+  { id: "official-2", title: "夜の癒やし日々ンゴ", is_official: true, grid: ["湯船につかる", "歌詞を見ながら１曲を聴いてみる", "いい香りのアイテムを使用する", "目の前にあるものをスケッチする", "余洗いをちゃんとしてみる", "誰かにボイスメッセージを送る", "夜散歩", "ベッドの上でストレッチをする", "セルフハグ＆よしよし"] },
+  { id: "official-3", title: "セルフチェック日々ンゴ", is_official: true, grid: ["何時にどのくらい寝てる？", "食事の時間とバランスは？", "生理周期は？", "薬関連飲み忘れてない？", "音楽聞いてる？聞ける状況？", "何日学校行けてない？", "友達と話してる？話せそう？", "部屋の散らかり度は？", "やるべきことなにか減らせない？"] }
 ];
 
 export default function BingoPage() {
@@ -250,7 +252,7 @@ export default function BingoPage() {
               {currentBingo.grid.map((text, i) => (
                 <motion.div key={i} whileTap={(!lockoutTime || lockoutTime <= Date.now()) ? { scale: 0.94 } : {}} onClick={() => toggleCell(i)} className={`relative p-3 text-[11px] flex items-center justify-center text-center border transition-all duration-700 rounded-[2rem] cursor-pointer ${progress[i] ? `bg-black/[0.05] border-transparent text-stone-300 shadow-inner` : `bg-white/80 border-white shadow-xl text-stone-600`}`}>
                   <button onClick={(e) => toggleFavorite(e, text)} className="absolute top-3 right-3 z-20"><Heart size={14} className={favorites.includes(text) ? "fill-red-300 text-red-400" : "text-stone-300 opacity-60"} /></button>
-                  <span className="relative z-10 font-medium px-1">{text}</span>
+                  <span className="relative z-10 font-medium px-1 leading-tight">{text}</span>
                 </motion.div>
               ))}
             </motion.div>

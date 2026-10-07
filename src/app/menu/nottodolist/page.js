@@ -258,7 +258,7 @@ export default function NotToDoPage() {
             <input 
               value={newAction} 
               onChange={(e) => setNewAction(e.target.value)} 
-              placeholder="引っかかったこと / 挑戦したいこと" 
+              placeholder="モヤモヤを記録しよう　例）明日の授業のプレゼン" 
               className="flex-1 bg-transparent text-sm outline-none px-1" 
             />
           </div>
@@ -346,7 +346,7 @@ function LogItem({ entry, folders, onUpdate, onDeleteRequest }) {
   const [folderId, setFolderId] = useState(entry.folderId || folders[0]?.id);
 
   const currentFolder = folders.find(f => f.id === entry.folderId);
-  const tagsList = ['違和感', '無理感', '恥ずかしさ', '新しい発見', '達成感'];
+  const tagsList = ['違和感', '無理感', '恥ずかしさ','孤独感', 'やけくそ','焦燥感', '期待感', '達成感'];
   const options = ["ハードルを下げる", "今は時期じゃない", "誰かに相談する", "やれることはやった"];
 
   return (
@@ -378,7 +378,7 @@ function LogItem({ entry, folders, onUpdate, onDeleteRequest }) {
               <button key={t} onClick={() => setTags(p => p.includes(t) ? p.filter(i => i !== t) : [...p, t])} className={`text-[9px] px-2 py-1 rounded-full border transition-colors ${tags.includes(t) ? 'bg-[#e67e22] text-white border-[#e67e22]' : 'border-black/20'}`}>{t}</button>
             ))}
           </div>
-          <textarea value={refl} onChange={(e) => setRefl(e.target.value)} className="w-full p-2 bg-white/50 rounded-lg text-sm mb-4 outline-none" placeholder="振り返りメモ" />
+          <textarea value={refl} onChange={(e) => setRefl(e.target.value)} className="w-full p-2 bg-white/50 rounded-lg text-sm mb-4 outline-none" placeholder="振り返りメモ　例）前にも似たことあったなあ。。。" />
           
           <div className="text-[10px] font-bold opacity-50 mb-2">次のステップ</div>
           <div className="grid grid-cols-2 gap-2 mb-2">
@@ -386,7 +386,7 @@ function LogItem({ entry, folders, onUpdate, onDeleteRequest }) {
               <button key={o} onClick={() => setNextType(o)} className={`p-2 text-[9px] rounded-lg border transition-colors ${nextType === o ? 'bg-[#e67e22] text-white border-[#e67e22]' : 'border-black/20'}`}>{o}</button>
             ))}
           </div>
-          <textarea value={detail} onChange={(e) => setDetail(e.target.value)} className="w-full p-2 bg-white/50 rounded-lg text-sm mb-4 outline-none" placeholder="詳細" />
+          <textarea value={detail} onChange={(e) => setDetail(e.target.value)} className="w-full p-2 bg-white/50 rounded-lg text-sm mb-4 outline-none" placeholder="詳細　例）授業前一服いっとくか。。。" />
           <button onClick={() => { onUpdate(entry.id, { reflection: refl, tags, nextActionType: nextType, actionDetail: detail, folderId }); setIsRecording(false); }} className="w-full bg-[#4a4030] text-white py-2 rounded-lg text-xs font-bold">SAVE</button>
         </div>
       ) : entry.is_completed ? (

@@ -316,33 +316,6 @@ export default function HomePage() {
           </div>
         </Link>
 
-        {/* カウンセリング（非表示・コードは維持） */}
-        <div className="hidden block cursor-not-allowed">
-          <div className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center opacity-40 grayscale">
-            <div className="text-left flex-1">
-              <span className="block text-xs font-bold opacity-60 mb-1 uppercase tracking-wider">Counseling</span>
-              <span className="text-[13px]">カウンセリング予約</span>
-            </div>
-            <Lock size={16} className="opacity-60" />
-          </div>
-        </div>
-
-        {/* メンバーシップ限定の空間（元から非表示） */}
-        <Link href={picnicPath} className="hidden block pt-4 group">
-          <div className="w-full py-7 px-8 bg-[#5F6F7A] text-[#F2F0E9] rounded-[2.5rem] shadow-md flex justify-between items-center hover:bg-[#4a5761] hover:-translate-y-[1px] transition-all cursor-pointer">
-            <div className="text-left flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="block text-xs font-bold text-[#B5A773] tracking-wider">m. picnic space</span>
-                <span className="text-[8px] bg-[#B5A773]/10 text-[#B5A773] px-1.5 py-0.5 rounded tracking-tighter font-bold">MEMBERSHIP</span>
-              </div>
-              <span className="text-[13px] opacity-80">会員限定SNS</span>
-            </div>
-            <span className="text-[#B5A773] opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-          </div>
-          <p className="text-[9px] text-center mt-3 opacity-40 tracking-[0.1em]">
-            ※こちらはメンバーシップ限定の空間です
-          </p>
-        </Link>
       </main>
 
       {/* FOOTER */}

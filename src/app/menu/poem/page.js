@@ -55,11 +55,21 @@ export default function PoemPage() {
     }
     setIsOpening(true);
     setTimeout(() => {
-      const randomPoem = dbPoems[Math.floor(Math.random() * dbPoems.length)];
-      setPoem({ 
-        text: randomPoem.body || randomPoem.text, 
-        author: randomPoem.title || randomPoem.author || "Unknown" 
-      });
+      const sourceList = (dbPoems && dbPoems.length > 0) ? dbPoems : originalPoems;
+      const randomPoem = sourceList[Math.floor(Math.random() * sourceList.length)];
+      
+      if (randomPoem) {
+        setPoem({ 
+          text: randomPoem.body || randomPoem.text || "言葉が見つかりませんでした。", 
+          author: randomPoem.title || randomPoem.author || "Unknown" 
+        });
+      } else {
+        setPoem({
+          text: originalPoems[0].text,
+          author: originalPoems[0].author
+        });
+      }
+      
       setIsOpening(false);
     }, 1800);
   };
